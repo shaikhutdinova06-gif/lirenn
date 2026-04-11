@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <title>LIREN</title>
 <link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
 </head>
 
 <body>
@@ -11,12 +14,16 @@
 <h1>LIREN 🌱</h1>
 
 <input type="file" id="file">
-<input id="lat" placeholder="lat">
-<input id="lon" placeholder="lon">
+<input id="lat" placeholder="lat" value="55.7558">
+<input id="lon" placeholder="lon" value="37.6173">
 
 <button onclick="send()">Анализ</button>
+<button onclick="load3D()">3D карта</button>
 
-<pre id="out"></pre>
+<div id="out"></div>
+
+<div id="map" style="height:400px;"></div>
+<div id="plot3d" style="height:400px;"></div>
 
 <script src="/static/script.js"></script>
 </body>
