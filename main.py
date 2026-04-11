@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse
 from backend.api.routes import router as main_router
 from backend.api.calculator import router as calc_router
 from backend.api.health import router as health_router
+from backend.api.map3d import router as map3d_router
 
 app = FastAPI(title="LIREN")
 
@@ -19,6 +20,7 @@ app.add_middleware(
 app.include_router(main_router, prefix="/api")
 app.include_router(calc_router, prefix="/api")
 app.include_router(health_router, prefix="/api")
+app.include_router(map3d_router, prefix="/api")
 
 @app.get("/")
 def root():

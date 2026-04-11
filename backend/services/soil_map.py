@@ -1,5 +1,14 @@
 def get_soil_type(lat, lon):
-    # временно
-    if lat > 55:
+
+    if lat > 65:
+        return "tundra_gley"
+    if 58 < lat <= 65:
         return "podzolic"
-    return "chernozem"
+    if 50 < lat <= 58:
+        return "gray_forest"
+    if 45 < lat <= 50:
+        return "chernozem"
+    if lat <= 45:
+        return "chestnut"
+
+    return "unknown"
