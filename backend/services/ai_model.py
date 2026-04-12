@@ -8,14 +8,17 @@ MODEL_PATH = "backend/ml/model.pkl"
 model = None
 
 def load_model():
+    """Загружает модель если она существует"""
     global model
     if model is None:
         try:
             model = joblib.load(MODEL_PATH)
         except:
             model = None
+    return model
 
 def predict(file):
+    """Предсказание типа почвы (без обучения)"""
     contents = file.file.read()
     npimg = np.frombuffer(contents, np.uint8)
     img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
@@ -29,7 +32,7 @@ def predict(file):
         prob = max(model.predict_proba([feats])[0])
         return pred, float(prob)
     
-    # Иначе используем правила по цвету
+    # Иначе используем правила по цвету (fallback)
     soil = match_color(avg_color)
     confidence = get_confidence(avg_color, soil)
     

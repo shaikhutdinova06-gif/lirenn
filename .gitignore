@@ -58,3 +58,7 @@ liren_db.sqlite3
 # Temporary files
 *.tmp
 temp/
+
+# Datasets (heavy - train locally)
+dataset/
+dataset_auto/
