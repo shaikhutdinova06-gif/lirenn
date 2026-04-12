@@ -8,52 +8,75 @@ from backend.services.science_rules import get_soil_description
 import cv2
 import numpy as np
 import time
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 @router.post("/analyze")
 async def analyze(file: UploadFile, lat: float = Form(...), lon: float = Form(...)):
-    # Читаем файл один раз
-    contents = await file.read()
+    logger.info(f"Starting analysis for lat={lat}, lon={lon}")
     
-    # Гибридное предсказание (нужно сбросить позицию файла)
-    file.file.seek(0)
-    ai_type, map_type, conf, valid = hybrid_predict(file, lat, lon)
-    
-    # Детекция загрязнений
-    npimg = np.frombuffer(contents, np.uint8)
-    img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
-    pollution = detect_pollution(img)
-    
-    # Диагностика по поверхности
-    surface_diag, surface_conf = get_surface_diagnosis(img)
-    
-    # Здоровье почвы
-    health = soil_health(map_type, 6.5)
-    
-    # Научное описание
-    description = get_soil_description(ai_type)
-    
-    # Совпадение
-    match = (ai_type == map_type) and valid
-    
-    # Автообучение если совпадение и высокая уверенность
-    if match and conf > 0.85:
+    try:
+        # Читаем файл один раз
+        contents = await file.read()
+        logger.info(f"File read: {len(contents)} bytes")
+        
+        # Гибридное предсказание (нужно сбросить позицию файла)
         file.file.seek(0)
-        save_for_training(file, ai_type)
+        ai_type, map_type, conf, valid = hybrid_predict(file, lat, lon)
+        logger.info(f"Hybrid predict: ai={ai_type}, map={map_type}, conf={conf}")
+        
+        # Детекция загрязнений
+        npimg = np.frombuffer(contents, np.uint8)
+        img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            logger.error("Failed to decode image")
+            return {"error": "Failed to decode image"}
+        
+        pollution = detect_pollution(img)
+        logger.info(f"Pollution: {pollution}")
+        
+        # Диагностика по поверхности
+        surface_diag, surface_conf = get_surface_diagnosis(img)
+        logger.info(f"Surface: {surface_diag}, conf={surface_conf}")
+        
+        # Здоровье почвы
+        health = soil_health(map_type, 6.5)
+        
+        # Научное описание
+        description = get_soil_description(ai_type)
+        
+        # Совпадение
+        match = (ai_type == map_type) and valid
+        
+        # Автообучение если совпадение и высокая уверенность
+        if match and conf > 0.85:
+            file.file.seek(0)
+            save_for_training(file, ai_type)
 
-    return {
-        "ai": ai_type,
-        "map": map_type,
-        "confidence": round(conf, 2),
-        "match": match,
-        "valid": valid,
-        "health": round(health, 2),
-        "pollution": pollution,
-        "surface_diagnosis": surface_diag,
-        "surface_confidence": round(surface_conf, 2),
-        "description": description,
-        "lat": lat,
-        "lon": lon,
-        "timestamp": time.time()
-    }
+        result = {
+            "ai": ai_type,
+            "map": map_type,
+            "confidence": round(conf, 2),
+            "match": match,
+            "valid": valid,
+            "health": round(health, 2),
+            "pollution": pollution,
+            "surface_diagnosis": surface_diag,
+            "surface_confidence": round(surface_conf, 2),
+            "description": description,
+            "lat": lat,
+            "lon": lon,
+            "timestamp": time.time()
+        }
+        
+        logger.info(f"Analysis complete: {result}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error in analysis: {e}", exc_info=True)
+        return {"error": str(e)}

@@ -16,22 +16,47 @@ async function send(){
 
     let f = document.getElementById("file").files[0]
 
+    if (!f) {
+        document.getElementById("out").innerHTML = `
+<div class="card">
+    <h2>❌ Ошибка</h2>
+    <p>Пожалуйста, выберите файл</p>
+</div>
+`
+        return
+    }
+
     let form = new FormData()
     form.append("file", f)
     form.append("lat", document.getElementById("lat").value)
     form.append("lon", document.getElementById("lon").value)
 
-    let res = await fetch("/api/analyze", {
-        method:"POST",
-        body: form
-    })
+    try {
+        let res = await fetch("/api/analyze", {
+            method:"POST",
+            body: form
+        })
 
-    let d = await res.json()
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`)
+        }
 
-    let matchClass = d.match ? "highlight" : "warning"
-    let pollutionClass = d.pollution === "clean" ? "highlight" : "danger"
+        let d = await res.json()
 
-    document.getElementById("out").innerHTML = `
+        if (d.error) {
+            document.getElementById("out").innerHTML = `
+<div class="card">
+    <h2>❌ Ошибка</h2>
+    <p>${d.error}</p>
+</div>
+`
+            return
+        }
+
+        let matchClass = d.match ? "highlight" : "warning"
+        let pollutionClass = d.pollution === "clean" ? "highlight" : "danger"
+
+        document.getElementById("out").innerHTML = `
 <div class="card">
     <h2>🌱 LIREN Analysis</h2>
     <p><span class="highlight">AI предсказание:</span> ${d.ai}</p>
@@ -45,7 +70,17 @@ async function send(){
 </div>
 `
 
-    updateMap(d.lat || 55.7558, d.lon || 37.6173)
+        updateMap(d.lat || 55.7558, d.lon || 37.6173)
+    } catch (error) {
+        document.getElementById("out").innerHTML = `
+<div class="card">
+    <h2>❌ Ошибка</h2>
+    <p>${error.message}</p>
+    <p>Проверьте консоль браузера для деталей</p>
+</div>
+`
+        console.error("Error:", error)
+    }
 }
 
 async function load3D(){
