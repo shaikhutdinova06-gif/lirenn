@@ -317,3 +317,224 @@ async function showUserZones(){
         alert("Ошибка загрузки зон: " + error.message)
     }
 }
+
+async function loadDEM(lat, lon){
+    try {
+        let res = await fetch(
+            `https://api.opentopodata.org/v1/srtm90m?locations=${lat},${lon}`
+        )
+        let d = await res.json()
+        return d.results[0].elevation
+    } catch (error) {
+        console.error("Error loading DEM:", error)
+        return 100 // fallback elevation
+    }
+}
+
+async function buildTerrain(point){
+    try {
+        let size = 30
+        let z = []
+        
+        let base = await loadDEM(point.lat, point.lon)
+        
+        for(let i = 0; i < size; i++){
+            z[i] = []
+            for(let j = 0; j < size; j++){
+                let noise = Math.random() * 2
+                let h = base + noise + (point.moisture || 30) * 0.2
+                z[i][j] = h
+            }
+        }
+        
+        let trace = {
+            z: z,
+            type: 'surface',
+            colorscale: 'Earth',
+            colorbar: {title: 'Высота (м)'}
+        }
+        
+        let layout = {
+            title: '3D Рельеф участка',
+            scene: {
+                xaxis: {title: 'X'},
+                yaxis: {title: 'Y'},
+                zaxis: {title: 'Высота'}
+            }
+        }
+        
+        Plotly.newPlot('plot3d', [trace], layout)
+    } catch (error) {
+        console.error("Error building terrain:", error)
+        alert("Ошибка построения рельефа: " + error.message)
+    }
+}
+
+function buildVoxelSoil(point){
+    try {
+        // Очищаем предыдущий canvas
+        let container = document.getElementById("plot3d")
+        container.innerHTML = ""
+        
+        const scene = new THREE.Scene()
+        const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000)
+        const renderer = new THREE.WebGLRenderer()
+        
+        renderer.setSize(400, 400)
+        container.appendChild(renderer.domElement)
+        
+        // Цвета горизонтов
+        const horizonColors = {
+            "AU": 0x2e1c0b,
+            "AY": 0x5a4a3f,
+            "E": 0xffffff,
+            "BT": 0x7b4f2c,
+            "BCA": 0x8b7355,
+            "G": 0x6d7f8f,
+            "C": 0x999999
+        }
+        
+        // Создаём блоки
+        for(let x = 0; x < 10; x++){
+            for(let y = 0; y < 10; y++){
+                for(let z = 0; z < 5; z++){
+                    
+                    let color = 0x8B4513
+                    
+                    if(z === 4) color = horizonColors["AU"] // гумус
+                    if(z === 2) color = horizonColors["BT"] // средний слой
+                    if(z === 0) color = horizonColors["C"] // порода
+                    
+                    // Влияние влажности
+                    if(point.moisture > 40){
+                        color = 0x2f4f4f // мокрая почва
+                    }
+                    
+                    // Влияние загрязнения
+                    if(point.pollution && point.pollution !== "clean"){
+                        color = 0xff0000 // загрязнённая почва
+                    }
+                    
+                    const geometry = new THREE.BoxGeometry(0.9, 0.9, 0.9)
+                    const material = new THREE.MeshBasicMaterial({color})
+                    
+                    const cube = new THREE.Mesh(geometry, material)
+                    
+                    cube.position.set(x - 5, y - 5, z)
+                    scene.add(cube)
+                }
+            }
+        }
+        
+        camera.position.z = 20
+        camera.position.y = 5
+        camera.lookAt(0, 0, 0)
+        
+        function animate(){
+            requestAnimationFrame(animate)
+            renderer.render(scene, camera)
+        }
+        
+        animate()
+    } catch (error) {
+        console.error("Error building voxel soil:", error)
+        alert("Ошибка построения voxel модели: " + error.message)
+    }
+}
+
+async function buildScientificSoil(point){
+    try {
+        // Получаем горизонты с сервера
+        let res = await fetch(`/api/horizons?soil_type=${point.soil_type}`)
+        let d = await res.json()
+        
+        let layers = d.horizons || ["AU", "BT", "C"]
+        
+        // Очищаем предыдущий canvas
+        let container = document.getElementById("plot3d")
+        container.innerHTML = ""
+        
+        const scene = new THREE.Scene()
+        const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000)
+        const renderer = new THREE.WebGLRenderer()
+        
+        renderer.setSize(400, 400)
+        container.appendChild(renderer.domElement)
+        
+        // Цвета горизонтов
+        const horizonColors = {
+            "AU": 0x2e1c0b,
+            "AY": 0x5a4a3f,
+            "E": 0xffffff,
+            "BT": 0x7b4f2c,
+            "BCA": 0x8b7355,
+            "G": 0x6d7f8f,
+            "C": 0x999999
+        }
+        
+        // Создаём слои по горизонтам
+        layers.forEach((layer, i) => {
+            for(let x = 0; x < 10; x++){
+                for(let y = 0; y < 10; y++){
+                    
+                    let color = horizonColors[layer] || 0x8B4513
+                    
+                    // Влияние влажности
+                    if(point.moisture > 40){
+                        color = 0x2f4f4f
+                    }
+                    
+                    // Влияние загрязнения
+                    if(point.pollution && point.pollution !== "clean"){
+                        color = 0xff0000
+                    }
+                    
+                    const geometry = new THREE.BoxGeometry(0.9, 0.9, 0.9)
+                    const material = new THREE.MeshBasicMaterial({color})
+                    
+                    const cube = new THREE.Mesh(geometry, material)
+                    
+                    cube.position.set(x - 5, y - 5, i)
+                    scene.add(cube)
+                }
+            }
+        })
+        
+        camera.position.z = 20
+        camera.position.y = 5
+        camera.lookAt(0, 0, 0)
+        
+        function animate(){
+            requestAnimationFrame(animate)
+            renderer.render(scene, camera)
+        }
+        
+        animate()
+    } catch (error) {
+        console.error("Error building scientific soil:", error)
+        alert("Ошибка построения научной модели: " + error.message)
+    }
+}
+
+async function loadTerrain(){
+    let lat = parseFloat(document.getElementById("lat").value)
+    let lon = parseFloat(document.getElementById("lon").value)
+    await buildTerrain({lat, lon, moisture: 30})
+}
+
+async function loadVoxelSoil(){
+    let point = {
+        moisture: 30,
+        pollution: "clean"
+    }
+    buildVoxelSoil(point)
+}
+
+async function loadScientificSoil(){
+    let point = {
+        soil_type: "chernozem",
+        moisture: 30,
+        pollution: "clean"
+    }
+    await buildScientificSoil(point)
+}
