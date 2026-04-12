@@ -2,6 +2,16 @@ let map = L.map('map').setView([55.7558, 37.6173], 5)
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
 
+let userPoint = null
+
+function lirenSay(text){
+    document.getElementById("liren-help").innerHTML = `
+        <div class="liren-box">
+            🌱 Лирен: ${text}
+        </div>
+    `
+}
+
 let marker
 
 function updateMap(lat, lon){
@@ -17,6 +27,7 @@ async function send(){
     let f = document.getElementById("file").files[0]
 
     if (!f) {
+        lirenSay("Пожалуйста, выберите файл для анализа 📷")
         document.getElementById("out").innerHTML = `
 <div class="card">
     <h2>❌ Ошибка</h2>
@@ -25,6 +36,8 @@ async function send(){
 `
         return
     }
+
+    lirenSay("Анализирую фото почвы... Это займёт немного времени 🔬")
 
     let form = new FormData()
     form.append("file", f)
@@ -44,6 +57,7 @@ async function send(){
         let d = await res.json()
 
         if (d.error) {
+            lirenSay("Произошла ошибка при анализе 😢")
             document.getElementById("out").innerHTML = `
 <div class="card">
     <h2>❌ Ошибка</h2>
@@ -71,6 +85,14 @@ async function send(){
 `
 
         updateMap(d.lat || 55.7558, d.lon || 37.6173)
+        
+        if(d.pollution === "clean" && d.health > 0.7){
+            lirenSay("Анализ завершён! Почва в хорошем состоянии 🌿")
+        } else if(d.pollution !== "clean"){
+            lirenSay("Обнаружено загрязнение! Рекомендую восстановление ⚠️")
+        } else {
+            lirenSay("Анализ завершён! Рекомендую улучшить состояние почвы 💧")
+        }
         
         // Сохраняем точку пользователя
         savePoint(d)
@@ -331,47 +353,113 @@ async function loadDEM(lat, lon){
     }
 }
 
-async function buildTerrain(point){
+async function buildUserArea(point){
     try {
-        let size = 30
-        let z = []
+        let elevation = await loadDEM(point.lat, point.lon)
         
-        let base = await loadDEM(point.lat, point.lon)
+        document.getElementById("out").innerHTML = `
+        <div class="card">
+            <h2>🌱 Ваш участок</h2>
+            <p>Высота: ${elevation} м</p>
+            <p>Состояние: ${Math.round(point.health*100)}%</p>
+            <p>Влажность: ${point.moisture}%</p>
+        </div>
+        `
         
-        for(let i = 0; i < size; i++){
-            z[i] = []
-            for(let j = 0; j < size; j++){
-                let noise = Math.random() * 2
-                let h = base + noise + (point.moisture || 30) * 0.2
-                z[i][j] = h
-            }
-        }
-        
-        let trace = {
-            z: z,
-            type: 'surface',
-            colorscale: 'Earth',
-            colorbar: {title: 'Высота (м)'}
-        }
-        
-        let layout = {
-            title: '3D Рельеф участка',
-            scene: {
-                xaxis: {title: 'X'},
-                yaxis: {title: 'Y'},
-                zaxis: {title: 'Высота'}
-            }
-        }
-        
-        Plotly.newPlot('plot3d', [trace], layout)
+        lirenSay(`Высота вашего участка: ${elevation} метров. Состояние почвы: ${Math.round(point.health*100)}% 🌿`)
+        updateSoilState()
     } catch (error) {
-        console.error("Error building terrain:", error)
-        alert("Ошибка построения рельефа: " + error.message)
+        console.error("Error building user area:", error)
+        lirenSay("Не удалось загрузить данные о участке 😢")
     }
 }
 
-async function loadTerrain(){
-    let lat = parseFloat(document.getElementById("lat").value)
-    let lon = parseFloat(document.getElementById("lon").value)
-    await buildTerrain({lat, lon, moisture: 30})
+function updateSoilState(){
+    if(!userPoint) return
+    
+    let color = "#22c55e"
+    let status = "Хорошее"
+    
+    if(userPoint.health < 0.5){
+        color = "#ef4444"
+        status = "Плохое"
+    } else if(userPoint.health < 0.8){
+        color = "#fbbf24"
+        status = "Среднее"
+    }
+    
+    L.circle([userPoint.lat, userPoint.lon], {
+        radius: 5000,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.3
+    }).addTo(map)
+    
+    map.setView([userPoint.lat, userPoint.lon], 10)
+}
+
+function recovery(){
+    if(!userPoint){
+        lirenSay("Сначала найдите ваш участок 📍")
+        return
+    }
+    
+    lirenSay("Начинаю восстановление почвы... Это займёт немного времени 🌿")
+    
+    let interval = setInterval(() => {
+        userPoint.health += 0.02
+        
+        if(userPoint.health >= 1){
+            userPoint.health = 1
+            clearInterval(interval)
+            lirenSay("Почва полностью восстановлена! Ты молодец! 🎉")
+        } else {
+            let percent = Math.round(userPoint.health * 100)
+            if(percent % 20 === 0){
+                if(percent < 50) lirenSay("Почва всё ещё устала, продолжаем... 😢")
+                else if(percent < 80) lirenSay("Почва восстанавливается, это хорошо! 💧")
+                else lirenSay("Почва почти здорова! Почти готово 🌿")
+            }
+        }
+        
+        updateSoilState()
+        buildUserArea(userPoint)
+    }, 800)
+}
+
+function getLocation(){
+    if (navigator.geolocation) {
+        lirenSay("Ищу ваше местоположение... 📍")
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                let lat = position.coords.latitude
+                let lon = position.coords.longitude
+                
+                userPoint = {
+                    lat: lat,
+                    lon: lon,
+                    health: 0.7,
+                    moisture: 30
+                }
+                
+                map.setView([lat, lon], 13)
+                
+                if(marker){
+                    map.removeLayer(marker)
+                }
+                marker = L.marker([lat, lon]).addTo(map)
+                
+                buildUserArea(userPoint)
+                lirenSay("Нашла ваш участок! 🎉")
+            },
+            (error) => {
+                console.error("Geolocation error:", error)
+                lirenSay("Не удалось определить местоположение 😢")
+                alert("Ошибка геолокации: " + error.message)
+            }
+        )
+    } else {
+        lirenSay("Геолокация не поддерживается браузером 😢")
+        alert("Геолокация не поддерживается браузером")
+    }
 }
