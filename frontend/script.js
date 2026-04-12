@@ -4,6 +4,196 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
 
 let userPoint = null
 
+// ============================================================
+// ПОЧВЕННЫЙ ДИАГНОСТИЧЕСКИЙ КАЛЬКУЛЯТОР (по визуальным признакам)
+// На основе: учебник Ковды + Полевой определитель почв России
+// ============================================================
+
+const soilDiagnosticRules = {
+  surface: {
+    salt_crust: {
+      visual_signs: ["белая корка", "белые выцветы", "солевые кристаллы", "пухлый слой"],
+      horizon: "S (солончаковый)",
+      pH: { min: 7.5, max: 9.5, text: "щелочная (>7.5)" },
+      salinity: "высокая (>1% легкорастворимых солей)",
+      humus: "низкое (0.5-2%)",
+      pollution_type: "засоление (хлоридное/сульфатное/содовое)",
+      recommendation: "Промывка почвы, гипсование, посадка галофитов"
+    },
+    
+    oil_pollution: {
+      visual_signs: ["маслянистые пятна", "чёрные разводы", "блестящая плёнка", "радужные разводы", "запах нефти"],
+      horizon: "X (химически загрязнённый)",
+      pH: { min: 6.0, max: 8.0, text: "разная (часто нейтральная)" },
+      salinity: "низкая",
+      humus: "разное",
+      pollution_type: "нефтепродукты (углеводороды)",
+      recommendation: "Сорбенты, биоремедиация (нефтеокисляющие бактерии)"
+    },
+    
+    heavy_metals: {
+      visual_signs: ["ржавые пятна", "охристые разводы", "пятна оранжевого/красного цвета", "угнетённая растительность"],
+      horizon: "X (химически загрязнённый)",
+      pH: { min: 4.0, max: 6.5, text: "часто кислая (при техногенных выбросах)" },
+      salinity: "низкая",
+      humus: "разное",
+      pollution_type: "тяжёлые металлы (Fe, Cu, Pb, Zn)",
+      recommendation: "Фиторемедиация, известкование, внесение гуминовых кислот"
+    },
+    
+    chernozem: {
+      visual_signs: ["тёмно-серый", "чёрный цвет", "комковато-зернистая структура", "копролиты"],
+      horizon: "AU (темногумусовый)",
+      pH: { min: 6.0, max: 7.3, text: "нейтральная или близкая к нейтральной" },
+      salinity: "низкая (<0.1%)",
+      humus: "высокое (6-10%)",
+      pollution_type: "отсутствует",
+      recommendation: "Поддерживающие дозы удобрений"
+    },
+    
+    podzol: {
+      visual_signs: ["белесый", "белый", "светло-серый слой", "песчаный/супесчаный состав", "бесструктурный"],
+      horizon: "E (подзолистый)",
+      pH: { min: 3.5, max: 5.0, text: "кислая (pH < 5.0)" },
+      salinity: "низкая",
+      humus: "низкое (<1.5%)",
+      pollution_type: "отсутствует (естественная кислая реакция)",
+      recommendation: "Известкование (4-8 т/га), внесение органики"
+    },
+    
+    sod_podzolic: {
+      visual_signs: ["серый", "буровато-серый", "комковатая структура", "светлые зерна минералов"],
+      horizon: "AY (серогумусовый) + EL (элювиальный)",
+      pH: { min: 4.5, max: 5.5, text: "слабокислая (pH 4.5-5.5)" },
+      salinity: "низкая",
+      humus: "среднее (1.5-2.5%)",
+      pollution_type: "отсутствует",
+      recommendation: "Умеренное известкование (2-4 т/га), NPK 60-70 кг/га"
+    },
+    
+    peat: {
+      visual_signs: ["буро-коричневый", "волокнистый", "остатки растений", "мшистый"],
+      horizon: "T (торфяный)",
+      pH: { min: 3.5, max: 5.5, text: "кислая (pH 3.5-5.5)" },
+      salinity: "низкая",
+      humus: "очень высокое (>20%)",
+      pollution_type: "отсутствует",
+      recommendation: "Известкование (8-12 т/га), калийные и фосфорные удобрения"
+    },
+    
+    chestnut: {
+      visual_signs: ["каштановый", "коричневато-бурый", "мелкопризматическая структура"],
+      horizon: "AJ (светлогумусовый) + BMK (ксерометаморфический)",
+      pH: { min: 7.0, max: 8.0, text: "слабощелочная (pH 7.0-8.0)" },
+      salinity: "средняя (возможно засоление)",
+      humus: "низкое (2-3%)",
+      pollution_type: "часто карбонатное засоление",
+      recommendation: "Гипсование (2-4 т/га), снегозадержание"
+    },
+    
+    sierozem: {
+      visual_signs: ["светло-серый", "палевый", "слабогумусированный", "бесструктурный"],
+      horizon: "AJ (светлогумусовый) + BCA (аккумулятивно-карбонатный)",
+      pH: { min: 7.5, max: 8.5, text: "щелочная (pH 7.5-8.5)" },
+      salinity: "средняя или высокая",
+      humus: "очень низкое (0.5-1.5%)",
+      pollution_type: "часто засоление (сульфатное/хлоридное)",
+      recommendation: "Гипсование, промывка, внесение органики"
+    },
+    
+    gley: {
+      visual_signs: ["сизый", "голубовато-серый", "зеленоватый", "ржавые пятна", "бесструктурный"],
+      horizon: "G (глеевый)",
+      pH: { min: 5.0, max: 7.0, text: "разная (часто кислая)" },
+      salinity: "низкая",
+      humus: "разное",
+      pollution_type: "нет (естественное оглеение)",
+      recommendation: "Дренаж, осушительные мелиорации"
+    },
+    
+    takyr: {
+      visual_signs: ["гладкая глинистая корка", "полигональные трещины", "светлая поверхность"],
+      horizon: "признак tk (такыровидный)",
+      pH: { min: 7.5, max: 9.0, text: "щелочная (pH 7.5-9.0)" },
+      salinity: "средняя или высокая",
+      humus: "очень низкое (<0.5%)",
+      pollution_type: "засоление + осолонцевание",
+      recommendation: "Гипсование, глубокое рыхление"
+    }
+  }
+};
+
+// ОПРЕДЕЛЕНИЕ ПОЧВЫ И ЗАГРЯЗНЕНИЯ ПО ПРИЗНАКАМ
+function detectSoil(features){
+    for(let key in soilDiagnosticRules.surface){
+        let rule = soilDiagnosticRules.surface[key]
+        for(let sign of rule.visual_signs){
+            if(features.some(f => f.toLowerCase().includes(sign.toLowerCase()))){
+                return rule
+            }
+        }
+    }
+    return null
+}
+
+// РАСЧЁТ ЗДОРОВЬЯ ПОЧВЫ НА ОСНОВЕ ХИМИЧЕСКИХ ПАРАМЕТРОВ
+function calculateHealth(rule){
+    let health = 1.0
+    
+    // pH отклонение
+    let ph_avg = (rule.pH.min + rule.pH.max) / 2
+    if(ph_avg < 5) health -= 0.3
+    if(ph_avg > 8) health -= 0.3
+    
+    // соли
+    if(rule.salinity.includes("высокая")) health -= 0.4
+    
+    // гумус
+    if(rule.humus.includes("низкое")) health -= 0.3
+    
+    // загрязнение
+    if(rule.pollution_type.includes("нефт")) health -= 0.5
+    if(rule.pollution_type.includes("металл")) health -= 0.4
+    if(rule.pollution_type.includes("засоление")) health -= 0.3
+    
+    return Math.max(0, Math.min(1, health))
+}
+
+// ОЦЕНКА ВЛАЖНОСТИ ПО ТИПУ ПОЧВЫ
+function estimateMoisture(rule){
+    if(rule.horizon.includes("G")) return 80
+    if(rule.horizon.includes("T")) return 70
+    if(rule.salinity.includes("высокая")) return 20
+    
+    return 40
+}
+
+// АНАЛИЗ ПОЧВЫ ПО ПРИЗНАКАМ
+function analyzeSoil(features){
+    let rule = detectSoil(features)
+    
+    if(!rule){
+        return {
+            error: "Не удалось определить тип почвы",
+            health: 0.5,
+            moisture: 40,
+            pollution: "неизвестно"
+        }
+    }
+    
+    let health = calculateHealth(rule)
+    let moisture = estimateMoisture(rule)
+    
+    return {
+        type: rule.horizon,
+        pollution: rule.pollution_type,
+        ph: rule.pH.text,
+        health: health,
+        moisture: moisture,
+        recommendation: rule.recommendation
+    }
+}
+
 function lirenSay(text){
     document.getElementById("liren-help").innerHTML = `
         <div class="liren-box">
@@ -67,8 +257,33 @@ async function send(){
             return
         }
 
+        // Извлекаем визуальные признаки из AI ответа
+        let features = []
+        if(d.surface_diagnosis) features.push(d.surface_diagnosis)
+        if(d.description) features.push(d.description)
+        
+        // Применяем диагностическую систему
+        let diagnostic = analyzeSoil(features)
+        
+        // Обновляем health на основе диагностики
+        let health = diagnostic.health || d.health
+        let moisture = diagnostic.moisture || 30
+        
         let matchClass = d.match ? "highlight" : "warning"
         let pollutionClass = d.pollution === "clean" ? "highlight" : "danger"
+        
+        let diagnosticHTML = ""
+        if(diagnostic.type && !diagnostic.error){
+            diagnosticHTML = `
+                <div style="margin-top: 20px; padding: 15px; background: rgba(74, 222, 128, 0.1); border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.3);">
+                    <h3 style="margin: 0 0 10px 0; color: #4ade80;">🔬 Диагностика по признакам</h3>
+                    <p><span class="highlight">Горизонт:</span> ${diagnostic.type}</p>
+                    <p><span class="highlight">pH:</span> ${diagnostic.ph}</p>
+                    <p><span class="highlight">Загрязнение:</span> ${diagnostic.pollution}</p>
+                    <p><span class="highlight">Рекомендация:</span> ${diagnostic.recommendation}</p>
+                </div>
+            `
+        }
 
         document.getElementById("out").innerHTML = `
 <div class="card">
@@ -77,21 +292,37 @@ async function send(){
     <p><span class="highlight">Карта:</span> ${d.map}</p>
     <p><span class="${matchClass}">Совпадение:</span> ${d.match ? "✅ Да" : "❌ Нет"}</p>
     <p><span class="highlight">Уверенность:</span> ${(d.confidence * 100).toFixed(1)}%</p>
-    <p><span class="highlight">Здоровье:</span> ${(d.health * 100).toFixed(1)}%</p>
+    <p><span class="highlight">Здоровье:</span> ${(health * 100).toFixed(1)}%</p>
+    <p><span class="highlight">Влажность:</span> ${moisture}%</p>
     <p><span class="${pollutionClass}">Загрязнение:</span> ${d.pollution === "clean" ? "✅ Чисто" : "⚠️ " + d.pollution}</p>
     <p><span class="highlight">Поверхность:</span> ${d.surface_diagnosis}</p>
     <p><span class="highlight">Описание:</span> ${d.description}</p>
+    ${diagnosticHTML}
 </div>
 `
 
         updateMap(d.lat || 55.7558, d.lon || 37.6173)
         
-        if(d.pollution === "clean" && d.health > 0.7){
-            lirenSay("Анализ завершён! Почва в хорошем состоянии 🌿")
-        } else if(d.pollution !== "clean"){
-            lirenSay("Обнаружено загрязнение! Рекомендую восстановление ⚠️")
+        // Обновляем userPoint
+        userPoint = {
+            lat: d.lat || 55.7558,
+            lon: d.lon || 37.6173,
+            health: health,
+            moisture: moisture
+        }
+        
+        updateSoilState()
+        
+        if(diagnostic.health < 0.4){
+            lirenSay("Почва сильно повреждена 😢 " + (diagnostic.recommendation || ""))
+        } else if(diagnostic.health < 0.7){
+            lirenSay("Почва ослаблена ⚠️ " + (diagnostic.recommendation || ""))
         } else {
-            lirenSay("Анализ завершён! Рекомендую улучшить состояние почвы 💧")
+            lirenSay("Почва здорова 🌿")
+        }
+        
+        if(diagnostic.pollution && !diagnostic.pollution.includes("отсутствует")){
+            lirenSay("Обнаружено загрязнение: " + diagnostic.pollution)
         }
         
         // Сохраняем точку пользователя
