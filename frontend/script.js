@@ -374,6 +374,104 @@ async function buildUserArea(point){
     }
 }
 
+async function buildTerrain(point){
+    try {
+        let size = 30
+        let z = []
+        
+        let base = await loadDEM(point.lat, point.lon)
+        
+        for(let i = 0; i < size; i++){
+            z[i] = []
+            for(let j = 0; j < size; j++){
+                let noise = Math.random() * 2
+                let h = base + noise + (point.moisture || 30) * 0.2
+                z[i][j] = h
+            }
+        }
+        
+        let trace = {
+            z: z,
+            type: 'surface',
+            colorscale: 'Earth',
+            colorbar: {title: 'Высота (м)'}
+        }
+        
+        let layout = {
+            title: '3D Рельеф участка',
+            scene: {
+                xaxis: {title: 'X'},
+                yaxis: {title: 'Y'},
+                zaxis: {title: 'Высота'}
+            }
+        }
+        
+        Plotly.newPlot('plot3d', [trace], layout)
+        lirenSay(`Рельеф участка построен! Высота: ${base} метров 🏔️`)
+    } catch (error) {
+        console.error("Error building terrain:", error)
+        lirenSay("Ошибка построения рельефа 😢")
+        alert("Ошибка построения рельефа: " + error.message)
+    }
+}
+
+async function loadTerrain(){
+    let lat = parseFloat(document.getElementById("lat").value)
+    let lon = parseFloat(document.getElementById("lon").value)
+    await buildTerrain({lat, lon, moisture: 30})
+}
+
+async function loadUserPoints(){
+    try {
+        let res = await fetch("/api/points")
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+        
+        let points = await res.json()
+        buildUserSoil3D(points)
+    } catch (error) {
+        console.error("Error loading user points:", error)
+        lirenSay("Ошибка загрузки точек 😢")
+        alert("Ошибка загрузки точек: " + error.message)
+    }
+}
+
+function buildUserSoil3D(points){
+    if (!points || points.length === 0) {
+        lirenSay("Нет сохранённых точек 😢")
+        alert("Нет сохранённых точек")
+        return
+    }
+    
+    let x = points.map(p=>p.lat)
+    let y = points.map(p=>p.lon)
+    let z = points.map(p=>p.health * 100)
+    
+    let trace = {
+        x: x,
+        y: y,
+        z: z,
+        mode: 'markers',
+        type: 'scatter3d',
+        marker: {
+            size: 8,
+            color: z,
+            colorscale: 'RdYlGn'
+        }
+    }
+    
+    let layout = {
+        title: '3D Мой участок',
+        scene: {
+            xaxis: {title: 'Широта'},
+            yaxis: {title: 'Долгота'},
+            zaxis: {title: 'Здоровье (%)'}
+        }
+    }
+    
+    Plotly.newPlot('plot3d', [trace], layout)
+    lirenSay(`Ваш участок построен! ${points.length} точек 🏔️`)
+}
+
 function updateSoilState(){
     if(!userPoint) return
     
