@@ -1,6 +1,6 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);
     color: white;
     text-align: center;
     padding: 20px;
@@ -8,47 +8,55 @@ body {
 }
 
 h1 {
-    font-size: 2.5em;
+    font-size: 3em;
     margin-bottom: 30px;
-    background: linear-gradient(90deg, #4ade80, #22c55e);
+    background: linear-gradient(90deg, #4ade80, #22c55e, #16a34a);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    text-shadow: 0 0 30px rgba(74, 222, 128, 0.3);
+    font-weight: 700;
+    letter-spacing: 2px;
 }
 
 input {
     margin: 10px;
-    padding: 12px 20px;
-    border: 2px solid #334155;
-    border-radius: 8px;
-    background: #1e293b;
+    padding: 14px 24px;
+    border: 2px solid rgba(74, 222, 128, 0.3);
+    border-radius: 12px;
+    background: rgba(6, 78, 59, 0.5);
     color: white;
-    font-size: 14px;
-    width: 200px;
+    font-size: 15px;
+    width: 220px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
 }
 
 input:focus {
     outline: none;
     border-color: #4ade80;
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
 }
 
 button {
     margin: 10px;
-    padding: 12px 24px;
+    padding: 14px 28px;
     border: none;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+    border-radius: 12px;
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     color: white;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+    letter-spacing: 0.5px;
 }
 
 button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(74, 222, 128, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(34, 197, 94, 0.5);
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
 }
 
 button:active {
@@ -61,14 +69,14 @@ button:active {
 }
 
 .card {
-    background: rgba(30, 41, 59, 0.9);
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.95) 0%, rgba(6, 95, 70, 0.98) 100%);
     backdrop-filter: blur(10px);
-    padding: 25px;
-    border-radius: 16px;
+    padding: 30px;
+    border-radius: 20px;
     margin: 20px auto;
     max-width: 600px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(74, 222, 128, 0.3);
     animation: fadeIn 0.5s ease-in;
 }
 
@@ -84,15 +92,17 @@ button:active {
 }
 
 .card h2 {
-    margin: 0 0 15px 0;
+    margin: 0 0 20px 0;
     color: #4ade80;
-    font-size: 1.5em;
+    font-size: 1.8em;
+    font-weight: 600;
 }
 
 .card p {
-    margin: 10px 0;
-    color: #cbd5e1;
-    font-size: 1.1em;
+    margin: 15px 0;
+    color: #e2e8f0;
+    font-size: 1.15em;
+    line-height: 1.6;
 }
 
 .card .highlight {
@@ -102,15 +112,18 @@ button:active {
 
 .card .warning {
     color: #fbbf24;
+    font-weight: 500;
 }
 
 .card .danger {
     color: #ef4444;
+    font-weight: 500;
 }
 
 #map, #plot3d {
     margin: 30px auto;
-    border-radius: 12px;
+    border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(74, 222, 128, 0.3);
 }
