@@ -1,20 +1,20 @@
 from fastapi import APIRouter, UploadFile, Form
-from backend.services.ai_model import predict
-from backend.services.soil_map import get_soil_type
+from backend.services.hybrid_ai import hybrid_predict
 from backend.services.soil_health import soil_health
 from backend.services.auto_train import save_for_training
 from backend.services.pollution import detect_pollution
+from backend.services.surface_diagnostics import get_surface_diagnosis
+from backend.services.science_rules import get_soil_description
 import cv2
 import numpy as np
+import time
 
 router = APIRouter()
 
 @router.post("/analyze")
 async def analyze(file: UploadFile, lat: float = Form(...), lon: float = Form(...)):
-    ai_type, conf = predict(file)
-    map_type = get_soil_type(lat, lon)
-    match = ai_type == map_type
-    health = soil_health(map_type, 6.5)
+    # Гибридное предсказание
+    ai_type, map_type, conf, valid = hybrid_predict(file, lat, lon)
     
     # Детекция загрязнений
     contents = file.file.read()
@@ -22,18 +22,35 @@ async def analyze(file: UploadFile, lat: float = Form(...), lon: float = Form(..
     img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
     pollution = detect_pollution(img)
     
+    # Диагностика по поверхности
+    surface_diag, surface_conf = get_surface_diagnosis(img)
+    
+    # Здоровье почвы
+    health = soil_health(map_type, 6.5)
+    
+    # Научное описание
+    description = get_soil_description(ai_type)
+    
+    # Совпадение
+    match = (ai_type == map_type) and valid
+    
     # Автообучение если совпадение и высокая уверенность
-    if match and conf > 0.8:
-        file.file.seek(0)  # сбросить позицию файла
+    if match and conf > 0.85:
+        file.file.seek(0)
         save_for_training(file, ai_type)
 
     return {
         "ai": ai_type,
-        "confidence": conf,
         "map": map_type,
+        "confidence": round(conf, 2),
         "match": match,
-        "health": health,
+        "valid": valid,
+        "health": round(health, 2),
         "pollution": pollution,
+        "surface_diagnosis": surface_diag,
+        "surface_confidence": round(surface_conf, 2),
+        "description": description,
         "lat": lat,
-        "lon": lon
+        "lon": lon,
+        "timestamp": time.time()
     }

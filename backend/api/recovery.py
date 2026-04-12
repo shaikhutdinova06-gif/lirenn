@@ -4,7 +4,7 @@ from backend.services.recovery import predict_recovery
 router = APIRouter()
 
 @router.get("/recovery")
-def get_recovery(soil: str, health: float):
+def get_recovery(soil: str, health: float, pollution: str = "clean"):
     return {
-        "forecast": predict_recovery(soil, health)
+        "forecast": predict_recovery(soil, health, pollution)
     }

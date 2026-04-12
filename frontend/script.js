@@ -28,13 +28,21 @@ async function send(){
 
     let d = await res.json()
 
+    let matchClass = d.match ? "highlight" : "warning"
+    let pollutionClass = d.pollution === "clean" ? "highlight" : "danger"
+
     document.getElementById("out").innerHTML = `
-<h3>Результат:</h3>
-<p>AI: ${d.ai}</p>
-<p>Карта: ${d.map}</p>
-<p>Совпадение: ${d.match}</p>
-<p>Здоровье: ${d.health}</p>
-<p>Загрязнение: ${d.pollution}</p>
+<div class="card">
+    <h2>🌱 LIREN Analysis</h2>
+    <p><span class="highlight">AI предсказание:</span> ${d.ai}</p>
+    <p><span class="highlight">Карта:</span> ${d.map}</p>
+    <p><span class="${matchClass}">Совпадение:</span> ${d.match ? "✅ Да" : "❌ Нет"}</p>
+    <p><span class="highlight">Уверенность:</span> ${(d.confidence * 100).toFixed(1)}%</p>
+    <p><span class="highlight">Здоровье:</span> ${(d.health * 100).toFixed(1)}%</p>
+    <p><span class="${pollutionClass}">Загрязнение:</span> ${d.pollution === "clean" ? "✅ Чисто" : "⚠️ " + d.pollution}</p>
+    <p><span class="highlight">Поверхность:</span> ${d.surface_diagnosis}</p>
+    <p><span class="highlight">Описание:</span> ${d.description}</p>
+</div>
 `
 
     updateMap(d.lat || 55.7558, d.lon || 37.6173)
@@ -100,6 +108,16 @@ async function loadDegradation(){
     }
 
     Plotly.newPlot('plot3d', [trace], layout)
+    
+    // Добавляем круги на карту
+    d.forEach(p=>{
+        L.circle([p.lat, p.lon], {
+            radius: 5000,
+            color: `rgb(${p.deg*255},0,0)`,
+            fillColor: `rgba(${p.deg*255},0,0,0.3)`,
+            fillOpacity: 0.5
+        }).addTo(map)
+    })
 }
 
 async function loadRecovery(soil, health){
