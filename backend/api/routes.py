@@ -13,11 +13,14 @@ router = APIRouter()
 
 @router.post("/analyze")
 async def analyze(file: UploadFile, lat: float = Form(...), lon: float = Form(...)):
-    # Гибридное предсказание
+    # Читаем файл один раз
+    contents = await file.read()
+    
+    # Гибридное предсказание (нужно сбросить позицию файла)
+    file.file.seek(0)
     ai_type, map_type, conf, valid = hybrid_predict(file, lat, lon)
     
     # Детекция загрязнений
-    contents = file.file.read()
     npimg = np.frombuffer(contents, np.uint8)
     img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
     pollution = detect_pollution(img)
