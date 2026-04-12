@@ -84,93 +84,114 @@ async function send(){
 }
 
 async function load3D(){
-    let res = await fetch("/api/3d")
-    let d = await res.json()
+    try {
+        let res = await fetch("/api/3d")
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+        
+        let d = await res.json()
 
-    let trace = {
-        x: d.x,
-        y: d.y,
-        z: d.z,
-        mode: 'markers',
-        type: 'scatter3d',
-        marker: {
-            size: 8,
-            color: d.z,
-            colorscale: 'Viridis'
+        let trace = {
+            x: d.x,
+            y: d.y,
+            z: d.z,
+            mode: 'markers',
+            type: 'scatter3d',
+            marker: {
+                size: 8,
+                color: d.z,
+                colorscale: 'Viridis'
+            }
         }
-    }
 
-    let layout = {
-        title: '3D Модель здоровья почвы',
-        scene: {
-            xaxis: { title: 'Долгота' },
-            yaxis: { title: 'Широта' },
-            zaxis: { title: 'Индекс здоровья' }
+        let layout = {
+            title: '3D Модель здоровья почвы',
+            scene: {
+                xaxis: { title: 'Долгота' },
+                yaxis: { title: 'Широта' },
+                zaxis: { title: 'Индекс здоровья' }
+            }
         }
-    }
 
-    Plotly.newPlot('plot3d', [trace], layout)
+        Plotly.newPlot('plot3d', [trace], layout)
+    } catch (error) {
+        console.error("Error loading 3D:", error)
+        alert("Ошибка загрузки 3D карты: " + error.message)
+    }
 }
 
 async function loadDegradation(){
-    let res = await fetch("/api/degradation")
-    let d = await res.json()
+    try {
+        let res = await fetch("/api/degradation")
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+        
+        let d = await res.json()
 
-    let x = d.map(p=>p.lat)
-    let y = d.map(p=>p.lon)
-    let z = d.map(p=>p.deg)
+        let x = d.map(p=>p.lat)
+        let y = d.map(p=>p.lon)
+        let z = d.map(p=>p.deg)
 
-    let trace = {
-        x: x,
-        y: y,
-        z: z,
-        mode: 'markers',
-        type: 'scatter3d',
-        marker: {
-            size: 8,
-            color: z,
-            colorscale: 'Reds'
+        let trace = {
+            x: x,
+            y: y,
+            z: z,
+            mode: 'markers',
+            type: 'scatter3d',
+            marker: {
+                size: 8,
+                color: z,
+                colorscale: 'Reds'
+            }
         }
-    }
 
-    let layout = {
-        title: '3D Карта деградации почв',
-        scene: {
-            xaxis: { title: 'Долгота' },
-            yaxis: { title: 'Широта' },
-            zaxis: { title: 'Деградация' }
+        let layout = {
+            title: '3D Карта деградации почв',
+            scene: {
+                xaxis: { title: 'Долгота' },
+                yaxis: { title: 'Широта' },
+                zaxis: { title: 'Деградация' }
+            }
         }
-    }
 
-    Plotly.newPlot('plot3d', [trace], layout)
-    
-    // Добавляем круги на карту
-    d.forEach(p=>{
-        L.circle([p.lat, p.lon], {
-            radius: 5000,
-            color: `rgb(${p.deg*255},0,0)`,
-            fillColor: `rgba(${p.deg*255},0,0,0.3)`,
-            fillOpacity: 0.5
-        }).addTo(map)
-    })
+        Plotly.newPlot('plot3d', [trace], layout)
+        
+        // Добавляем круги на карту
+        d.forEach(p=>{
+            L.circle([p.lat, p.lon], {
+                radius: 5000,
+                color: `rgb(${p.deg*255},0,0)`,
+                fillColor: `rgba(${p.deg*255},0,0,0.3)`,
+                fillOpacity: 0.5
+            }).addTo(map)
+        })
+    } catch (error) {
+        console.error("Error loading degradation:", error)
+        alert("Ошибка загрузки деградации: " + error.message)
+    }
 }
 
 async function loadRecovery(soil, health){
-    let res = await fetch(`/api/recovery?soil=${soil}&health=${health}`)
-    let d = await res.json()
+    try {
+        let res = await fetch(`/api/recovery?soil=${soil}&health=${health}`)
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+        
+        let d = await res.json()
 
-    let trace = {
-        y: d.forecast,
-        type: 'scatter',
-        mode: 'lines+markers',
-        name: 'Прогноз восстановления'
+        let trace = {
+            y: d.forecast,
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Прогноз восстановления'
+        }
+
+        let layout = {
+            title: 'Прогноз восстановления почвы',
+            xaxis: { title: 'Период' },
+            yaxis: { title: 'Индекс здоровья' }
+        }
+
+        Plotly.newPlot('plot3d', [trace], layout)
+    } catch (error) {
+        console.error("Error loading recovery:", error)
+        alert("Ошибка загрузки восстановления: " + error.message)
     }
-
-    let layout = {
-        title: 'Прогноз восстановления почвы',
-        xaxis: { title: 'Период' },
-        yaxis: { title: 'Индекс здоровья' }
-    }
-
-    Plotly.newPlot('plot3d', [trace], layout)
 }
