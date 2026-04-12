@@ -399,6 +399,21 @@ async function load3D(){
 }
 
 async function loadDegradation(){
+    if(userPoint){
+        lirenSay("Показываю деградацию для вашего участка 🗺️")
+        // Показываем деградацию вокруг тестового местоположения
+        let points = []
+        for(let i = 0; i < 10; i++){
+            points.push({
+                lat: userPoint.lat + (Math.random() - 0.5) * 0.1,
+                lon: userPoint.lon + (Math.random() - 0.5) * 0.1,
+                deg: Math.random() * 0.5 + (1 - userPoint.health) * 0.5
+            })
+        }
+        drawZones(points)
+        return
+    }
+    
     try {
         let res = await fetch("/api/degradation")
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
@@ -559,6 +574,21 @@ function drawZones(points){
 }
 
 async function showUserZones(){
+    if(userPoint){
+        lirenSay("Показываю зоны загрязнения для вашего участка ⭕")
+        // Показываем зоны вокруг тестового местоположения
+        let points = []
+        for(let i = 0; i < 8; i++){
+            points.push({
+                lat: userPoint.lat + (Math.random() - 0.5) * 0.08,
+                lon: userPoint.lon + (Math.random() - 0.5) * 0.08,
+                deg: Math.random() * (1 - userPoint.health) * 0.8
+            })
+        }
+        drawZones(points)
+        return
+    }
+    
     try {
         let res = await fetch("/api/points")
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
@@ -567,6 +597,7 @@ async function showUserZones(){
         drawZones(points)
     } catch (error) {
         console.error("Error loading zones:", error)
+        lirenSay("Ошибка загрузки зон 😢")
         alert("Ошибка загрузки зон: " + error.message)
     }
 }
