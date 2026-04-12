@@ -9,6 +9,7 @@ from backend.api.health import router as health_router
 from backend.api.map3d import router as map3d_router
 from backend.api.degradation import router as degradation_router
 from backend.api.recovery import router as recovery_router
+from backend.api.points import router as points_router
 
 app = FastAPI(title="LIREN")
 
@@ -25,6 +26,7 @@ app.include_router(health_router, prefix="/api")
 app.include_router(map3d_router, prefix="/api")
 app.include_router(degradation_router, prefix="/api")
 app.include_router(recovery_router, prefix="/api")
+app.include_router(points_router, prefix="/api")
 
 @app.get("/")
 def root():

@@ -1,0 +1,57 @@
+from backend.services.soil_model import get_soil_parameters
+
+def compare(real, predicted_soil_type):
+    """
+    Сравнивает реальные данные с предсказанным типом почвы
+    
+    real: dict с реальными параметрами (ph, humus, moisture, nitrogen, phosphorus, potassium)
+    predicted_soil_type: предсказанный тип почвы
+    
+    Возвращает: score (0-1), где 1 - полное совпадение
+    """
+    params = get_soil_parameters(predicted_soil_type)
+    if not params:
+        return 0.5  # Неизвестный тип почвы
+    
+    score = 0
+    count = 0
+    
+    for param, (min_val, max_val) in params.items():
+        if param in real:
+            value = real[param]
+            
+            # Если в норме
+            if min_val <= value <= max_val:
+                score += 1
+            else:
+                # Штраф за отклонение
+                deviation = min(abs(value - min_val), abs(value - max_val))
+                score += max(0, 1 - deviation / 10)
+            
+            count += 1
+    
+    if count == 0:
+        return 0.5
+    
+    return score / count
+
+def compare_with_multiple(real, soil_types):
+    """
+    Сравнивает реальные данные с несколькими типами почв
+    
+    Возвращает: dict с soil_type: score для каждого типа
+    """
+    results = {}
+    for soil_type in soil_types:
+        results[soil_type] = compare(real, soil_type)
+    return results
+
+def find_best_match(real, soil_types):
+    """
+    Находит лучший тип почвы для реальных данных
+    
+    Возвращает: (best_soil_type, score)
+    """
+    results = compare_with_multiple(real, soil_types)
+    best_type = max(results, key=results.get)
+    return best_type, results[best_type]

@@ -71,6 +71,9 @@ async function send(){
 `
 
         updateMap(d.lat || 55.7558, d.lon || 37.6173)
+        
+        // Сохраняем точку пользователя
+        savePoint(d)
     } catch (error) {
         document.getElementById("out").innerHTML = `
 <div class="card">
@@ -81,6 +84,29 @@ async function send(){
 `
         console.error("Error:", error)
     }
+}
+
+function savePoint(d){
+    let userId = localStorage.getItem("userId") || "default"
+    
+    let data = {
+        lat: d.lat || 55.7558,
+        lon: d.lon || 37.6173,
+        soil_type: d.ai,
+        health: d.health,
+        pollution: d.pollution,
+        user_id: userId
+    }
+    
+    fetch("/api/save_point", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(data)
+    }).then(r=>r.json()).then(res=>{
+        console.log("Point saved:", res)
+    }).catch(e=>{
+        console.error("Error saving point:", e)
+    })
 }
 
 async function load3D(){
@@ -193,5 +219,101 @@ async function loadRecovery(soil, health){
     } catch (error) {
         console.error("Error loading recovery:", error)
         alert("Ошибка загрузки восстановления: " + error.message)
+    }
+}
+
+async function loadUserPoints(){
+    try {
+        let res = await fetch("/api/points")
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+        
+        let points = await res.json()
+        buildUserSoil3D(points)
+    } catch (error) {
+        console.error("Error loading user points:", error)
+        alert("Ошибка загрузки точек: " + error.message)
+    }
+}
+
+function buildUserSoil3D(points){
+    if (!points || points.length === 0) {
+        alert("Нет сохранённых точек")
+        return
+    }
+    
+    let x = points.map(p=>p.lat)
+    let y = points.map(p=>p.lon)
+    let z = points.map(p=>p.health)
+    
+    let trace = {
+        x: x,
+        y: y,
+        z: z,
+        mode: 'markers',
+        type: 'scatter3d',
+        marker: {
+            size: 8,
+            color: z,
+            colorscale: 'Viridis',
+            showscale: true,
+            colorbar: {
+                title: 'Здоровье'
+            }
+        },
+        text: points.map(p=>`Тип: ${p.soil_type}<br>Здоровье: ${(p.health*100).toFixed(1)}%`),
+        hoverinfo: 'text+x+y+z'
+    }
+    
+    let layout = {
+        title: '3D Модель участка пользователя',
+        scene: {
+            xaxis: { title: 'Широта' },
+            yaxis: { title: 'Долгота' },
+            zaxis: { title: 'Здоровье' }
+        }
+    }
+    
+    Plotly.newPlot('plot3d', [trace], layout)
+}
+
+function drawZones(points){
+    // Очищаем предыдущие круги
+    map.eachLayer(layer => {
+        if (layer instanceof L.Circle) {
+            map.removeLayer(layer)
+        }
+    })
+    
+    points.forEach(p=>{
+        let color = "green"
+        let fillColor = "rgba(0, 255, 0, 0.3)"
+        
+        if(p.pollution !== "clean" && p.pollution !== null){
+            color = "red"
+            fillColor = "rgba(255, 0, 0, 0.3)"
+        } else if(p.health < 0.6){
+            color = "yellow"
+            fillColor = "rgba(255, 255, 0, 0.3)"
+        }
+        
+        L.circle([p.lat, p.lon], {
+            radius: 5000,
+            color: color,
+            fillColor: fillColor,
+            fillOpacity: 0.5
+        }).addTo(map)
+    })
+}
+
+async function showUserZones(){
+    try {
+        let res = await fetch("/api/points")
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+        
+        let points = await res.json()
+        drawZones(points)
+    } catch (error) {
+        console.error("Error loading zones:", error)
+        alert("Ошибка загрузки зон: " + error.message)
     }
 }
