@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 import joblib
+from backend.services.features import extract_features
+from backend.services.soil_rules import match_color, get_confidence
 
 MODEL_PATH = "backend/ml/model.pkl"
 model = None
@@ -8,24 +10,27 @@ model = None
 def load_model():
     global model
     if model is None:
-        model = joblib.load(MODEL_PATH)
-
-def extract_features(img):
-    img = cv2.resize(img, (100,100))
-    mean = img.mean(axis=(0,1))
-    std = img.std(axis=(0,1))
-    return np.concatenate([mean, std])
+        try:
+            model = joblib.load(MODEL_PATH)
+        except:
+            model = None
 
 def predict(file):
-    load_model()
-
     contents = file.file.read()
     npimg = np.frombuffer(contents, np.uint8)
     img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
-
+    
     feats = extract_features(img)
-
-    pred = model.predict([feats])[0]
-    prob = max(model.predict_proba([feats])[0])
-
-    return pred, float(prob)
+    avg_color = feats[:3]
+    
+    # Если есть обученная модель - используем её
+    if load_model():
+        pred = model.predict([feats])[0]
+        prob = max(model.predict_proba([feats])[0])
+        return pred, float(prob)
+    
+    # Иначе используем правила по цвету
+    soil = match_color(avg_color)
+    confidence = get_confidence(avg_color, soil)
+    
+    return soil, confidence

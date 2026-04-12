@@ -34,6 +34,7 @@ async function send(){
 <p>Карта: ${d.map}</p>
 <p>Совпадение: ${d.match}</p>
 <p>Здоровье: ${d.health}</p>
+<p>Загрязнение: ${d.pollution}</p>
 `
 
     updateMap(d.lat || 55.7558, d.lon || 37.6173)
@@ -63,6 +64,59 @@ async function load3D(){
             yaxis: { title: 'Широта' },
             zaxis: { title: 'Индекс здоровья' }
         }
+    }
+
+    Plotly.newPlot('plot3d', [trace], layout)
+}
+
+async function loadDegradation(){
+    let res = await fetch("/api/degradation")
+    let d = await res.json()
+
+    let x = d.map(p=>p.lat)
+    let y = d.map(p=>p.lon)
+    let z = d.map(p=>p.deg)
+
+    let trace = {
+        x: x,
+        y: y,
+        z: z,
+        mode: 'markers',
+        type: 'scatter3d',
+        marker: {
+            size: 8,
+            color: z,
+            colorscale: 'Reds'
+        }
+    }
+
+    let layout = {
+        title: '3D Карта деградации почв',
+        scene: {
+            xaxis: { title: 'Долгота' },
+            yaxis: { title: 'Широта' },
+            zaxis: { title: 'Деградация' }
+        }
+    }
+
+    Plotly.newPlot('plot3d', [trace], layout)
+}
+
+async function loadRecovery(soil, health){
+    let res = await fetch(`/api/recovery?soil=${soil}&health=${health}`)
+    let d = await res.json()
+
+    let trace = {
+        y: d.forecast,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Прогноз восстановления'
+    }
+
+    let layout = {
+        title: 'Прогноз восстановления почвы',
+        xaxis: { title: 'Период' },
+        yaxis: { title: 'Индекс здоровья' }
     }
 
     Plotly.newPlot('plot3d', [trace], layout)
