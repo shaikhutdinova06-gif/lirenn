@@ -792,3 +792,27 @@ function getLocation(){
         alert("Геолокация не поддерживается браузером")
     }
 }
+
+function setTestLocation(){
+    lirenSay("Устанавливаю тестовое местоположение (Москва) 🧪")
+    
+    userPoint = {
+        lat: 55.7558,
+        lon: 37.6173,
+        health: 0.5,
+        moisture: 35
+    }
+    
+    document.getElementById("lat").value = userPoint.lat
+    document.getElementById("lon").value = userPoint.lon
+    
+    map.setView([userPoint.lat, userPoint.lon], 13)
+    
+    if(marker){
+        map.removeLayer(marker)
+    }
+    marker = L.marker([userPoint.lat, userPoint.lon]).addTo(map)
+    
+    buildUserArea(userPoint)
+    lirenSay("Тестовое местоположение установлено! Здоровье: 50%, Влажность: 35% 🎉")
+}
