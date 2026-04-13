@@ -674,6 +674,50 @@ async function getWeather(lat, lon){
     return null
 }
 
+// Показать погоду для текущего местоположения
+async function showWeather(){
+    let lat = parseFloat(document.getElementById("lat").value)
+    let lon = parseFloat(document.getElementById("lon").value)
+    
+    lirenSay("Загружаю погоду... 🌤️")
+    let weather = await getWeather(lat, lon)
+    
+    if(weather){
+        document.getElementById("out").innerHTML = `
+        <div class="card">
+            <h2>🌤️ Погода</h2>
+            <p>Температура: ${weather.temp}°C</p>
+            <p>Влажность: ${weather.humidity}%</p>
+        </div>
+        `
+    } else {
+        document.getElementById("out").innerHTML = `
+        <div class="card">
+            <h2>❌ Ошибка</h2>
+            <p>Не удалось загрузить погоду</p>
+            <p>Убедитесь, что API ключ настроен</p>
+        </div>
+        `
+    }
+}
+
+// Показать историю точек
+async function simulateHistory(){
+    lirenSay("Запускаю симуляцию истории... 📊")
+    let result = await simulateRecovery()
+    
+    if(result && result.status === "updated"){
+        lirenSay("История обновлена! 📊")
+        document.getElementById("out").innerHTML = `
+        <div class="card">
+            <h2>📊 История обновлена</h2>
+            <p>Состояние всех точек обновлено</p>
+            <p>Влияние погоды применено</p>
+        </div>
+        `
+    }
+}
+
 async function buildUserArea(point){
     try {
         let elevation = await loadDEM(point.lat, point.lon)
@@ -890,7 +934,9 @@ function setTestLocation(){
         lat: 55.7558,
         lon: 37.6173,
         health: 0.5,
-        moisture: 35
+        moisture: 35,
+        ph: 6.5,
+        area: 1000
     }
     
     document.getElementById("lat").value = userPoint.lat
@@ -904,5 +950,15 @@ function setTestLocation(){
     marker = L.marker([userPoint.lat, userPoint.lon]).addTo(map)
     
     buildUserArea(userPoint)
+    
+    // Создать точку с историей
+    createPoint({
+        lat: userPoint.lat,
+        lon: userPoint.lon,
+        ph: userPoint.ph,
+        moisture: userPoint.moisture,
+        area: userPoint.area
+    })
+    
     lirenSay("Тестовое местоположение установлено! Здоровье: 50%, Влажность: 35% 🎉")
 }
