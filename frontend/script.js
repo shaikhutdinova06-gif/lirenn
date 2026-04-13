@@ -1006,12 +1006,16 @@ function getLocation(){
 function setTestLocation(){
     lirenSay("Устанавливаю тестовое местоположение (Москва) 🧪")
     
+    let moisture = 35
+    let ph = 6.5
+    let health = calculateHealth(moisture, ph)
+    
     userPoint = {
         lat: 55.7558,
         lon: 37.6173,
-        health: 0.5,
-        moisture: 35,
-        ph: 6.5,
+        health: health / 100,
+        moisture: moisture,
+        ph: ph,
         area: 1000
     }
     
@@ -1036,16 +1040,19 @@ function setTestLocation(){
         area: userPoint.area
     })
     
-    lirenSay("Тестовое местоположение установлено! Здоровье: 50%, Влажность: 35% 🎉")
+    lirenSay(`Тестовое местоположение установлено! Здоровье: ${Math.round(health)}%, Влажность: ${moisture}% 🎉`)
 }
 
 // Реальная 3D модель почвенного профиля
 function drawSoil(point){
-    // Цвета слоёв зависят от здоровья почвы
-    let healthColor = point.health > 0.7 ? "#4ade80" : point.health > 0.4 ? "#fbbf24" : "#ef4444"
+    // Цвет зависит от pH
+    let layerColor = point.ph < 5 ? "red" : point.ph > 8 ? "orange" : "brown"
+    
+    // Высота зависит от влажности
+    let heightScale = point.moisture * 0.1
     
     const layers = [
-        {z: [0, -20], color: "brown", name: "Гумус (AU)"},   // гумус
+        {z: [0, -20], color: layerColor, name: "Гумус (AU)"},   // гумус
         {z: [-20, -50], color: "lightgray", name: "Подзол (E)"}, // подзол
         {z: [-50, -100], color: "orange", name: "Текстурный (BT)"} // текстурный
     ]
@@ -1053,28 +1060,29 @@ function drawSoil(point){
     const data = layers.map(layer => ({
         type: 'mesh3d',
         z: [layer.z[0], layer.z[0], layer.z[1], layer.z[1]],
-        x: [0, 10, 10, 0],
-        y: [0, 0, 10, 10],
+        x: [0, 10 * heightScale, 10 * heightScale, 0],
+        y: [0, 0, 10 * heightScale, 10 * heightScale],
         i: [0, 0, 0, 0],
         j: [1, 2, 3, 1],
         k: [2, 3, 0, 3],
         facecolor: [layer.color],
-        opacity: 0.8,
+        opacity: point.moisture / 100, // Прозрачность зависит от влажности
         name: layer.name
     }))
 
+    const health = calculateHealth(point.moisture, point.ph)
     const layout = {
-        title: `Почвенный профиль - Здоровье: ${Math.round(point.health * 100)}%`,
+        title: `Почвенный профиль - pH: ${point.ph}, Влажность: ${point.moisture}%, Здоровье: ${Math.round(health)}%`,
         scene: {
             zaxis: {title: 'Глубина (см)', range: [-100, 0]},
             xaxis: {title: 'X (м)'},
-            yaxis: {title: 'Y (m)'}
+            yaxis: {title: 'Y (м)'}
         },
         margin: {l: 0, r: 0, t: 30, b: 0}
     }
 
     Plotly.newPlot('soil3d', data, layout)
-    lirenSay(`Почвенный профиль построен! Здоровье: ${Math.round(point.health * 100)}% 🌱`)
+    lirenSay(`Почвенный профиль построен! pH: ${point.ph}, Влажность: ${point.moisture}%, Здоровье: ${Math.round(health)}% 🌱`)
 }
 
 // Получить цвет зоны по здоровью
@@ -1082,6 +1090,12 @@ function getColor(health){
     if (health < 40) return "red"
     if (health < 70) return "yellow"
     return "green"
+}
+
+// Формула живой почвы
+function calculateHealth(moisture, ph){
+    let health = (moisture * 0.4) + (7 - Math.abs(ph - 7) * 2) * 10
+    return Math.max(0, Math.min(100, health))
 }
 
 // Показать почвенный профиль
@@ -1116,6 +1130,9 @@ async function savePointOnMap(){
     let result = await createPoint(pointData)
     
     if(result && result.status === "ok"){
+        // Сохраняем в localStorage как "Моя точка"
+        localStorage.setItem("my_point", JSON.stringify(result.point))
+        
         lirenSay("Точка сохранена на карте! Теперь она будет отображаться в зонах загрязнения 🎉")
         document.getElementById("out").innerHTML = `
         <div class="card">
@@ -1125,4 +1142,111 @@ async function savePointOnMap(){
         </div>
         `
     }
+}
+
+// Загрузить мою точку из localStorage
+function loadMyPoint(){
+    let saved = localStorage.getItem("my_point")
+    if(saved){
+        userPoint = JSON.parse(saved)
+        document.getElementById("lat").value = userPoint.lat
+        document.getElementById("lon").value = userPoint.lon
+        
+        map.setView([userPoint.lat, userPoint.lon], 13)
+        
+        if(marker){
+            map.removeLayer(marker)
+        }
+        marker = L.marker([userPoint.lat, userPoint.lon]).addTo(map)
+        
+        lirenSay("Загружена ваша точка! 📍")
+        return true
+    }
+    return false
+}
+
+// Симуляция времени
+async function runTimeSimulation(){
+    if(!userPoint){
+        lirenSay("Сначала найдите ваш участок 📍")
+        return
+    }
+    
+    lirenSay("Запускаю симуляцию времени на 10 дней... ⏳")
+    
+    let history = []
+    let currentMoisture = userPoint.moisture
+    let currentPh = userPoint.ph
+    let currentHealth = calculateHealth(currentMoisture, currentPh)
+    
+    // Симулируем 10 дней
+    for(let day = 1; day <= 10; day++){
+        // Влияние погоды (рандом)
+        let weatherEffect = Math.random() * 10 - 5 // -5 to +5
+        currentMoisture = Math.max(0, Math.min(100, currentMoisture + weatherEffect))
+        
+        // pH стремится к 7
+        let phChange = (7 - currentPh) * 0.1
+        currentPh = Math.max(0, Math.min(14, currentPh + phChange))
+        
+        // Здоровье улучшается
+        currentHealth = calculateHealth(currentMoisture, currentPh)
+        
+        history.push({
+            day: day,
+            moisture: currentMoisture,
+            ph: currentPh,
+            health: currentHealth
+        })
+    }
+    
+    // Показываем графики
+    showHistoryGraphs(history)
+    
+    // Обновляем userPoint
+    userPoint.moisture = currentMoisture
+    userPoint.ph = currentPh
+    userPoint.health = currentHealth / 100
+    
+    lirenSay(`Симуляция завершена! Здоровье: ${Math.round(currentHealth)}% 🎉`)
+}
+
+// Показать графики истории
+function showHistoryGraphs(history){
+    let days = history.map(h => `День ${h.day}`)
+    let moisture = history.map(h => h.moisture)
+    let ph = history.map(h => h.ph)
+    let health = history.map(h => h.health)
+    
+    const trace1 = {
+        x: days,
+        y: moisture,
+        type: 'scatter',
+        name: 'Влажность %',
+        line: {color: 'blue'}
+    }
+    
+    const trace2 = {
+        x: days,
+        y: ph,
+        type: 'scatter',
+        name: 'pH',
+        line: {color: 'green'}
+    }
+    
+    const trace3 = {
+        x: days,
+        y: health,
+        type: 'scatter',
+        name: 'Здоровье %',
+        line: {color: 'red'}
+    }
+    
+    const layout = {
+        title: 'Симуляция времени - Изменение параметров',
+        xaxis: {title: 'День'},
+        yaxis: {title: 'Значение'}
+    }
+    
+    Plotly.newPlot('plot3d', [trace1, trace2, trace3], layout)
 }
