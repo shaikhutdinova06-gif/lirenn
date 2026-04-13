@@ -919,6 +919,9 @@ function recovery(){
     
     lirenSay("Начинаю восстановление почвы... Это займёт немного времени 🌿")
     
+    // Показываем 3D профиль до восстановления
+    drawSoil(userPoint)
+    
     // Получаем погоду для влияния на восстановление
     let weatherBonus = 0
     getWeather(userPoint.lat, userPoint.lon).then(weather => {
@@ -931,10 +934,15 @@ function recovery(){
     let interval = setInterval(() => {
         userPoint.health += 0.02 + weatherBonus
         
+        // Обновляем 3D профиль в реальном времени
+        drawSoil(userPoint)
+        
         if(userPoint.health >= 1){
             userPoint.health = 1
             clearInterval(interval)
             lirenSay("Почва полностью восстановлена! Ты молодец! 🎉")
+            // Финальное обновление 3D модели
+            drawSoil(userPoint)
         } else {
             let percent = Math.round(userPoint.health * 100)
             if(percent % 20 === 0){
@@ -1024,29 +1032,40 @@ function setTestLocation(){
 
 // Реальная 3D модель почвенного профиля
 function drawSoil(point){
+    // Цвета слоёв зависят от здоровья почвы
+    let healthColor = point.health > 0.7 ? "#4ade80" : point.health > 0.4 ? "#fbbf24" : "#ef4444"
+    
     const layers = [
-        {z: [0, -20], color: "brown"},   // гумус (AU)
-        {z: [-20, -50], color: "lightgray"}, // подзол (E)
-        {z: [-50, -100], color: "orange"} // текстурный (BT)
+        {z: [0, -20], color: "brown", name: "Гумус (AU)"},   // гумус
+        {z: [-20, -50], color: "lightgray", name: "Подзол (E)"}, // подзол
+        {z: [-50, -100], color: "orange", name: "Текстурный (BT)"} // текстурный
     ]
 
     const data = layers.map(layer => ({
         type: 'mesh3d',
-        z: layer.z,
-        color: layer.color
+        z: [layer.z[0], layer.z[0], layer.z[1], layer.z[1]],
+        x: [0, 10, 10, 0],
+        y: [0, 0, 10, 10],
+        i: [0, 0, 0, 0],
+        j: [1, 2, 3, 1],
+        k: [2, 3, 0, 3],
+        facecolor: [layer.color],
+        opacity: 0.8,
+        name: layer.name
     }))
 
     const layout = {
-        title: 'Почвенный профиль',
+        title: `Почвенный профиль - Здоровье: ${Math.round(point.health * 100)}%`,
         scene: {
-            zaxis: {title: 'Глубина (см)'},
-            xaxis: {title: 'X'},
-            yaxis: {title: 'Y'}
-        }
+            zaxis: {title: 'Глубина (см)', range: [-100, 0]},
+            xaxis: {title: 'X (м)'},
+            yaxis: {title: 'Y (m)'}
+        },
+        margin: {l: 0, r: 0, t: 30, b: 0}
     }
 
     Plotly.newPlot('soil3d', data, layout)
-    lirenSay("Почвенный профиль построен! 🌱")
+    lirenSay(`Почвенный профиль построен! Здоровье: ${Math.round(point.health * 100)}% 🌱`)
 }
 
 // Получить цвет зоны по здоровью
