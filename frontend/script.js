@@ -604,6 +604,18 @@ async function showUserZones(){
 
 async function loadDEM(lat, lon){
     try {
+        // Сначала пробуем через backend API
+        let res = await fetch(`/api/dem/elevation?lat=${lat}&lon=${lon}`)
+        if(res.ok){
+            let d = await res.json()
+            return d.elevation
+        }
+    } catch (error) {
+        console.error("Backend DEM error:", error)
+    }
+    
+    // Fallback на прямой API
+    try {
         let res = await fetch(
             `https://api.opentopodata.org/v1/srtm90m?locations=${lat},${lon}`
         )
@@ -613,6 +625,53 @@ async function loadDEM(lat, lon){
         console.error("Error loading DEM:", error)
         return 100 // fallback elevation
     }
+}
+
+// Создать точку с историей
+async function createPoint(pointData){
+    try {
+        let res = await fetch("/api/history/point", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(pointData)
+        })
+        let d = await res.json()
+        lirenSay("Точка создана и сохранена! 📍")
+        return d
+    } catch (error) {
+        console.error("Error creating point:", error)
+        lirenSay("Ошибка создания точки 😢")
+    }
+}
+
+// Симуляция восстановления
+async function simulateRecovery(){
+    try {
+        let res = await fetch("/api/history/simulate", {
+            method: "POST"
+        })
+        let d = await res.json()
+        lirenSay("Симуляция восстановления завершена! 🔄")
+        return d
+    } catch (error) {
+        console.error("Error simulating:", error)
+        lirenSay("Ошибка симуляции 😢")
+    }
+}
+
+// Получить погоду
+async function getWeather(lat, lon){
+    try {
+        let res = await fetch(`/api/weather/weather?lat=${lat}&lon=${lon}`)
+        if(res.ok){
+            let d = await res.json()
+            lirenSay(`Погода: ${d.temp}°C, влажность: ${d.humidity}% 🌤️`)
+            return d
+        }
+    } catch (error) {
+        console.error("Error loading weather:", error)
+    }
+    return null
 }
 
 async function buildUserArea(point){
