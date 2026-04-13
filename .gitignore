@@ -64,4 +64,4 @@ dataset/
 dataset_auto/
 
 # User data (points.json)
-points.json
+# points.json
