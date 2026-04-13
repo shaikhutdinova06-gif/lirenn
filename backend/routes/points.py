@@ -49,16 +49,21 @@ def simulate():
             "health": 40
         })
 
-        # влияние погоды (рандом пока)
-        rain = random.uniform(0, 1)
+        # логика восстановления (без рандома)
+        # pH стремится к 7
+        ph_change = (7 - last["ph"]) * 0.1
+        new_ph = last["ph"] + ph_change
 
-        # логика восстановления
-        new_health = last["health"] + rain * 5
+        # Влажность растёт (восстановление)
+        new_moisture = min(last["moisture"] + 2, 100)
+
+        # Здоровье улучшается
+        new_health = last["health"] + 5
         new_health = min(new_health, 100)
 
         new_state = {
-            "ph": last["ph"] + random.uniform(-0.1, 0.1),
-            "moisture": last["moisture"] + random.uniform(-2, 2),
+            "ph": new_ph,
+            "moisture": new_moisture,
             "health": new_health,
             "time": datetime.now().isoformat()
         }

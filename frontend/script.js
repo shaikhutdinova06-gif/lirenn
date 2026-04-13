@@ -814,62 +814,7 @@ async function buildUserArea(point){
     }
 }
 
-async function buildTerrain(point){
-    try {
-        let size = 30
-        let z = []
-        
-        let base = await loadDEM(point.lat, point.lon)
-        
-        for(let i = 0; i < size; i++){
-            z[i] = []
-            for(let j = 0; j < size; j++){
-                let noise = Math.random() * 2
-                let h = base + noise + (point.moisture || 30) * 0.2
-                z[i][j] = h
-            }
-        }
-        
-        let trace = {
-            z: z,
-            type: 'surface',
-            colorscale: 'Earth',
-            colorbar: {title: 'Высота (м)'}
-        }
-        
-        let layout = {
-            title: '3D Рельеф участка',
-            scene: {
-                xaxis: {title: 'X'},
-                yaxis: {title: 'Y'},
-                zaxis: {title: 'Высота'}
-            }
-        }
-        
-        Plotly.newPlot('plot3d', [trace], layout)
-        lirenSay(`Рельеф участка построен! Высота: ${base} метров 🏔️`)
-    } catch (error) {
-        console.error("Error building terrain:", error)
-        lirenSay("Ошибка построения рельефа 😢")
-        alert("Ошибка построения рельефа: " + error.message)
-    }
-}
-
-async function loadTerrain(){
-    let lat, lon, moisture
-    
-    if(userPoint){
-        lat = userPoint.lat
-        lon = userPoint.lon
-        moisture = userPoint.moisture || 30
-    } else {
-        lat = parseFloat(document.getElementById("lat").value)
-        lon = parseFloat(document.getElementById("lon").value)
-        moisture = 30
-    }
-    
-    await buildTerrain({lat, lon, moisture})
-}
+// 3D глобальная карта удалена для упрощения системы
 
 async function loadUserPoints(){
     if(userPoint){
