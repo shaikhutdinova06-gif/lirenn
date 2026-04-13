@@ -582,45 +582,54 @@ function drawZones(points){
     points.forEach(p=>{
         let color = "green"
         let fillColor = "rgba(0, 255, 0, 0.3)"
+        let radius = 5000
         
-        if(p.pollution !== "clean" && p.pollution !== null){
+        // Частные зоны отображаем по-другому
+        if(p.is_private){
+            color = "blue"
+            fillColor = "rgba(0, 0, 255, 0.3)"
+            radius = 3000 // Частные зоны меньше
+        } else if(p.pollution !== "clean" && p.pollution !== null){
             color = "red"
             fillColor = "rgba(255, 0, 0, 0.3)"
-        } else if(p.health < 0.6){
+        } else if(p.health < 60){
             color = "yellow"
             fillColor = "rgba(255, 255, 0, 0.3)"
         }
         
         L.circle([p.lat, p.lon], {
-            radius: 5000,
+            radius: radius,
             color: color,
             fillColor: fillColor,
             fillOpacity: 0.5
         }).addTo(map)
     })
+    
+    lirenSay(`Показано ${points.length} зон загрязнения (синие - ваши, остальные - общие) 🗺️`)
 }
 
 async function showUserZones(){
-    if(userPoint){
-        lirenSay("Показываю зоны загрязнения для вашего участка ⭕")
-        // Показываем зоны вокруг тестового местоположения
-        let points = []
-        for(let i = 0; i < 8; i++){
-            points.push({
-                lat: userPoint.lat + (Math.random() - 0.5) * 0.08,
-                lon: userPoint.lon + (Math.random() - 0.5) * 0.08,
-                deg: Math.random() * (1 - userPoint.health) * 0.8
-            })
-        }
-        drawZones(points)
-        return
-    }
+    lirenSay("Показываю зоны загрязнения (общие + частные) ⭕")
     
+    // Показываем зоны из API (общие + частные)
     try {
-        let res = await fetch("/api/points")
+        let res = await fetch("/api/history/points")
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
         
         let points = await res.json()
+        
+        // Если есть userPoint, добавляем его как частную зону
+        if(userPoint){
+            points.push({
+                lat: userPoint.lat,
+                lon: userPoint.lon,
+                ph: userPoint.ph,
+                moisture: userPoint.moisture,
+                health: userPoint.health * 100,
+                is_private: true
+            })
+        }
+        
         drawZones(points)
     } catch (error) {
         console.error("Error loading zones:", error)
@@ -1081,5 +1090,39 @@ function showSoilProfile(){
         drawSoil(userPoint)
     } else {
         lirenSay("Сначала найдите ваш участок 📍")
+    }
+}
+
+// Сохранить точку на карте
+async function savePointOnMap(){
+    let lat = parseFloat(document.getElementById("lat").value)
+    let lon = parseFloat(document.getElementById("lon").value)
+    
+    if(!lat || !lon){
+        lirenSay("Введите координаты 📍")
+        return
+    }
+    
+    let pointData = {
+        lat: lat,
+        lon: lon,
+        ph: 6.5,
+        moisture: 35,
+        area: 1000
+    }
+    
+    lirenSay("Сохраняю точку на карте... 💾")
+    
+    let result = await createPoint(pointData)
+    
+    if(result && result.status === "ok"){
+        lirenSay("Точка сохранена на карте! Теперь она будет отображаться в зонах загрязнения 🎉")
+        document.getElementById("out").innerHTML = `
+        <div class="card">
+            <h2>💾 Точка сохранена</h2>
+            <p>Координаты: ${lat}, ${lon}</p>
+            <p>Точка теперь отображается в зонах загрязнения как частная (синяя)</p>
+        </div>
+        `
     }
 }
