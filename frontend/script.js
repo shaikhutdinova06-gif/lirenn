@@ -629,21 +629,15 @@ function drawZones(points){
             fillColor = "rgba(255, 255, 0, 0.3)"
         }
         
-        let circle = L.circle([p.lat, p.lon], {
+        L.circle([p.lat, p.lon], {
             radius: radius,
             color: color,
             fillColor: fillColor,
             fillOpacity: 0.5
         }).addTo(map)
-        
-        // Добавляем клик по точке для открытия 3D участка
-        circle.on('click', function(){
-            userPoint = p
-            buildUserPlot3D(p)
-        })
     })
     
-    lirenSay(`Показано ${points.length} зон загрязнения (синие - ваши, остальные - общие). Кликните на точку чтобы открыть 3D участок 🗺️`)
+    lirenSay(`Показано ${points.length} зон загрязнения (синие - ваши, остальные - общие) 🗺️`)
 }
 
 async function showUserZones(){
@@ -820,115 +814,7 @@ async function buildUserArea(point){
     }
 }
 
-// 3D глобальная карта удалена для упрощения системы
-
-async function loadUserPoints(){
-    if(userPoint){
-        lirenSay("Показываю 3D модель вашего участка с рельефом и профилем почвы 🏔️")
-        await buildUserPlot3D(userPoint)
-        return
-    }
-    
-    try {
-        let res = await fetch("/api/points")
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
-        
-        let points = await res.json()
-        if(points.length > 0){
-            lirenSay("Показываю 3D модель вашего участка с рельефом и профилем почвы 🏔️")
-            await buildUserPlot3D(points[0])
-        } else {
-            lirenSay("Нет сохранённых точек 😢")
-        }
-    } catch (error) {
-        console.error("Error loading user points:", error)
-        lirenSay("Ошибка загрузки точек 😢")
-        alert("Ошибка загрузки точек: " + error.message)
-    }
-}
-
-async function buildUserPlot3D(point){
-    try {
-        // Получаем реальную высоту из DEM
-        let elevation = await loadDEM(point.lat, point.lon)
-        let terrainHeight = elevation * 0.05 // масштаб для рельефа
-        
-        // Получаем слои почвы из soil_defaults
-        let soilType = point.soil_type || "chernozem"
-        let soilData = soilDefaults[soilType] || soilDefaults["chernozem"]
-        let layers = soilData.layers
-        
-        // Создаём данные для 3D визуализации
-        let data = []
-        
-        // Рельеф сверху (поверхность)
-        let terrainZ = []
-        let terrainX = []
-        let terrainY = []
-        for(let i = 0; i < 10; i++){
-            for(let j = 0; j < 10; j++){
-                terrainZ.push(terrainHeight + Math.random() * 2)
-                terrainX.push(i)
-                terrainY.push(j)
-            }
-        }
-        
-        data.push({
-            type: 'surface',
-            z: terrainZ,
-            x: terrainX,
-            y: terrainY,
-            colorscale: 'Earth',
-            name: 'Рельеф'
-        })
-        
-        // Профиль почвы (слои)
-        let currentDepth = 0
-        layers.forEach(layer => {
-            let layerHeight = (layer.z[1] - layer.z[0]) / 20
-            let layerZ = []
-            let layerX = []
-            let layerY = []
-            
-            for(let i = 0; i < 10; i++){
-                for(let j = 0; j < 10; j++){
-                    layerZ.push(-currentDepth - layerHeight/2)
-                    layerX.push(i)
-                    layerY.push(j)
-                }
-            }
-            
-            data.push({
-                type: 'surface',
-                z: layerZ,
-                x: layerX,
-                y: layerY,
-                showscale: false,
-                surfacecolor: [[layer.color]],
-                name: layer.name,
-                opacity: 0.8
-            })
-            
-            currentDepth += layerHeight
-        })
-        
-        let layout = {
-            title: `3D Участок - ${soilData.name}\nВысота: ${Math.round(elevation)}м, pH: ${point.ph}, Влажность: ${point.moisture}%`,
-            scene: {
-                zaxis: {title: 'Глубина (м)', range: [-150, 50]},
-                xaxis: {title: 'X (м)'},
-                yaxis: {title: 'Y (м)'}
-            },
-            margin: {l: 0, r: 0, t: 50, b: 0}
-        }
-        
-        Plotly.newPlot('plot3d', data, layout)
-        lirenSay(`3D модель участка построена! ${soilData.name}, высота: ${Math.round(elevation)}м 🏔️`)
-    } catch (error) {
-        console.error("Error building user plot 3D:", error)
-        lirenSay("Ошибка построения 3D модели 😢")
-    }
-}
+// 3D глобальная карта и участок удалены для упрощения системы
 
 function updateSoilState(){
     if(!userPoint) return
