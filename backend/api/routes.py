@@ -1,21 +1,14 @@
 from fastapi import APIRouter, UploadFile, Form
+from backend.services.hybrid_ai import hybrid_predict
+from backend.services.soil_health import soil_health
+from backend.services.auto_train import save_for_training
+from backend.services.pollution import detect_pollution
+from backend.services.surface_diagnostics import get_surface_diagnosis
+from backend.services.science_rules import get_soil_description
+import cv2
+import numpy as np
 import time
 import logging
-
-# Опциональные импорты для AI сервисов
-try:
-    from backend.services.hybrid_ai import hybrid_predict
-    from backend.services.soil_health import soil_health
-    from backend.services.auto_train import save_for_training
-    from backend.services.pollution import detect_pollution
-    from backend.services.surface_diagnostics import get_surface_diagnosis
-    from backend.services.science_rules import get_soil_description
-    import cv2
-    import numpy as np
-    AI_AVAILABLE = True
-except ImportError:
-    AI_AVAILABLE = False
-    logging.warning("AI services not available (cv2/numpy missing). Using fallback mode.")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,25 +18,6 @@ router = APIRouter()
 @router.post("/analyze")
 async def analyze(file: UploadFile, lat: float = Form(...), lon: float = Form(...)):
     logger.info(f"Starting analysis for lat={lat}, lon={lon}")
-    
-    if not AI_AVAILABLE:
-        # Fallback режим без AI
-        logger.info("Using fallback mode (no AI services)")
-        return {
-            "ai": "unknown",
-            "map": "unknown",
-            "confidence": 0.5,
-            "match": False,
-            "valid": False,
-            "health": 0.5,
-            "pollution": "clean",
-            "surface_diagnosis": "Не удалось определить (AI недоступен)",
-            "surface_confidence": 0.0,
-            "description": "Анализ по фото недоступен. Используйте ручной ввод параметров.",
-            "lat": lat,
-            "lon": lon,
-            "timestamp": time.time()
-        }
     
     try:
         # Читаем файл один раз
