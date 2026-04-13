@@ -703,8 +703,15 @@ async function getWeather(lat, lon){
 
 // Показать погоду для текущего местоположения
 async function showWeather(){
-    let lat = parseFloat(document.getElementById("lat").value)
-    let lon = parseFloat(document.getElementById("lon").value)
+    let lat, lon
+    
+    if(userPoint){
+        lat = userPoint.lat
+        lon = userPoint.lon
+    } else {
+        lat = parseFloat(document.getElementById("lat").value)
+        lon = parseFloat(document.getElementById("lon").value)
+    }
     
     lirenSay("Загружаю погоду... 🌤️")
     let weather = await getWeather(lat, lon)
@@ -808,12 +815,29 @@ async function buildTerrain(point){
 }
 
 async function loadTerrain(){
-    let lat = parseFloat(document.getElementById("lat").value)
-    let lon = parseFloat(document.getElementById("lon").value)
-    await buildTerrain({lat, lon, moisture: 30})
+    let lat, lon, moisture
+    
+    if(userPoint){
+        lat = userPoint.lat
+        lon = userPoint.lon
+        moisture = userPoint.moisture || 30
+    } else {
+        lat = parseFloat(document.getElementById("lat").value)
+        lon = parseFloat(document.getElementById("lon").value)
+        moisture = 30
+    }
+    
+    await buildTerrain({lat, lon, moisture})
 }
 
 async function loadUserPoints(){
+    if(userPoint){
+        lirenSay("Показываю 3D модель вашего участка 🏔️")
+        let points = [userPoint]
+        buildUserSoil3D(points)
+        return
+    }
+    
     try {
         let res = await fetch("/api/points")
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
