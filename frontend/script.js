@@ -285,6 +285,38 @@ async function send(){
         if(d.surface_diagnosis) features.push(d.surface_diagnosis)
         if(d.description) features.push(d.description)
         
+        // Связываем AI предсказание с soil_defaults
+        let aiType = d.ai || "chernozem"
+        let soilData = soilDefaults[aiType] || soilDefaults["chernozem"]
+        
+        // Определяем загрязнение по визуальным признакам
+        let pollution = "clean"
+        if(d.surface_diagnosis && d.surface_diagnosis.includes("white crust")) {
+            pollution = "salt"
+        } else if(d.surface_diagnosis && d.surface_diagnosis.includes("oil")) {
+            pollution = "oil"
+        } else if(d.pollution && d.pollution !== "clean") {
+            pollution = d.pollution
+        }
+        
+        // Создаём userPoint с данными из soil_defaults
+        userPoint = {
+            lat: parseFloat(document.getElementById("lat").value),
+            lon: parseFloat(document.getElementById("lon").value),
+            soil_type: aiType,
+            ph: soilData.ph,
+            humus: soilData.humus,
+            moisture: soilData.moisture,
+            pollution: pollution,
+            health: calculateHealth(soilData.moisture, soilData.ph, soilData.humus, pollution) / 100
+        }
+        
+        // Сохраняем в localStorage
+        localStorage.setItem("my_soil", JSON.stringify(userPoint))
+        
+        // Сообщение Лирен с анализом
+        lirenSay(`По фото я определила: ${soilData.name} 🌱`)
+        
         // Применяем диагностическую систему
         let diagnostic = analyzeSoil(features)
         
@@ -941,7 +973,22 @@ function recovery(){
     })
     
     let interval = setInterval(() => {
-        userPoint.health += 0.02 + weatherBonus
+        // Логика восстановления (не рандом)
+        // pH стремится к 7
+        let phChange = (7 - userPoint.ph) * 0.05
+        userPoint.ph = Math.max(0, Math.min(14, userPoint.ph + phChange))
+        
+        // Влажность + погода
+        let moistureChange = weatherBonus * 10
+        userPoint.moisture = Math.max(0, Math.min(100, userPoint.moisture + moistureChange))
+        
+        // Здоровье зависит от загрязнения
+        let healthChange = userPoint.pollution ? 0.01 : 0.03
+        userPoint.health += healthChange
+        
+        // Пересчитываем здоровье по формуле
+        let calculatedHealth = calculateHealth(userPoint.moisture, userPoint.ph, userPoint.humus, userPoint.pollution)
+        userPoint.health = calculatedHealth / 100
         
         // Обновляем 3D профиль в реальном времени
         drawSoil(userPoint)
@@ -955,8 +1002,8 @@ function recovery(){
         } else {
             let percent = Math.round(userPoint.health * 100)
             if(percent % 20 === 0){
-                if(percent < 50) lirenSay("Почва всё ещё устала, продолжаем... 😢")
-                else if(percent < 80) lirenSay("Почва восстанавливается, это хорошо! 💧")
+                if(percent < 40) lirenSay("Почва деградирована, продолжаем восстановление... 😢")
+                else if(percent < 70) lirenSay("Почва восстанавливается, это хорошо! 💧")
                 else lirenSay("Почва почти здорова! Почти готово 🌿")
             }
         }
@@ -1006,16 +1053,18 @@ function getLocation(){
 function setTestLocation(){
     lirenSay("Устанавливаю тестовое местоположение (Москва) 🧪")
     
-    let moisture = 35
-    let ph = 6.5
-    let health = calculateHealth(moisture, ph)
+    // Используем данные из soil_defaults для чернозёма
+    let soilData = soilDefaults["chernozem"]
     
     userPoint = {
         lat: 55.7558,
         lon: 37.6173,
-        health: health / 100,
-        moisture: moisture,
-        ph: ph,
+        soil_type: "chernozem",
+        health: calculateHealth(soilData.moisture, soilData.ph, soilData.humus) / 100,
+        moisture: soilData.moisture,
+        ph: soilData.ph,
+        humus: soilData.humus,
+        pollution: "clean",
         area: 1000
     }
     
@@ -1031,6 +1080,9 @@ function setTestLocation(){
     
     buildUserArea(userPoint)
     
+    // Сохраняем в localStorage
+    localStorage.setItem("my_soil", JSON.stringify(userPoint))
+    
     // Создать точку с историей
     createPoint({
         lat: userPoint.lat,
@@ -1040,22 +1092,21 @@ function setTestLocation(){
         area: userPoint.area
     })
     
-    lirenSay(`Тестовое местоположение установлено! Здоровье: ${Math.round(health)}%, Влажность: ${moisture}% 🎉`)
+    let health = calculateHealth(userPoint.moisture, userPoint.ph, userPoint.humus, userPoint.pollution)
+    lirenSay(`Тестовое местоположение установлено! ${soilData.name}, Здоровье: ${Math.round(health)}% 🎉`)
 }
 
 // Реальная 3D модель почвенного профиля
 function drawSoil(point){
-    // Цвет зависит от pH
-    let layerColor = point.ph < 5 ? "red" : point.ph > 8 ? "orange" : "brown"
+    // Получаем параметры из soil_defaults по типу почвы
+    let soilType = point.soil_type || "chernozem"
+    let soilData = soilDefaults[soilType] || soilDefaults["chernozem"]
+    
+    // Используем слои из базы данных
+    const layers = soilData.layers
     
     // Высота зависит от влажности
     let heightScale = point.moisture * 0.1
-    
-    const layers = [
-        {z: [0, -20], color: layerColor, name: "Гумус (AU)"},   // гумус
-        {z: [-20, -50], color: "lightgray", name: "Подзол (E)"}, // подзол
-        {z: [-50, -100], color: "orange", name: "Текстурный (BT)"} // текстурный
-    ]
 
     const data = layers.map(layer => ({
         type: 'mesh3d',
@@ -1066,15 +1117,15 @@ function drawSoil(point){
         j: [1, 2, 3, 1],
         k: [2, 3, 0, 3],
         facecolor: [layer.color],
-        opacity: point.moisture / 100, // Прозрачность зависит от влажности
+        opacity: point.moisture / 100,
         name: layer.name
     }))
 
-    const health = calculateHealth(point.moisture, point.ph)
+    const health = calculateHealth(point.moisture, point.ph, point.humus, point.pollution)
     const layout = {
-        title: `Почвенный профиль - pH: ${point.ph}, Влажность: ${point.moisture}%, Здоровье: ${Math.round(health)}%`,
+        title: `${soilData.name} - pH: ${point.ph}, Влажность: ${point.moisture}%, Гумус: ${point.humus}%, Здоровье: ${Math.round(health)}%`,
         scene: {
-            zaxis: {title: 'Глубина (см)', range: [-100, 0]},
+            zaxis: {title: 'Глубина (см)', range: [-120, 0]},
             xaxis: {title: 'X (м)'},
             yaxis: {title: 'Y (м)'}
         },
@@ -1082,7 +1133,7 @@ function drawSoil(point){
     }
 
     Plotly.newPlot('soil3d', data, layout)
-    lirenSay(`Почвенный профиль построен! pH: ${point.ph}, Влажность: ${point.moisture}%, Здоровье: ${Math.round(health)}% 🌱`)
+    lirenSay(`${soilData.name} построен! pH: ${point.ph}, Влажность: ${point.moisture}%, Гумус: ${point.humus}%, Здоровье: ${Math.round(health)}% 🌱`)
 }
 
 // Получить цвет зоны по здоровью
@@ -1093,9 +1144,78 @@ function getColor(health){
 }
 
 // Формула живой почвы
-function calculateHealth(moisture, ph){
-    let health = (moisture * 0.4) + (7 - Math.abs(ph - 7) * 2) * 10
+function calculateHealth(moisture, ph, humus = 5, pollution = null){
+    let pollutionPenalty = 0
+    if(pollution === "salt") pollutionPenalty = 20
+    else if(pollution === "oil") pollutionPenalty = 30
+    else if(pollution === "heavy") pollutionPenalty = 25
+    
+    let health = (moisture * 0.4) + (7 - Math.abs(ph - 7)) * 15 - pollutionPenalty + humus * 2
     return Math.max(0, Math.min(100, health))
+}
+
+// База параметров почв по типам
+const soilDefaults = {
+    "chernozem": {
+        ph: 6.5,
+        humus: 8,
+        moisture: 45,
+        color: "#3E3A39",
+        name: "Чернозём",
+        layers: [
+            {z: [0, -40], color: "#3E3A39", name: "Гумус (AU)"},
+            {z: [-40, -80], color: "#5D4E46", name: "Переходный (AB)"},
+            {z: [-80, -120], color: "#8B7355", name: "Материнская (C)"}
+        ]
+    },
+    "podzol": {
+        ph: 4.5,
+        humus: 1.5,
+        moisture: 35,
+        color: "#F0F0F0",
+        name: "Подзол",
+        layers: [
+            {z: [0, -10], color: "#E8E8E8", name: "Подстилка (O)"},
+            {z: [-10, -25], color: "#F0F0F0", name: "Подзолистый (E)"},
+            {z: [-25, -50], color: "#A0522D", name: "Иллювиальный (B)"}
+        ]
+    },
+    "gray_forest": {
+        ph: 5.5,
+        humus: 3,
+        moisture: 40,
+        color: "#808080",
+        name: "Серая лесная",
+        layers: [
+            {z: [0, -20], color: "#696969", name: "Гумус (AU)"},
+            {z: [-20, -45], color: "#A9A9A9", name: "Подзол (E)"},
+            {z: [-45, -90], color: "#8B4513", name: "Текстурный (B)"}
+        ]
+    },
+    "tundra_gley": {
+        ph: 6.0,
+        humus: 2,
+        moisture: 70,
+        color: "#4682B4",
+        name: "Тундровая глеевая",
+        layers: [
+            {z: [0, -15], color: "#5F9EA0", name: "Торф (T)"},
+            {z: [-15, -40], color: "#708090", name: "Глей (G)"},
+            {z: [-40, -80], color: "#B0C4DE", name: "Материнская (C)"}
+        ]
+    },
+    "chestnut": {
+        ph: 7.2,
+        humus: 4,
+        moisture: 30,
+        color: "#D2691E",
+        name: "Каштановая",
+        layers: [
+            {z: [0, -30], color: "#CD853F", name: "Гумус (AU)"},
+            {z: [-30, -60], color: "#DEB887", name: "Карбонатный (Bk)"},
+            {z: [-60, -100], color: "#F4A460", name: "Материнская (C)"}
+        ]
+    }
 }
 
 // Показать почвенный профиль
@@ -1174,23 +1294,27 @@ async function runTimeSimulation(){
     
     lirenSay("Запускаю симуляцию времени на 10 дней... ⏳")
     
+    // Получаем погоду
+    let weather = await getWeather(userPoint.lat, userPoint.lon)
+    let weatherEffect = weather ? weather.humidity > 50 ? 5 : -3 : 0
+    
     let history = []
     let currentMoisture = userPoint.moisture
     let currentPh = userPoint.ph
-    let currentHealth = calculateHealth(currentMoisture, currentPh)
+    let currentHumus = userPoint.humus || 5
+    let currentPollution = userPoint.pollution || null
     
     // Симулируем 10 дней
     for(let day = 1; day <= 10; day++){
-        // Влияние погоды (рандом)
-        let weatherEffect = Math.random() * 10 - 5 // -5 to +5
+        // Влияние погоды (дождь + влажность, жара - влажность)
         currentMoisture = Math.max(0, Math.min(100, currentMoisture + weatherEffect))
         
         // pH стремится к 7
         let phChange = (7 - currentPh) * 0.1
         currentPh = Math.max(0, Math.min(14, currentPh + phChange))
         
-        // Здоровье улучшается
-        currentHealth = calculateHealth(currentMoisture, currentPh)
+        // Здоровье с учётом загрязнения и гумуса
+        let currentHealth = calculateHealth(currentMoisture, currentPh, currentHumus, currentPollution)
         
         history.push({
             day: day,
@@ -1206,6 +1330,8 @@ async function runTimeSimulation(){
     // Обновляем userPoint
     userPoint.moisture = currentMoisture
     userPoint.ph = currentPh
+    userPoint.humus = currentHumus
+    userPoint.pollution = currentPollution
     userPoint.health = currentHealth / 100
     
     lirenSay(`Симуляция завершена! Здоровье: ${Math.round(currentHealth)}% 🎉`)
