@@ -5,6 +5,8 @@ pillow
 numpy
 opencv-python
 plotly
+scikit-learn
+joblib
 requests
 python-dotenv
 pydantic
