@@ -891,14 +891,13 @@ function buildUserSoil3D(points){
 function updateSoilState(){
     if(!userPoint) return
     
-    let color = "#22c55e"
+    let healthPercent = userPoint.health * 100
+    let color = getColor(healthPercent)
     let status = "Хорошее"
     
-    if(userPoint.health < 0.5){
-        color = "#ef4444"
+    if(healthPercent < 50){
         status = "Плохое"
-    } else if(userPoint.health < 0.8){
-        color = "#fbbf24"
+    } else if(healthPercent < 70){
         status = "Среднее"
     }
     
@@ -920,8 +919,17 @@ function recovery(){
     
     lirenSay("Начинаю восстановление почвы... Это займёт немного времени 🌿")
     
+    // Получаем погоду для влияния на восстановление
+    let weatherBonus = 0
+    getWeather(userPoint.lat, userPoint.lon).then(weather => {
+        if(weather && weather.humidity > 50){
+            weatherBonus = 0.01 // Бонус за высокую влажность
+            lirenSay("Благоприятная погода ускоряет восстановление! 💧")
+        }
+    })
+    
     let interval = setInterval(() => {
-        userPoint.health += 0.02
+        userPoint.health += 0.02 + weatherBonus
         
         if(userPoint.health >= 1){
             userPoint.health = 1
@@ -1012,4 +1020,47 @@ function setTestLocation(){
     })
     
     lirenSay("Тестовое местоположение установлено! Здоровье: 50%, Влажность: 35% 🎉")
+}
+
+// Реальная 3D модель почвенного профиля
+function drawSoil(point){
+    const layers = [
+        {z: [0, -20], color: "brown"},   // гумус (AU)
+        {z: [-20, -50], color: "lightgray"}, // подзол (E)
+        {z: [-50, -100], color: "orange"} // текстурный (BT)
+    ]
+
+    const data = layers.map(layer => ({
+        type: 'mesh3d',
+        z: layer.z,
+        color: layer.color
+    }))
+
+    const layout = {
+        title: 'Почвенный профиль',
+        scene: {
+            zaxis: {title: 'Глубина (см)'},
+            xaxis: {title: 'X'},
+            yaxis: {title: 'Y'}
+        }
+    }
+
+    Plotly.newPlot('soil3d', data, layout)
+    lirenSay("Почвенный профиль построен! 🌱")
+}
+
+// Получить цвет зоны по здоровью
+function getColor(health){
+    if (health < 40) return "red"
+    if (health < 70) return "yellow"
+    return "green"
+}
+
+// Показать почвенный профиль
+function showSoilProfile(){
+    if(userPoint){
+        drawSoil(userPoint)
+    } else {
+        lirenSay("Сначала найдите ваш участок 📍")
+    }
 }
