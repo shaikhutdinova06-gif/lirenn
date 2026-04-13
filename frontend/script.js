@@ -4,6 +4,29 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
 
 let userPoint = null
 
+// Маппинг кодов почв на русские названия
+const soilNameMapping = {
+    "tundra_gley": "Тундровая глеевая почва",
+    "gray_forest": "Серая лесная почва",
+    "chernozem": "Чернозём",
+    "podzol": "Подзол",
+    "sod_podzolic": "Дерново-подзолистая почва",
+    "peat": "Торфяная почва",
+    "chestnut": "Каштановая почва",
+    "sierozem": "Серозём",
+    "gley": "Глеевая почва",
+    "solonchak": "Солончак",
+    "solonetz": "Солонец",
+    "takyr": "Такыр",
+    "brown": "Бурая почва",
+    "red": "Краснозём",
+    "yellow": "Жёлтозём"
+}
+
+function translateSoilName(code){
+    return soilNameMapping[code] || code
+}
+
 // ============================================================
 // ПОЧВЕННЫЙ ДИАГНОСТИЧЕСКИЙ КАЛЬКУЛЯТОР (по визуальным признакам)
 // На основе: учебник Ковды + Полевой определитель почв России
@@ -285,11 +308,15 @@ async function send(){
             `
         }
 
+        // Переводим названия почв на русский
+        let aiName = translateSoilName(d.ai)
+        let mapName = translateSoilName(d.map)
+
         document.getElementById("out").innerHTML = `
 <div class="card">
     <h2>🌱 LIREN Analysis</h2>
-    <p><span class="highlight">AI предсказание:</span> ${d.ai}</p>
-    <p><span class="highlight">Карта:</span> ${d.map}</p>
+    <p><span class="highlight">AI предсказание:</span> ${aiName}</p>
+    <p><span class="highlight">Карта:</span> ${mapName}</p>
     <p><span class="${matchClass}">Совпадение:</span> ${d.match ? "✅ Да" : "❌ Нет"}</p>
     <p><span class="highlight">Уверенность:</span> ${(d.confidence * 100).toFixed(1)}%</p>
     <p><span class="highlight">Здоровье:</span> ${(health * 100).toFixed(1)}%</p>
