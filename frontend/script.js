@@ -800,13 +800,13 @@ async function buildUserArea(point){
         document.getElementById("out").innerHTML = `
         <div class="card">
             <h2>🌱 Ваш участок</h2>
-            <p>Высота: ${elevation} м</p>
+            <p>Высота: ${Math.round(elevation)} м</p>
             <p>Состояние: ${Math.round(point.health*100)}%</p>
             <p>Влажность: ${point.moisture}%</p>
         </div>
         `
         
-        lirenSay(`Высота вашего участка: ${elevation} метров. Состояние почвы: ${Math.round(point.health*100)}% 🌿`)
+        lirenSay(`Высота вашего участка: ${Math.round(elevation)} метров. Состояние почвы: ${Math.round(point.health*100)}% 🌿`)
         updateSoilState()
     } catch (error) {
         console.error("Error building user area:", error)
