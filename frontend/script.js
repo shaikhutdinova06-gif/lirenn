@@ -353,6 +353,7 @@ async function send(){
     <p><span class="highlight">Карта:</span> ${mapName}</p>
     <p><span class="${matchClass}">Совпадение:</span> ${d.match ? "✅ Да" : "❌ Нет"}</p>
     <p><span class="highlight">Уверенность:</span> ${(d.confidence * 100).toFixed(1)}%</p>
+    <p><span class="highlight">pH почвы:</span> ${diagnostic.ph || soilData.ph || "Не определено"}</p>
     <p><span class="highlight">Здоровье:</span> ${(health * 100).toFixed(1)}%</p>
     <p><span class="highlight">Влажность:</span> ${moisture}%</p>
     <p><span class="${pollutionClass}">Загрязнение:</span> ${d.pollution === "clean" ? "✅ Чисто" : "⚠️ " + d.pollution}</p>
