@@ -236,26 +236,27 @@ function updateMap(lat, lon){
 }
 
 async function send(){
-
+    let analysisType = document.getElementById("analysisType").value
     let f = document.getElementById("file").files[0]
 
-    if (!f) {
+    if (!f && analysisType === "photo") {
         lirenSay("Пожалуйста, выберите файл для анализа 📷")
         document.getElementById("out").innerHTML = `
 <div class="card">
     <h2>❌ Ошибка</h2>
-    <p>Пожалуйста, выберите файл</p>
+    <p>Пожалуйста, выберите файл для анализа по фото</p>
 </div>
 `
         return
     }
 
-    lirenSay("Анализирую фото почвы... Это займёт немного времени 🔬")
+    lirenSay("Анализирую почву... Это займёт немного времени 🔬")
 
     let form = new FormData()
-    form.append("file", f)
+    if (f) form.append("file", f)
     form.append("lat", document.getElementById("lat").value)
     form.append("lon", document.getElementById("lon").value)
+    form.append("analysis_type", analysisType)
 
     try {
         let res = await fetch("/api/analyze", {
@@ -315,7 +316,7 @@ async function send(){
         localStorage.setItem("my_soil", JSON.stringify(userPoint))
         
         // Сообщение Лирен с анализом
-        lirenSay(`По фото я определила: ${soilData.name} 🌱`)
+        lirenSay(`По данным я определила: ${soilData.name} 🌱`)
         
         // Применяем диагностическую систему
         let diagnostic = analyzeSoil(features)
@@ -347,6 +348,7 @@ async function send(){
         document.getElementById("out").innerHTML = `
 <div class="card">
     <h2>🌱 LIREN Analysis</h2>
+    <p><span class="highlight">Тип анализа:</span> ${analysisType === "photo" ? "📷 По фото" : analysisType === "visual" ? "👁️ Визуальный" : "🧪 Химический"}</p>
     <p><span class="highlight">AI предсказание:</span> ${aiName}</p>
     <p><span class="highlight">Карта:</span> ${mapName}</p>
     <p><span class="${matchClass}">Совпадение:</span> ${d.match ? "✅ Да" : "❌ Нет"}</p>

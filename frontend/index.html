@@ -26,7 +26,13 @@
 <input id="lat" placeholder="lat" value="55.7558">
 <input id="lon" placeholder="lon" value="37.6173">
 
-<button onclick="send()">📷 Анализ фото</button>
+<select id="analysisType">
+    <option value="photo">📷 Анализ по фото</option>
+    <option value="visual">👁️ Визуальный анализ</option>
+    <option value="chemical">🧪 Химический анализ</option>
+</select>
+
+<button onclick="send()">📷 Анализ</button>
 <button onclick="getLocation()">📍 Найти мой участок</button>
 <button onclick="setTestLocation()">🧪 Тестовое местоположение</button>
 <button onclick="savePointOnMap()">💾 Сохранить точку</button>
