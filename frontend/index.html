@@ -2,36 +2,64 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>ЛИРЕН</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ЛИРЕН — Анализ почвы</title>
 <link rel="stylesheet" href="/static/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 
 <body>
-
-<header>
-    <div class="logo">
-        <div class="logo-icon">🌱</div>
-        <div>
-            <h1>Лирен</h1>
-            <p>Анализ почвы</p>
+<div class="container">
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">🌱</div>
+            <div>
+                <h1>Лирен</h1>
+                <p>Экологический анализ почвы</p>
+            </div>
         </div>
-    </div>
-</header>
+    </header>
 
-<input type="file" id="file">
-<input id="lat" placeholder="lat" value="55.7558">
-<input id="lng" placeholder="lng" value="37.6173">
-<input id="ph" placeholder="pH">
-<input id="moisture" placeholder="Влажность %">
-<input id="notes" placeholder="Заметки">
+    <main class="main">
+        <div class="panel">
+            <div class="panel-header">
+                <h2>📍 Параметры точки</h2>
+            </div>
+            <div class="panel-body">
+                <div class="input-group">
+                    <label>Широта (lat)</label>
+                    <input type="number" id="lat" step="0.000001" value="55.7558" placeholder="55.7558">
+                </div>
+                <div class="input-group">
+                    <label>Долгота (lng)</label>
+                    <input type="number" id="lng" step="0.000001" value="37.6173" placeholder="37.6173">
+                </div>
+                <div class="input-group">
+                    <label>pH почвы</label>
+                    <input type="number" id="ph" step="0.1" min="0" max="14" placeholder="7.0">
+                </div>
+                <div class="input-group">
+                    <label>Влажность (%)</label>
+                    <input type="number" id="moisture" step="1" min="0" max="100" placeholder="50">
+                </div>
+                <div class="input-group">
+                    <label>Заметки</label>
+                    <textarea id="notes" rows="3" placeholder="Описание точки..."></textarea>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="goToLocation()">📍 Найти участок</button>
+                    <button class="btn btn-secondary" onclick="getMyLocation()">🧭 Моё местоположение</button>
+                    <button class="btn btn-success" onclick="addPoint()">💾 Сохранить точку</button>
+                </div>
+            </div>
+        </div>
 
-<button onclick="goToLocation()">📍 Найти участок</button>
-<button onclick="getMyLocation()">� Моё местоположение</button>
-<button onclick="addPoint()">💾 Сохранить точку</button>
-
-<div id="map" style="height:500px;"></div>
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+    </main>
+</div>
 
 <script src="/static/script.js"></script>
 </body>
