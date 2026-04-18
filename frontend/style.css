@@ -5,7 +5,7 @@
 }
 
 body {
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Montserrat', sans-serif;
     background: linear-gradient(to bottom, #F5F5DC 0%, #E8E8E8 50%, #455A64 100%);
     color: #424242;
     min-height: 100vh;
@@ -40,7 +40,7 @@ body::before {
 
 .nav-logo {
     color: #5D4037;
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Playfair Display', serif;
     font-weight: 700;
     font-size: 1.4em;
     display: flex;
@@ -78,6 +78,10 @@ body::before {
     color: #F5F5DC;
     position: relative;
     overflow: hidden;
+}
+
+.soil-header h1 {
+    font-family: 'Playfair Display', serif;
 }
 
 .soil-header::before {
@@ -296,7 +300,7 @@ body::before {
     border: 2px solid #A1887F;
     border-radius: 8px;
     font-size: 16px;
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Montserrat', sans-serif;
     color: #424242;
     background: #F5F5DC;
     transition: border-color 0.3s ease;
@@ -329,7 +333,7 @@ body::before {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Montserrat', sans-serif;
 }
 
 .btn:hover {
