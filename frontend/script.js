@@ -20,8 +20,13 @@ const API_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:3000'
     : 'https://liren-map-backend.onrender.com';
 
-// Initialize map
-const map = L.map("map").setView([60, 90], 3);
+// Initialize map with bounds
+const map = L.map("map", {
+    maxBounds: [[40, 20], [75, 180]],
+    maxBoundsViscosity: 1.0,
+    minZoom: 3,
+    maxZoom: 18
+}).setView([60, 90], 3);
 
 // Base map
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
