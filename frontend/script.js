@@ -59,54 +59,45 @@ function nextStep(step) {
             return;
         }
         
-        // Add slide-out animation to current panel
-        const currentPanel = document.querySelector(`.step-panel[data-step="${currentStep}"]`);
-        currentPanel.classList.add('slide-out-left');
-        
-        // Mark current step as completed
-        document.querySelector(`.progress-step[data-step="${currentStep}"]`).classList.add('completed');
-        
-        setTimeout(() => {
-            currentStep = step;
-            updateStepUI();
-            processStep(step);
-        }, 300);
-    } else {
+        const oldStep = currentStep;
         currentStep = step;
-        updateStepUI();
+        
+        // Update layers
+        updateLayers(oldStep, currentStep);
+        processStep(step);
+    } else {
+        const oldStep = currentStep;
+        currentStep = step;
+        updateLayers(oldStep, currentStep);
         processStep(step);
     }
 }
 
 function prevStep(step) {
-    // Add slide-out animation to current panel
-    const currentPanel = document.querySelector(`.step-panel[data-step="${currentStep}"]`);
-    currentPanel.classList.add('slide-out-right');
-    
-    setTimeout(() => {
-        currentStep = step;
-        updateStepUI();
-    }, 300);
+    const oldStep = currentStep;
+    currentStep = step;
+    updateLayers(oldStep, currentStep);
 }
 
-function updateStepUI() {
-    // Hide all panels
+function updateLayers(oldStep, newStep) {
+    // Remove all layer classes
     document.querySelectorAll('.step-panel').forEach(panel => {
-        panel.classList.remove('active', 'slide-out-left', 'slide-out-right');
+        panel.classList.remove('active', 'previous', 'completed');
     });
     
-    // Show current panel
-    const newPanel = document.querySelector(`.step-panel[data-step="${currentStep}"]`);
+    // Set new active panel
+    const newPanel = document.querySelector(`.step-panel[data-step="${newStep}"]`);
     newPanel.classList.add('active');
     
-    // Update progress steps
-    document.querySelectorAll('.progress-step').forEach(stepEl => {
-        const stepNum = parseInt(stepEl.dataset.step);
-        stepEl.classList.remove('active');
-        if (stepNum === currentStep) {
-            stepEl.classList.add('active');
+    // Set previous panels with layering effect
+    for (let i = 1; i < newStep; i++) {
+        const panel = document.querySelector(`.step-panel[data-step="${i}"]`);
+        if (i === newStep - 1) {
+            panel.classList.add('previous');
+        } else {
+            panel.classList.add('completed');
         }
-    });
+    }
 }
 
 function validateStep(step) {
