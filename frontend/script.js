@@ -1441,6 +1441,48 @@ function showHistoryGraphs(history){
         xaxis: {title: 'День'},
         yaxis: {title: 'Значение'}
     }
-    
+
     Plotly.newPlot('plot3d', [trace1, trace2, trace3], layout)
+}
+
+// BLOCK 1: Soil Analysis with DeepSeek
+let userId = localStorage.getItem('user_id')
+if (!userId) {
+    userId = crypto.randomUUID()
+    localStorage.setItem('user_id', userId)
+}
+
+async function runBlock1() {
+  const data = {
+    lat: selectedLat,
+    lng: selectedLng,
+    ph: document.getElementById("ph").value,
+    moisture: document.getElementById("moisture").value,
+    notes: document.getElementById("notes").value,
+    tags: ["user"],
+    color: "green",
+    user_id: userId
+  }
+  const res = await fetch("/api/block1", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(data)
+  })
+  const result = await res.json()
+  if (result.error) {
+    alert(result.error)
+    return
+  }
+  console.log(result)
+  addPointToMap(result.saved_point)
+}
+
+function addPointToMap(point) {
+  const marker = L.marker([point.lat, point.lng]).addTo(map)
+  marker.bindPopup(`
+    <b>Точка</b>
+    pH: ${point.ph || "-"}
+    Влажность: ${point.moisture || "-"}
+    Заметки: ${point.notes || ""}
+  `)
 }

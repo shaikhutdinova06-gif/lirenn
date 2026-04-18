@@ -65,3 +65,10 @@ def find_best_match(real, soil_types):
     results = compare_with_multiple(real, soil_types)
     best_type = max(results, key=results.get)
     return best_type, results[best_type]
+
+def find_similar(data):
+    # заглушка под твою базу
+    return {
+        "status": "ok",
+        "message": "Сравнение с БД выполнено"
+    }

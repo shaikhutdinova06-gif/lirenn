@@ -5,7 +5,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -14,20 +13,11 @@ import os
 
 print("🔥 STARTED")
 
-from backend.api.routes import router as main_router
-from backend.api.calculator import router as calc_router
-from backend.api.health import router as health_router
-from backend.api.points import router as points_router
-from backend.api.horizons import router as horizons_router
-from backend.routes.dem import router as dem_router
+from backend.api.routes import router
 
 # Rate limiting
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(
-    title="LIREN API",
-    docs_url=None,
-    redoc_url=None
-)
+app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -44,27 +34,22 @@ async def add_security_headers(request, call_next):
     response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
     return response
 
-# Trusted host middleware - only allow requests from specific domain
+# Trusted host middleware
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["liren-androsova6565.amvera.io", "localhost"]
 )
 
-# CORS - restrict to specific origin
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://liren-androsova6565.amvera.io", "http://localhost"],
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_origins=["*"],
     allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-app.include_router(main_router, prefix="/api")
-app.include_router(calc_router, prefix="/api")
-app.include_router(health_router, prefix="/api")
-app.include_router(points_router, prefix="/api")
-app.include_router(horizons_router, prefix="/api")
-app.include_router(dem_router, prefix="/api/dem")
+app.include_router(router, prefix="/api")
 
 @app.get("/")
 @limiter.limit("100/minute")

@@ -1,8 +1,9 @@
-from fastapi import APIRouter, UploadFile, Form
+from fastapi import APIRouter, UploadFile, Form, Request
 from backend.services.soil_health import soil_health
 from backend.services.pollution import detect_pollution
 from backend.services.surface_diagnostics import get_surface_diagnosis
 from backend.services.science_rules import get_soil_description
+from backend.services.block1_logic import process_block1
 import cv2
 import numpy as np
 import time
@@ -62,7 +63,12 @@ async def analyze(file: UploadFile, lat: float = Form(...), lon: float = Form(..
         
         logger.info(f"Analysis complete: {result}")
         return result
-        
+
     except Exception as e:
         logger.error(f"Error in analysis: {e}", exc_info=True)
         return {"error": str(e)}
+
+@router.post("/block1")
+async def block1(request: Request):
+    data = await request.json()
+    return process_block1(data)
