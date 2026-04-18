@@ -26,6 +26,11 @@ async def add_security_headers(request, call_next):
         "img-src 'self' data: https:; "
         "connect-src 'self' https:;"
     )
+    # Force no cache for static files
+    if request.url.path.startswith("/static"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
     return response
 # =========================
 # TRUSTED HOST (FIX)
