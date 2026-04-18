@@ -130,7 +130,7 @@ app.get("/soil-zones-count", async (req, res) => {
 });
 
 /* -------------------------
-   🌍 GET SOIL ZONES (GeoJSON)
+   🌍 GET SOIL ZONES (raw x, y, srid)
 --------------------------*/
 app.get("/soil-zones", async (req, res) => {
   try {
