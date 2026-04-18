@@ -1,9 +1,23 @@
 // LIRENN MAP v2 - Interactive Map with Russian Soil Zoning & User Points
 // Replaces the current LIRENN map
 
+// =========================
+// BLOCK 1 MAP LOGIC
+// =========================
+let currentPoint = null;
+let currentMarker = null;
+
+if (!localStorage.getItem("user_id")) {
+    localStorage.setItem("user_id", crypto.randomUUID());
+}
+
+// =========================
+// ORIGINAL MAP CODE
+// =========================
+
 // API URL - use relative path for same-origin requests
-const API_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:3000' 
+const API_URL = window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
     : 'https://liren-map-backend.onrender.com';
 
 // Initialize map
@@ -13,6 +27,81 @@ const map = L.map("map").setView([60, 90], 3);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: ' OpenStreetMap contributors'
 }).addTo(map);
+
+// =========================
+// BLOCK 1 MAP FUNCTIONS (after map init)
+// =========================
+
+// Клик по карте
+map.on("click", function(e) {
+    setCurrentPoint(e.latlng.lat, e.latlng.lng);
+});
+
+// Установка точки
+function setCurrentPoint(lat, lng) {
+    currentPoint = { lat, lng };
+    document.getElementById("lat").value = lat.toFixed(6);
+    document.getElementById("lng").value = lng.toFixed(6);
+    if (currentMarker) {
+        map.removeLayer(currentMarker);
+    }
+    currentMarker = L.marker([lat, lng]).addTo(map)
+        .bindPopup("Выбранная точка")
+        .openPopup();
+    map.setView([lat, lng], 13);
+}
+
+// Найти участок
+function goToLocation() {
+    const lat = parseFloat(document.getElementById("lat").value);
+    const lng = parseFloat(document.getElementById("lng").value);
+    if (isNaN(lat) || isNaN(lng)) {
+        alert("Введите координаты");
+        return;
+    }
+    setCurrentPoint(lat, lng);
+}
+
+// Моё местоположение
+function getMyLocation() {
+    navigator.geolocation.getCurrentPosition((pos) => {
+        setCurrentPoint(pos.coords.latitude, pos.coords.longitude);
+    });
+}
+
+// Добавить точку
+async function addPoint() {
+    if (!currentPoint) {
+        alert("Выберите точку");
+        return;
+    }
+    const data = {
+        lat: currentPoint.lat,
+        lng: currentPoint.lng,
+        ph: document.getElementById("ph")?.value,
+        moisture: document.getElementById("moisture")?.value,
+        notes: document.getElementById("notes")?.value,
+        user_id: localStorage.getItem("user_id")
+    };
+    const res = await fetch("/api/block1", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    if (result.error) {
+        alert(result.error);
+        return;
+    }
+    addPointToMap(result.point);
+}
+
+// Отображение точки
+function addPointToMap(point) {
+    L.marker([point.lat, point.lng])
+        .addTo(map)
+        .bindPopup("Точка пользователя");
+}
 
 // Auto-load soil zones immediately
 setTimeout(() => {
