@@ -10,3 +10,6 @@ run:
   containerPort: 80
   servicePort: 80
   persistenceMount: /data
+  env:
+    - name: PYTHONUNBUFFERED
+      value: "1"
