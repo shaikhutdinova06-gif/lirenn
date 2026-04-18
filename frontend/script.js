@@ -4,7 +4,7 @@
 // API URL - use relative path for same-origin requests
 const API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:3000' 
-    : window.location.origin;
+    : 'https://liren-map-backend.onrender.com';
 
 // Initialize map
 const map = L.map("map").setView([55.75, 37.6], 6);
