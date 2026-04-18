@@ -1,6 +1,6 @@
 ---
 meta:
-  environment: docker
+  environment: python
   toolchain:
     name: pip
     version: 3.11
@@ -9,7 +9,6 @@ build:
   useCache: true
 run:
   persistenceMount: /data
-  scriptName: null
-  command: null
+  command: uvicorn main:app --host 0.0.0.0 --port 80
   containerPort: 80
   servicePort: 80
