@@ -4,6 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 
+print("🔥 RUNNING MAIN.PY")
+print("WORKDIR:", os.getcwd())
+
 app = FastAPI(title="LIREN API")
 
 app.add_middleware(
