@@ -9,7 +9,6 @@ from backend.api.health import router as health_router
 from backend.api.points import router as points_router
 from backend.api.horizons import router as horizons_router
 from backend.routes.dem import router as dem_router
-from backend.routes.weather import router as weather_router
 
 app = FastAPI(title="LIREN")
 
@@ -26,7 +25,6 @@ app.include_router(health_router, prefix="/api")
 app.include_router(points_router, prefix="/api")
 app.include_router(horizons_router, prefix="/api")
 app.include_router(dem_router, prefix="/api/dem")
-app.include_router(weather_router, prefix="/api/weather")
 
 @app.get("/")
 def root():
