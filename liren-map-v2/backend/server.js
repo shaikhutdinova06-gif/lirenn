@@ -172,6 +172,55 @@ app.get("/health", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`LIRENN MAP v2 API running on port ${PORT}`);
+
+// Auto-migrate database on startup
+async function migrateDatabase() {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+    
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    
+    const sqlPath = path.join(__dirname, 'db.sql');
+    
+    if (fs.existsSync(sqlPath)) {
+      const sql = fs.readFileSync(sqlPath, 'utf8');
+      
+      // Split SQL into individual statements
+      const statements = sql
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0 && !s.startsWith('--'));
+      
+      for (const statement of statements) {
+        try {
+          await pool.query(statement);
+          console.log('Executed migration statement');
+        } catch (err) {
+          // Ignore errors for existing objects
+          if (!err.message.includes('already exists')) {
+            console.error('Migration error:', err.message);
+          }
+        }
+      }
+      
+      console.log('Database migration completed');
+    } else {
+      console.log('db.sql not found, skipping migration');
+    }
+  } catch (error) {
+    console.error('Migration failed:', error);
+  }
+}
+
+// Run migration before starting server
+migrateDatabase().then(() => {
+  app.listen(PORT, () => {
+    console.log(`LIRENN MAP v2 API running on port ${PORT}`);
+  });
+}).catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });
