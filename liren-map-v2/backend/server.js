@@ -174,6 +174,16 @@ app.get("/health", (req, res) => {
 // Debug endpoint to check database state
 app.get("/debug/db", async (req, res) => {
   try {
+    // Check database connection first
+    try {
+      await pool.query('SELECT 1');
+    } catch (err) {
+      return res.status(500).json({ 
+        error: "Database connection failed", 
+        details: err.message 
+      });
+    }
+    
     // Check if tables exist
     const tablesCheck = await pool.query(`
       SELECT table_name 
@@ -184,6 +194,7 @@ app.get("/debug/db", async (req, res) => {
     // Check soil_zones count
     let soilZonesCount = 0;
     let soilZonesData = [];
+    let soilZonesError = null;
     try {
       const countResult = await pool.query('SELECT COUNT(*) FROM soil_zones');
       soilZonesCount = countResult.rows[0].count;
@@ -191,30 +202,37 @@ app.get("/debug/db", async (req, res) => {
       const dataResult = await pool.query('SELECT * FROM soil_zones LIMIT 5');
       soilZonesData = dataResult.rows;
     } catch (err) {
-      // Table might not exist
+      soilZonesError = err.message;
     }
     
     // Check user_points count
     let userPointsCount = 0;
+    let userPointsError = null;
     try {
       const countResult = await pool.query('SELECT COUNT(*) FROM user_points');
       userPointsCount = countResult.rows[0].count;
     } catch (err) {
-      // Table might not exist
+      userPointsError = err.message;
     }
     
     res.json({
       tables: tablesCheck.rows.map(r => r.table_name),
       soilZones: {
         count: soilZonesCount,
-        sample: soilZonesData
+        sample: soilZonesData,
+        error: soilZonesError
       },
       userPoints: {
-        count: userPointsCount
+        count: userPointsCount,
+        error: userPointsError
       }
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Debug endpoint error:', error);
+    res.status(500).json({ 
+      error: error.message || "Unknown error",
+      stack: error.stack 
+    });
   }
 });
 
