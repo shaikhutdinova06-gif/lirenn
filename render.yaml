@@ -8,7 +8,9 @@ services:
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: liren-map-db
+          property: connectionString
       - key: PORT
         value: 3000
 
