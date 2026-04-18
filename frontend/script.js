@@ -7,9 +7,8 @@
 let currentPoint = null;
 let currentMarker = null;
 
-if (!localStorage.getItem("user_id")) {
-    localStorage.setItem("user_id", crypto.randomUUID());
-}
+// Идентификация по IP (теперь на бэкенде)
+// localStorage больше не используется для user_id
 
 // =========================
 // ORIGINAL MAP CODE
@@ -96,8 +95,8 @@ async function addPoint() {
         color: document.getElementById("color")?.value,
         icon: document.getElementById("icon")?.value,
         tags: document.getElementById("tags")?.value.split(",").map(t => t.trim()),
-        notes: document.getElementById("notes")?.value,
-        user_id: localStorage.getItem("user_id")
+        notes: document.getElementById("notes")?.value
+        // user_id больше не отправляем - бэкенд использует IP
     };
 
     if (imageData) {
@@ -114,9 +113,160 @@ async function addPoint() {
         alert(result.error);
         return;
     }
+    
+    // Отобразить результаты анализа
+    displayAnalysisResult(result);
+    
     addPointToMap(result.point);
     loadNearbyPoints();
     loadMyPoints();
+    loadUserCabinet();
+}
+
+// Отобразить результаты анализа
+function displayAnalysisResult(result) {
+    const analysis = result.analysis;
+    let html = `
+        <div style="padding: 20px; background: rgba(34, 197, 94, 0.1); border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="color: #22c55e;">✅ Анализ завершён</h3>
+            <p><strong>Статус:</strong> ${result.message}</p>
+        </div>
+    `;
+    
+    // Проверка фото
+    if (analysis.image_check === "soil") {
+        html += `
+            <div style="padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; margin-bottom: 10px;">
+                <h4 style="color: #3b82f6;">📷 Проверка фото</h4>
+                <p>✅ Изображение содержит образец почвы</p>
+            </div>
+        `;
+    } else if (analysis.image_check === "no_image") {
+        html += `
+            <div style="padding: 15px; background: rgba(234, 179, 8, 0.1); border-radius: 8px; margin-bottom: 10px;">
+                <h4 style="color: #eab308;">📷 Проверка фото</h4>
+                <p>⚠️ Фото не загружено — использован анализ через AI</p>
+            </div>
+        `;
+    }
+    
+    // Физико-химический анализ
+    if (analysis.chemistry && typeof analysis.chemistry === "object") {
+        html += `
+            <div style="padding: 15px; background: rgba(168, 85, 247, 0.1); border-radius: 8px; margin-bottom: 10px;">
+                <h4 style="color: #a855f7;">🧪 Физико-химический анализ</h4>
+                <p><strong>pH:</strong> ${analysis.chemistry.ph || "Не определено"}</p>
+                <p><strong>Влажность:</strong> ${analysis.chemistry.moisture || "Не определено"}%</p>
+            </div>
+        `;
+    }
+    
+    // Геолокация
+    if (analysis.has_location) {
+        html += `
+            <div style="padding: 15px; background: rgba(236, 72, 153, 0.1); border-radius: 8px; margin-bottom: 10px;">
+                <h4 style="color: #ec4899;">📍 Геолокация</h4>
+                <p>✅ Координаты зафиксированы</p>
+                <p><strong>Близлежащие точки:</strong> ${analysis.nearby_points?.length || 0}</p>
+            </div>
+        `;
+    } else {
+        html += `
+            <div style="padding: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; margin-bottom: 10px;">
+                <h4 style="color: #ef4444;">📍 Геолокация</h4>
+                <p>⚠️ Требуется фиксация точки на карте</p>
+            </div>
+        `;
+    }
+    
+    // Пометки
+    if (analysis.annotations) {
+        html += `
+            <div style="padding: 15px; background: rgba(20, 184, 166, 0.1); border-radius: 8px; margin-bottom: 10px;">
+                <h4 style="color: #14b8a6;">🏷️ Пометки</h4>
+                <p><strong>Символ:</strong> ${analysis.annotations.symbol || "Не указан"}</p>
+                <p><strong>Цвет:</strong> ${analysis.annotations.color || "Не указан"}</p>
+                ${analysis.annotations.tags?.length ? `<p><strong>Теги:</strong> ${analysis.annotations.tags.join(", ")}</p>` : ""}
+                ${analysis.annotations.text_notes ? `<p><strong>Заметки:</strong> ${analysis.annotations.text_notes}</p>` : ""}
+            </div>
+        `;
+    }
+    
+    // Состояние процесса
+    if (analysis.state) {
+        const completed = analysis.state.completed;
+        html += `
+            <div style="padding: 15px; background: ${completed ? 'rgba(34, 197, 94, 0.1)' : 'rgba(234, 179, 8, 0.1)'}; border-radius: 8px; margin-bottom: 10px;">
+                <h4 style="color: ${completed ? '#22c55e' : '#eab308'};">📊 Состояние</h4>
+                <p><strong>Фото:</strong> ${analysis.state.has_image ? "✅" : "❌"}</p>
+                <p><strong>Геолокация:</strong> ${analysis.state.has_geo ? "✅" : "❌"}</p>
+                <p><strong>Химия:</strong> ${analysis.state.has_chem ? "✅" : "❌"}</p>
+                <p><strong>Пометки:</strong> ${analysis.state.has_annotations ? "✅" : "❌"}</p>
+                <p><strong>Завершено:</strong> ${completed ? "✅ Полный анализ" : "⚠️ Требуются дополнительные данные"}</p>
+            </div>
+        `;
+    }
+    
+    // Создаём или обновляем элемент для отображения результатов
+    let resultDiv = document.getElementById("analysis-result");
+    if (!resultDiv) {
+        resultDiv = document.createElement("div");
+        resultDiv.id = "analysis-result";
+        resultDiv.style.cssText = "margin-top: 20px;";
+        document.querySelector(".panel-body").appendChild(resultDiv);
+    }
+    resultDiv.innerHTML = html;
+}
+
+// Загрузка данных личного кабинета
+async function loadUserCabinet() {
+    // Не отправляем user_id - бэкенд использует IP
+    const res = await fetch("/api/user-cabinet");
+    const data = await res.json();
+    
+    const list = document.getElementById("my-points-list");
+    list.innerHTML = "";
+    
+    if (data.points.length === 0) {
+        list.innerHTML = "<p>У вас пока нет точек</p>";
+        return;
+    }
+    
+    // Отображаем точки
+    data.points.forEach(point => {
+        const div = document.createElement("div");
+        div.className = "cabinet-point";
+        div.innerHTML = `
+            <h4>Точка #${point.id.slice(0, 8)}</h4>
+            <p>Координаты: ${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}</p>
+            <p>pH: ${point.ph || "-"} | Влажность: ${point.moisture || "-"}%</p>
+            ${point.tags ? `<p>Теги: ${point.tags.join(", ")}</p>` : ""}
+            ${point.notes ? `<p>${point.notes}</p>` : ""}
+            ${point.is_test ? '<span style="color: #eab308;">🧪 Тестовая точка</span>' : ''}
+            ${!point.is_test ? `<button class="btn-delete" onclick="deletePoint('${point.id}')" style="margin-top: 10px; padding: 8px 16px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer;">🗑️ Удалить</button>` : ''}
+        `;
+        list.appendChild(div);
+    });
+    
+    // Отображаем пометки
+    if (data.annotations && data.annotations.length > 0) {
+        const annotationsDiv = document.createElement("div");
+        annotationsDiv.style.cssText = "margin-top: 20px; padding: 15px; background: rgba(20, 184, 166, 0.1); border-radius: 8px;";
+        annotationsDiv.innerHTML = `
+            <h4 style="color: #14b8a6;">🏷️ Мои пометки (${data.annotations.length})</h4>
+        `;
+        data.annotations.forEach(annotation => {
+            const annDiv = document.createElement("div");
+            annDiv.style.cssText = "padding: 10px; margin-top: 10px; background: rgba(255, 255, 255, 0.5); border-radius: 4px;";
+            annDiv.innerHTML = `
+                <p><strong>ID:</strong> ${annotation.id.slice(0, 8)}</p>
+                ${annotation.notes ? `<p>${annotation.notes}</p>` : ""}
+                ${annotation.tags?.length ? `<p>Теги: ${annotation.tags.join(", ")}</p>` : ""}
+            `;
+            annotationsDiv.appendChild(annDiv);
+        });
+        list.appendChild(annotationsDiv);
+    }
 }
 
 // Конвертация файла в base64
@@ -181,36 +331,39 @@ async function loadNearbyPoints() {
     });
 }
 
-// Загрузка точек пользователя в кабинет
+// Загрузка точек пользователя в кабинет (устаревшая функция, заменена на loadUserCabinet)
 async function loadMyPoints() {
-    const userId = localStorage.getItem("user_id");
-    const res = await fetch(`/api/my-points?user_id=${userId}`);
-    const points = await res.json();
-    
-    const list = document.getElementById("my-points-list");
-    list.innerHTML = "";
-    
-    if (points.length === 0) {
-        list.innerHTML = "<p>У вас пока нет точек</p>";
-        return;
-    }
-    
-    points.forEach(point => {
-        const div = document.createElement("div");
-        div.className = "cabinet-point";
-        div.innerHTML = `
-            <h4>Точка #${point.id.slice(0, 8)}</h4>
-            <p>Координаты: ${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}</p>
-            <p>pH: ${point.ph || "-"} | Влажность: ${point.moisture || "-"}%</p>
-            ${point.tags ? `<p>Теги: ${point.tags.join(", ")}</p>` : ""}
-            ${point.notes ? `<p>${point.notes}</p>` : ""}
-        `;
-        list.appendChild(div);
-    });
+    loadUserCabinet();
 }
 
-// Загружать точки пользователя при инициализации
-setTimeout(loadMyPoints, 1000);
+// Удаление точки
+async function deletePoint(pointId) {
+    if (!confirm("Вы уверены, что хотите удалить эту точку?")) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/delete-point?point_id=${pointId}`, {
+            method: "DELETE"
+        });
+        
+        if (res.ok) {
+            const result = await res.json();
+            alert(result.message);
+            loadUserCabinet(); // Перезагружаем кабинет
+            loadAllPublicPoints(); // Перезагружаем карту
+        } else {
+            const error = await res.json();
+            alert(error.detail || "Ошибка при удалении точки");
+        }
+    } catch (error) {
+        console.error("Error deleting point:", error);
+        alert("Ошибка при удалении точки");
+    }
+}
+
+// Загружать данные кабинета пользователя при инициализации
+setTimeout(loadUserCabinet, 1000);
 
 // Загрузка всех публичных точек на карту
 async function loadAllPublicPoints() {
