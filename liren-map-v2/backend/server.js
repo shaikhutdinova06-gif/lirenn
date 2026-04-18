@@ -121,10 +121,10 @@ app.delete("/points/:id", async (req, res) => {
 --------------------------*/
 app.get("/soil-zones", async (req, res) => {
   try {
-    // Try setting SRID to EPSG:2040 (Pulkovo 1942 / Gauss-Kruger zone 6) and transform to EPSG:4326
+    // Try setting SRID to EPSG:2398 (Pulkovo 1942 / Gauss-Kruger zone 6 - different variant) and transform to EPSG:4326
     const r = await pool.query(`
       SELECT id, zone_type, color,
-             ST_AsGeoJSON(ST_Transform(ST_SetSRID(geom, 2040), 4326)) as geom
+             ST_AsGeoJSON(ST_Transform(ST_SetSRID(geom, 2398), 4326)) as geom
       FROM soil_zones
       LIMIT 1
     `);
