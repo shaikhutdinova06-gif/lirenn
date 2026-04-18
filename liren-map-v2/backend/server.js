@@ -37,12 +37,12 @@ app.get("/tiles/:z/:x/:y", async (req, res) => {
       FROM (
         SELECT id, soil_type, zone_type, color, description,
         ST_AsMVTGeom(
-          geom,
+          ST_Transform(geom, 4326),
           ST_TileEnvelope($1::int,$2::int,$3::int),
           4096, 64, true
         ) AS geom
         FROM soil_zones
-        WHERE geom && ST_TileEnvelope($1::int,$2::int,$3::int)
+        WHERE ST_Transform(geom, 4326) && ST_TileEnvelope($1::int,$2::int,$3::int)
       ) q;
     `;
     const r = await pool.query(sql, [z, x, y]);
@@ -123,7 +123,7 @@ app.get("/soil-zones", async (req, res) => {
   try {
     const r = await pool.query(`
       SELECT id, zone_type, color,
-             ST_AsGeoJSON(geom) as geom
+             ST_AsGeoJSON(ST_Transform(geom, 4326)) as geom
       FROM soil_zones
     `);
     const features = r.rows.map(row => ({
