@@ -1463,6 +1463,17 @@ async function runBlock1() {
     color: "green",
     user_id: userId
   }
+
+  if (!data.lat || !data.lng) {
+    alert("Добавь точку на карте")
+    return
+  }
+
+  if (!data.ph && !data.moisture && !data.image) {
+    alert("Нужны хотя бы минимальные данные")
+    return
+  }
+
   const res = await fetch("/api/block1", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
@@ -1471,6 +1482,10 @@ async function runBlock1() {
   const result = await res.json()
   if (result.error) {
     alert(result.error)
+    return
+  }
+  if (result.status === "error") {
+    alert(result.errors.join("\n"))
     return
   }
   console.log(result)

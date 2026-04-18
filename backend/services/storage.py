@@ -4,14 +4,12 @@ import os
 FILE = "data/points.json"
 
 def save_point(point):
-    if not os.path.exists(FILE):
-        with open(FILE, "w") as f:
-            json.dump([], f)
-    with open(FILE, "r") as f:
-        data = json.load(f)
+    data = get_points()
     data.append(point)
-    with open(FILE, "w") as f:
+    tmp = FILE + ".tmp"
+    with open(tmp, "w") as f:
         json.dump(data, f, indent=2)
+    os.replace(tmp, FILE)
 
 def get_points():
     """Загружает все точки из points.json"""

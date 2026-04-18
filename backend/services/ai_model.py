@@ -22,3 +22,24 @@ def deepseek_call(prompt):
         return data["choices"][0]["message"]["content"]
     except Exception as e:
         return f"AI error: {str(e)}"
+
+def classify_image():
+    return deepseek_call("""
+Ты модель классификации.
+Ответь строго:
+soil или not_soil
+Без объяснений.
+""")
+
+def analyze_soil(data):
+    return deepseek_call(f"""
+Дано:
+pH: {data.get("ph")}
+влажность: {data.get("moisture")}
+Сделай ТОЛЬКО структурированное описание:
+- тип почвы
+- цвет
+- структура
+- горизонт
+БЕЗ рекомендаций.
+""")
