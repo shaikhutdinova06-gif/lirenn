@@ -5,14 +5,15 @@ echo "🌍 Downloading Russia Soil Dataset..."
 # Create data directory
 mkdir -p data/soils
 
-# Download Land Resources of Russia Soil Maps
+# Download Land Resources of Russia Soil Maps via FTP
 # Source: https://nsidc.org/data/ggd601
-echo "Downloading Russian Soil Shapefile..."
-curl -L -o data/soils/russia_soils.zip "https://nsidc.org/data/ggd601/versions/1/ggd601_soils_russia_shapefile.zip"
+echo "Downloading Russian Soil Shapefile from NSIDC FTP..."
+wget -r -nH --cut-dirs=4 -A "*.zip" ftp://sidads.colorado.edu/pub/DATASETS/fgdc/ggd601_russia_soil_maps/ -P data/soils/
 
-# Extract
+# Find and extract the main soil map file
 echo "Extracting..."
-unzip -o data/soils/russia_soils.zip -d data/soils/
+find data/soils/ -name "*.zip" -exec unzip -o {} -d data/soils/ \;
 
 echo "✅ Download complete!"
 echo "Shapefile location: data/soils/"
+echo "Note: This downloads the full NSIDC Russian soil dataset which contains multiple soil characteristic maps."
