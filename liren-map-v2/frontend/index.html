@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIRENN MAP v2 - Soil Zoning & User Points</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-vectorgrid/dist/leaflet-vectorgrid.css"/>
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">🌱</div>
+                <div>
+                    <h1>LIRENN MAP v2</h1>
+                    <p>Soil Zoning & User Points</p>
+                </div>
+            </div>
+        </header>
+
+        <div id="map"></div>
+
+        <div id="controls">
+            <button id="addPointBtn" class="btn-primary">➕ Добавить точку</button>
+            <button id="toggleSoilZones" class="btn-secondary">🌍 Почвенные зоны</button>
+            <button id="refreshPoints" class="btn-secondary">🔄 Обновить точки</button>
+        </div>
+
+        <div id="point-form" class="hidden">
+            <div class="form-container">
+                <h3>Новая точка</h3>
+                <input type="text" id="pointTitle" placeholder="Название точки" required>
+                <textarea id="pointDescription" placeholder="Описание" rows="3"></textarea>
+                <input type="file" id="pointPhoto" accept="image/*">
+                <div class="form-buttons">
+                    <button id="savePoint" class="btn-primary">💾 Сохранить</button>
+                    <button id="cancelPoint" class="btn-secondary">❌ Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-vectorgrid/dist/leaflet-vectorgrid.js"></script>
+    <script src="map.js"></script>
+</body>
+</html>

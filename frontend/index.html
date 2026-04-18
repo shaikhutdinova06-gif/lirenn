@@ -51,6 +51,25 @@
 <div id="plot3d" style="height:400px;"></div>
 <div id="soil3d" style="height:400px;"></div>
 
+<div id="controls">
+    <button id="addPointBtn" class="btn-primary">➕ Добавить точку</button>
+    <button id="toggleSoilZones" class="btn-secondary">🌍 Почвенные зоны</button>
+    <button id="refreshPoints" class="btn-secondary">🔄 Обновить точки</button>
+</div>
+
+<div id="point-form" class="hidden">
+    <div class="form-container">
+        <h3>Новая точка</h3>
+        <input type="text" id="pointTitle" placeholder="Название точки" required>
+        <textarea id="pointDescription" placeholder="Описание" rows="3"></textarea>
+        <input type="file" id="pointPhoto" accept="image/*">
+        <div class="form-buttons">
+            <button id="savePoint" class="btn-primary">💾 Сохранить</button>
+            <button id="cancelPoint" class="btn-secondary">❌ Отмена</button>
+        </div>
+    </div>
+</div>
+
 <script src="/static/script.js"></script>
 </body>
 </html>

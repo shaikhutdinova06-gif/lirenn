@@ -201,3 +201,158 @@ button:active {
     box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
     border: 3px solid rgba(16, 185, 129, 0.5);
 }
+
+#controls {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.5px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    color: white;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(107, 114, 128, 0.5);
+}
+
+.btn-secondary.active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+#point-form {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, rgba(15, 61, 46, 0.98) 0%, rgba(26, 95, 74, 0.99) 100%);
+    backdrop-filter: blur(12px);
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(16, 185, 129, 0.4);
+    z-index: 1000;
+    min-width: 350px;
+    animation: slideUp 0.3s ease-out;
+}
+
+#point-form.hidden {
+    display: none;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.form-container h3 {
+    margin: 0 0 20px 0;
+    color: #34d399;
+    font-size: 1.5em;
+    font-weight: 700;
+}
+
+.form-container input[type="text"],
+.form-container textarea,
+.form-container input[type="file"] {
+    width: 100%;
+    margin: 10px 0;
+    padding: 14px 20px;
+    border: 2px solid rgba(16, 185, 129, 0.4);
+    border-radius: 12px;
+    background: rgba(15, 61, 46, 0.7);
+    color: white;
+    font-size: 14px;
+    backdrop-filter: blur(12px);
+    transition: all 0.3s ease;
+}
+
+.form-container input[type="text"]:focus,
+.form-container textarea:focus {
+    outline: none;
+    border-color: #34d399;
+    box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.25);
+}
+
+.form-container textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.form-buttons button {
+    flex: 1;
+}
+
+.leaflet-popup-content-wrapper {
+    background: linear-gradient(135deg, rgba(15, 61, 46, 0.98) 0%, rgba(26, 95, 74, 0.99) 100%);
+    backdrop-filter: blur(12px);
+    border: 2px solid rgba(16, 185, 129, 0.4);
+    border-radius: 16px;
+}
+
+.leaflet-popup-content {
+    color: white;
+    margin: 15px;
+}
+
+.popup-content h3 {
+    color: #34d399;
+    margin: 0 0 10px 0;
+    font-size: 1.2em;
+}
+
+.popup-content p {
+    margin: 10px 0;
+    color: #e2e8f0;
+}
+
+.popup-content img {
+    border-radius: 8px;
+    margin-top: 10px;
+    border: 2px solid rgba(16, 185, 129, 0.4);
+}
+
+.popup-content small {
+    color: #9ca3af;
+    font-size: 0.85em;
+}
