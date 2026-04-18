@@ -132,26 +132,13 @@ async function loadUserPoints() {
     }
 }
 
-// Toggle soil zones visibility
-let soilZonesVisible = false;
-
-document.getElementById('toggleSoilZones').addEventListener('click', () => {
-    if (!soilZonesVisible) {
-        // Try vector tiles first, fallback to GeoJSON
-        try {
-            loadSoilZonesVectorTiles();
-        } catch (e) {
-            console.log('Vector tiles failed, using GeoJSON fallback');
-            loadSoilZonesGeoJSON();
-        }
-        soilZonesVisible = true;
-        document.getElementById('toggleSoilZones').classList.add('active');
-    } else {
-        if (soilZonesLayer) {
-            map.removeLayer(soilZonesLayer);
-        }
-        soilZonesVisible = false;
-        document.getElementById('toggleSoilZones').classList.remove('active');
+// Auto-load soil zones on page load
+map.on('load', () => {
+    try {
+        loadSoilZonesVectorTiles();
+    } catch (e) {
+        console.log('Vector tiles failed, using GeoJSON fallback');
+        loadSoilZonesGeoJSON();
     }
 });
 
