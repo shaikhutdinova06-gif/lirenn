@@ -3,90 +3,124 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ЛИРЕН — Анализ почвы</title>
+<title>ЛИРЕН — Экологический анализ почвы</title>
 <link rel="stylesheet" href="/static/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 
 <body>
-<div class="container">
-    <header class="header">
-        <div class="logo">
-            <div class="logo-icon">🌱</div>
-            <div>
-                <h1>Лирен</h1>
-                <p>Экологический анализ почвы</p>
-            </div>
-        </div>
-    </header>
+<nav class="nav">
+    <div class="nav-logo">🌱 ЛИРЕН</div>
+    <div class="nav-menu">
+        <a href="#" class="nav-link">Карта</a>
+        <a href="#" class="nav-link">Точки</a>
+        <a href="#" class="nav-link">О проекте</a>
+    </div>
+</nav>
 
-    <main class="main">
+<div class="hero">
+    <div class="hero-content">
+        <h1>Экологический анализ почвы</h1>
+        <p>Сохраняйте и анализируйте данные о почве для устойчивого будущего</p>
+        <button class="cta-button" onclick="document.querySelector('.main').scrollIntoView({behavior: 'smooth'})">Начать анализ</button>
+    </div>
+</div>
+
+<main class="main">
+    <div class="cards-grid">
+        <div class="card">
+            <div class="card-icon">🌍</div>
+            <h3>Геолокация</h3>
+            <p>Фиксируйте точки на карте с точными координатами</p>
+        </div>
+        <div class="card">
+            <div class="card-icon">🧪</div>
+            <h3>Анализ почвы</h3>
+            <p>Определяйте pH, влажность и другие показатели</p>
+        </div>
+        <div class="card">
+            <div class="card-icon">📊</div>
+            <h3>База данных</h3>
+            <p>Соблюдайте принцип append-only для данных</p>
+        </div>
+    </div>
+
+    <div class="content-grid">
         <div class="panel">
             <div class="panel-header">
                 <h2>📍 Параметры точки</h2>
             </div>
             <div class="panel-body">
                 <div class="input-group">
-                    <label>Фото почвы (опционально)</label>
+                    <label>Фото почвы</label>
                     <input type="file" id="image" accept="image/*">
                 </div>
                 <div class="input-group">
                     <label>Широта (lat)</label>
-                    <input type="number" id="lat" step="0.000001" value="55.7558" placeholder="55.7558">
+                    <input type="number" id="lat" step="0.000001" value="55.7558">
                 </div>
                 <div class="input-group">
                     <label>Долгота (lng)</label>
-                    <input type="number" id="lng" step="0.000001" value="37.6173" placeholder="37.6173">
+                    <input type="number" id="lng" step="0.000001" value="37.6173">
                 </div>
                 <div class="input-group">
                     <label>pH почвы</label>
-                    <input type="number" id="ph" step="0.1" min="0" max="14" placeholder="7.0">
+                    <input type="number" id="ph" step="0.1" min="0" max="14">
                 </div>
                 <div class="input-group">
                     <label>Влажность (%)</label>
-                    <input type="number" id="moisture" step="1" min="0" max="100" placeholder="50">
+                    <input type="number" id="moisture" step="1" min="0" max="100">
                 </div>
                 <div class="input-group">
                     <label>Цвет метки</label>
                     <select id="color">
-                        <option value="green">🟢 Зелёный (норма)</option>
-                        <option value="yellow">🟡 Жёлтый (внимание)</option>
-                        <option value="red">🔴 Красный (аномалия)</option>
-                        <option value="blue">🔵 Синий (интерес)</option>
+                        <option value="green">🟢 Норма</option>
+                        <option value="yellow">🟡 Внимание</option>
+                        <option value="red">🔴 Аномалия</option>
+                        <option value="blue">🔵 Интерес</option>
                     </select>
                 </div>
                 <div class="input-group">
                     <label>Иконка</label>
                     <select id="icon">
-                        <option value="sample">🧪 Образец взят</option>
-                        <option value="analysis">📊 Требует анализа</option>
-                        <option value="interest">⭐ Особый интерес</option>
-                        <option value="control">🎯 Контрольная точка</option>
+                        <option value="sample">🧪 Образец</option>
+                        <option value="analysis">📊 Анализ</option>
+                        <option value="interest">⭐ Интерес</option>
+                        <option value="control">🎯 Контроль</option>
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>Теги (через запятую)</label>
+                    <label>Теги</label>
                     <input type="text" id="tags" placeholder="#чернозём, #суглинок">
                 </div>
                 <div class="input-group">
                     <label>Заметки</label>
-                    <textarea id="notes" rows="3" placeholder="Описание точки..."></textarea>
+                    <textarea id="notes" rows="3"></textarea>
                 </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="goToLocation()">📍 Найти участок</button>
                     <button class="btn btn-secondary" onclick="getMyLocation()">🧭 Моё местоположение</button>
-                    <button class="btn btn-secondary" onclick="loadTestLocation()">🧪 Тестовое местоположение</button>
-                    <button class="btn btn-success" onclick="addPoint()">💾 Сохранить точку</button>
+                    <button class="btn btn-secondary" onclick="loadTestLocation()">🧪 Тест</button>
+                    <button class="btn btn-success" onclick="addPoint()">💾 Сохранить</button>
                 </div>
             </div>
         </div>
 
-        <div class="map-container">
+        <div class="map-wrapper">
             <div id="map"></div>
         </div>
-    </main>
-</div>
+    </div>
+</main>
+
+<footer class="footer">
+    <div class="footer-icons">
+        <span>🌱</span>
+        <span>🌍</span>
+        <span>♻️</span>
+    </div>
+    <p>© 2024 ЛИРЕН — Экологический анализ почвы</p>
+</footer>
 
 <script src="/static/script.js"></script>
 </body>
