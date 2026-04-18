@@ -1,7 +1,7 @@
 import sys
 sys.path.append('/app')
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -68,7 +68,7 @@ app.include_router(dem_router, prefix="/api/dem")
 
 @app.get("/")
 @limiter.limit("100/minute")
-def root(request):
+def root(request: Request):
     frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
     index_file = os.path.join(frontend_path, "index.html")
     if os.path.exists(index_file):
