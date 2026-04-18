@@ -134,10 +134,10 @@ app.get("/soil-zones-count", async (req, res) => {
 --------------------------*/
 app.get("/soil-zones", async (req, res) => {
   try {
-    // Transform from EPSG:28404 (Pulkovo 1942 / Gauss-Kruger zone 4) to EPSG:4326
+    // Transform from EPSG:28403 (Pulkovo 1942 / Gauss-Kruger zone 3) to EPSG:4326
     const r = await pool.query(`
       SELECT id, zone_type, color,
-             ST_AsGeoJSON(ST_Transform(ST_SetSRID(geom, 28404), 4326)) as geom
+             ST_AsGeoJSON(ST_Transform(ST_SetSRID(geom, 28403), 4326)) as geom
       FROM soil_zones
     `);
     const features = r.rows.map(row => ({

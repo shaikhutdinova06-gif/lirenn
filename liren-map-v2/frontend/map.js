@@ -7,7 +7,7 @@ const API_URL = window.location.hostname === 'localhost'
     : 'https://liren-map-backend.onrender.com';
 
 // Initialize map
-const map = L.map("map").setView([40.0, 12.0], 6);
+const map = L.map("map").setView([55.75, 37.6], 6);
 
 // Base map
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
