@@ -6,20 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 import os
 
 print("🔥 STARTED")
 
 from backend.api.routes import router
 
-# Rate limiting
-limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Security headers middleware
 @app.middleware("http")
@@ -52,8 +45,7 @@ app.add_middleware(
 app.include_router(router, prefix="/api")
 
 @app.get("/")
-@limiter.limit("100/minute")
-def root(request: Request):
+def root():
     frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
     index_file = os.path.join(frontend_path, "index.html")
     if os.path.exists(index_file):
