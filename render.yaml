@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: liren-map-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: PORT
+        value: 3000
+    disk:
+      name: uploads
+      mountPath: /app/uploads
+      sizeGB: 1
+
+databases:
+  - name: liren-map-db
+    plan: free
+    databaseName: liren
+    user: postgres
