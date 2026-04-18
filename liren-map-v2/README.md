@@ -104,13 +104,26 @@ docker-compose down
 
 The API will be available at `http://localhost:3000`
 
-## ☁️ Render Deployment
+## ☁️ Render Deployment (One-Click Deploy)
 
-### Backend Deployment
+### Option 1: Using render.yaml (Recommended)
+
+1. **Connect your GitHub repository to Render**
+2. **Click "New Blueprint"**
+3. **Select your repository**
+4. **Render will automatically detect `render.yaml`**
+5. **Click "Apply"** - this will create:
+   - Backend web service
+   - PostgreSQL database
+   - All necessary environment variables
+
+### Option 2: Manual Deployment
+
+#### Backend Deployment
 
 1. **Create Render Web Service**
    - Connect your GitHub repository
-   - Root directory: `backend`
+   - Root directory: `liren-map-v2/backend`
    - Build command: `npm install`
    - Start command: `npm start`
    - Environment variables:
@@ -122,14 +135,28 @@ The API will be available at `http://localhost:3000`
    - Copy the internal connection string
    - Add it as `DATABASE_URL` to your web service
 
-### Database Setup on Render
+#### Database Setup on Render
 
 1. Access your PostgreSQL database via pgAdmin or psql
 2. Run the schema:
 
 ```bash
-psql -h <render-host> -U <user> -d <database> -f backend/db.sql
+psql -h <render-host> -U <user> -d <database> -f liren-map-v2/backend/db.sql
 ```
+
+#### Update Frontend API_URL
+
+After backend is deployed:
+
+1. Get your backend URL (e.g., `https://liren-map-backend.onrender.com`)
+2. Update `frontend/script.js`:
+
+```javascript
+const API_URL = 'https://your-backend-url.onrender.com';
+```
+
+3. Commit and push changes
+4. Trigger Manual Deploy on Render
 
 ### Frontend Deployment
 
