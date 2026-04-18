@@ -8,7 +8,5 @@ build:
 run:
   command: uvicorn main:app --host 0.0.0.0 --port 80
   containerPort: 80
+  servicePort: 80
   persistenceMount: /data
-  env:
-    - name: PYTHONUNBUFFERED
-      value: "1"
