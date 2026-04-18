@@ -6,12 +6,15 @@
 <title>ЛИРЕН — Экологический анализ почвы</title>
 <link rel="stylesheet" href="/static/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 
 <body>
 <nav class="nav">
-    <div class="nav-logo">🌱 ЛИРЕН</div>
+    <div class="nav-logo">
+        <i class="fas fa-leaf"></i> ЛИРЕН
+    </div>
     <div class="nav-menu">
         <a href="#" class="nav-link">Карта</a>
         <a href="#" class="nav-link">Точки</a>
@@ -30,17 +33,23 @@
 <main class="main">
     <div class="cards-grid">
         <div class="card">
-            <div class="card-icon">🌍</div>
+            <div class="card-icon">
+                <i class="fas fa-globe-americas"></i>
+            </div>
             <h3>Геолокация</h3>
             <p>Фиксируйте точки на карте с точными координатами</p>
         </div>
         <div class="card">
-            <div class="card-icon">🧪</div>
+            <div class="card-icon">
+                <i class="fas fa-flask"></i>
+            </div>
             <h3>Анализ почвы</h3>
             <p>Определяйте pH, влажность и другие показатели</p>
         </div>
         <div class="card">
-            <div class="card-icon">📊</div>
+            <div class="card-icon">
+                <i class="fas fa-database"></i>
+            </div>
             <h3>База данных</h3>
             <p>Соблюдайте принцип append-only для данных</p>
         </div>
@@ -49,7 +58,7 @@
     <div class="content-grid">
         <div class="panel">
             <div class="panel-header">
-                <h2>📍 Параметры точки</h2>
+                <h2><i class="fas fa-map-marker-alt"></i> Параметры точки</h2>
             </div>
             <div class="panel-body">
                 <div class="input-group">
@@ -99,9 +108,15 @@
                     <textarea id="notes" rows="3"></textarea>
                 </div>
                 <div class="button-group">
-                    <button class="btn btn-primary" onclick="getMyLocation()">🧭 Моё местоположение</button>
-                    <button class="btn btn-secondary" onclick="loadTestLocation()">🧪 Тест</button>
-                    <button class="btn btn-success" onclick="addPoint()">💾 Сохранить точку</button>
+                    <button class="btn btn-primary" onclick="getMyLocation()">
+                        <i class="fas fa-location-crosshairs"></i> Моё местоположение
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadTestLocation()">
+                        <i class="fas fa-vial"></i> Тест
+                    </button>
+                    <button class="btn btn-success" onclick="addPoint()">
+                        <i class="fas fa-save"></i> Сохранить точку
+                    </button>
                 </div>
             </div>
         </div>
@@ -113,7 +128,7 @@
 
     <div class="user-cabinet">
         <div class="cabinet-header">
-            <h2>👤 Мой кабинет</h2>
+            <h2><i class="fas fa-user-circle"></i> Мой кабинет</h2>
         </div>
         <div class="cabinet-body">
             <div id="my-points-list"></div>
@@ -123,9 +138,9 @@
 
 <footer class="footer">
     <div class="footer-icons">
-        <span>🌱</span>
-        <span>🌍</span>
-        <span>♻️</span>
+        <span><i class="fas fa-leaf"></i></span>
+        <span><i class="fas fa-globe-americas"></i></span>
+        <span><i class="fas fa-recycle"></i></span>
     </div>
     <p>© 2024 ЛИРЕН — Экологический анализ почвы</p>
 </footer>

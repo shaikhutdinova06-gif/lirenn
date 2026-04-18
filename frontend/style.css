@@ -30,6 +30,11 @@ body {
     letter-spacing: 0.5px;
 }
 
+.nav-logo i {
+    color: #8b9a6b;
+    margin-right: 8px;
+}
+
 .nav-menu {
     display: flex;
     gap: 40px;
@@ -121,6 +126,14 @@ body {
     margin-bottom: 20px;
 }
 
+.card-icon i {
+    color: #8b9a6b;
+    background: linear-gradient(135deg, #f5f0e6 0%, #e8e0d4 100%);
+    padding: 20px;
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(139, 154, 107, 0.15);
+}
+
 .card h3 {
     color: #5a7247;
     font-size: 1.3em;
@@ -158,6 +171,10 @@ body {
     color: #f5f0e6;
     font-size: 1.2em;
     font-weight: 500;
+}
+
+.panel-header h2 i {
+    margin-right: 10px;
 }
 
 .panel-body {
@@ -225,6 +242,10 @@ body {
     justify-content: center;
     gap: 10px;
     letter-spacing: 0.3px;
+}
+
+.btn i {
+    font-size: 1.1em;
 }
 
 .btn-primary {
@@ -298,6 +319,11 @@ body {
     gap: 35px;
     margin-bottom: 20px;
     font-size: 1.8em;
+}
+
+.footer-icons span i {
+    color: #f5f0e6;
+    opacity: 0.9;
 }
 
 .footer p {
