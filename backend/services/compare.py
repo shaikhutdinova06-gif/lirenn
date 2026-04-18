@@ -1,4 +1,14 @@
-from backend.services.soil_model import get_soil_parameters
+def get_soil_parameters(soil_type):
+    """Заглушка для get_soil_parameters (soil_model удалён)"""
+    # Возвращает базовые параметры для чернозёма по умолчанию
+    return {
+        "ph": (6.0, 7.3),
+        "humus": (6, 10),
+        "moisture": (40, 60),
+        "nitrogen": (0.2, 0.4),
+        "phosphorus": (0.15, 0.3),
+        "potassium": (0.2, 0.4)
+    }
 
 def compare(real, predicted_soil_type):
     """

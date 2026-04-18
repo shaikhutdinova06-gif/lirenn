@@ -1,7 +1,13 @@
 from fastapi import APIRouter
-from backend.services.soil_model import calculate_health_from_parameters, get_soil_parameters
+from backend.services.soil_health import soil_health
+from backend.services.compare import get_soil_parameters
 
 router = APIRouter()
+
+def calculate_health_from_parameters(soil_type, real_data):
+    """Заглушка для calculate_health_from_parameters (soil_model удалён)"""
+    # Используем soil_health как заглушку
+    return soil_health(soil_type, real_data.get("ph", 6.5))
 
 @router.post("/calc")
 def calc(data: dict):
