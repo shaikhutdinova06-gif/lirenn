@@ -134,12 +134,24 @@ app.get("/soil-zones-count", async (req, res) => {
 --------------------------*/
 app.get("/soil-zones", async (req, res) => {
   try {
-    // Query raw geometry without transformation to see original coordinates
+    // Try constructing geometry from coordinates assuming they are in EPSG:28406 (meters)
     const r = await pool.query(`
       SELECT id, zone_type, color,
-             ST_AsGeoJSON(geom) as geom
+             ST_AsGeoJSON(
+               ST_Transform(
+                 ST_SetSRID(
+                   ST_GeomFromText(
+                     'MULTIPOLYGON((' ||
+                       ST_X(geom) || ' ' || ST_Y(geom) || ',' ||
+                       ST_X(geom) || ' ' || ST_Y(geom) || '))'
+                   ),
+                   28406
+                 ),
+                 4326
+               )
+             ) as geom
       FROM soil_zones
-      LIMIT 5
+      LIMIT 1
     `);
     const features = r.rows.map(row => ({
       type: "Feature",
