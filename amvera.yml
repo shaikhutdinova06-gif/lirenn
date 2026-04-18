@@ -1,0 +1,22 @@
+version: 1.0
+
+name: liren-api
+
+services:
+  - type: web
+    name: liren-api
+    runtime: python
+    build:
+      base: python:3.11-slim
+      buildCommands:
+        - pip install -r requirements.txt
+    run:
+      command: uvicorn main:app --host 0.0.0.0 --port 8000
+    env:
+      - name: DEEPSEEK_API_KEY
+        required: true
+      - name: WEATHER_API_KEY
+        required: true
+    resources:
+      cpu: 0.5
+      memory: 512
