@@ -262,25 +262,50 @@ async function migrateDatabase() {
         console.error('Failed to enable PostGIS:', err.message);
       }
       
-      // Split SQL into individual statements
-      const statements = sql
-        .split(';')
-        .map(s => s.trim())
-        .filter(s => s.length > 0 && !s.startsWith('--'));
-      
-      for (const statement of statements) {
-        if (statement.length === 0) continue;
+      // Execute SQL as a single transaction
+      try {
+        await pool.query(sql);
+        console.log('Database migration completed successfully');
+      } catch (err) {
+        console.error('Migration error:', err.message);
         
-        try {
-          await pool.query(statement);
-          console.log('Executed migration statement:', statement.substring(0, 50) + '...');
-        } catch (err) {
-          // Ignore errors for existing objects
-          if (err.message.includes('already exists')) {
-            console.log('Object already exists, skipping');
-          } else {
-            console.error('Migration error:', err.message);
-            console.error('Statement:', statement.substring(0, 100));
+        // If single execution fails, try statement by statement
+        console.log('Trying statement-by-statement execution...');
+        
+        // Split by semicolons but preserve function definitions
+        const statements = [];
+        let currentStatement = '';
+        let inFunction = false;
+        
+        for (const line of sql.split('\n')) {
+          if (line.trim().startsWith('CREATE OR REPLACE FUNCTION') || line.trim().startsWith('CREATE FUNCTION')) {
+            inFunction = true;
+          }
+          
+          currentStatement += line + '\n';
+          
+          if (inFunction && line.trim().endsWith('$$ LANGUAGE plpgsql;')) {
+            inFunction = false;
+            statements.push(currentStatement.trim());
+            currentStatement = '';
+          } else if (!inFunction && line.trim().endsWith(';')) {
+            statements.push(currentStatement.trim());
+            currentStatement = '';
+          }
+        }
+        
+        for (const statement of statements) {
+          if (statement.length === 0 || statement.startsWith('--')) continue;
+          
+          try {
+            await pool.query(statement);
+            console.log('Executed:', statement.substring(0, 50) + '...');
+          } catch (err) {
+            if (err.message.includes('already exists')) {
+              console.log('Already exists, skipping');
+            } else {
+              console.error('Error:', err.message);
+            }
           }
         }
       }
