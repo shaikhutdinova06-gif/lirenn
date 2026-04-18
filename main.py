@@ -32,6 +32,10 @@ def root():
     with open("frontend/index.html", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
+@app.get("/test")
+def test():
+    return {"ok": True, "message": "Server is running"}
+
 static_path = os.path.join(os.path.dirname(__file__), "frontend")
 if os.path.exists(static_path):
     app.mount("/static", StaticFiles(directory=static_path), name="static")
