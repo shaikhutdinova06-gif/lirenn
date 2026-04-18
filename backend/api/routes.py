@@ -1,7 +1,5 @@
 from fastapi import APIRouter, UploadFile, Form
-from backend.services.hybrid_ai import hybrid_predict
 from backend.services.soil_health import soil_health
-from backend.services.auto_train import save_for_training
 from backend.services.pollution import detect_pollution
 from backend.services.surface_diagnostics import get_surface_diagnosis
 from backend.services.science_rules import get_soil_description
@@ -20,14 +18,9 @@ async def analyze(file: UploadFile, lat: float = Form(...), lon: float = Form(..
     logger.info(f"Starting analysis for lat={lat}, lon={lon}")
     
     try:
-        # Читаем файл один раз
+        # Читаем файл
         contents = await file.read()
         logger.info(f"File read: {len(contents)} bytes")
-        
-        # Гибридное предсказание (нужно сбросить позицию файла)
-        file.file.seek(0)
-        ai_type, map_type, conf, valid = hybrid_predict(file, lat, lon)
-        logger.info(f"Hybrid predict: ai={ai_type}, map={map_type}, conf={conf}")
         
         # Детекция загрязнений
         npimg = np.frombuffer(contents, np.uint8)
@@ -44,26 +37,19 @@ async def analyze(file: UploadFile, lat: float = Form(...), lon: float = Form(..
         surface_diag, surface_conf = get_surface_diagnosis(img)
         logger.info(f"Surface: {surface_diag}, conf={surface_conf}")
         
-        # Здоровье почвы
-        health = soil_health(map_type, 6.5)
-        
-        # Научное описание
+        # Научное описание (по умолчанию чернозём)
+        ai_type = "chernozem"
         description = get_soil_description(ai_type)
         
-        # Совпадение
-        match = (ai_type == map_type) and valid
+        # Здоровье почвы
+        health = soil_health(ai_type, 6.5)
         
-        # Автообучение если совпадение и высокая уверенность
-        if match and conf > 0.85:
-            file.file.seek(0)
-            save_for_training(file, ai_type)
-
         result = {
             "ai": ai_type,
-            "map": map_type,
-            "confidence": round(conf, 2),
-            "match": match,
-            "valid": valid,
+            "map": ai_type,
+            "confidence": 0.5,
+            "match": True,
+            "valid": True,
             "health": round(health, 2),
             "pollution": pollution,
             "surface_diagnosis": surface_diag,
