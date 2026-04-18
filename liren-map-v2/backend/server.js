@@ -253,6 +253,15 @@ async function migrateDatabase() {
     if (fs.existsSync(sqlPath)) {
       const sql = fs.readFileSync(sqlPath, 'utf8');
       
+      // Enable PostGIS extensions first
+      try {
+        await pool.query('CREATE EXTENSION IF NOT EXISTS postgis');
+        await pool.query('CREATE EXTENSION IF NOT EXISTS postgis_topology');
+        console.log('PostGIS extensions enabled');
+      } catch (err) {
+        console.error('Failed to enable PostGIS:', err.message);
+      }
+      
       // Split SQL into individual statements
       const statements = sql
         .split(';')
@@ -260,13 +269,18 @@ async function migrateDatabase() {
         .filter(s => s.length > 0 && !s.startsWith('--'));
       
       for (const statement of statements) {
+        if (statement.length === 0) continue;
+        
         try {
           await pool.query(statement);
-          console.log('Executed migration statement');
+          console.log('Executed migration statement:', statement.substring(0, 50) + '...');
         } catch (err) {
           // Ignore errors for existing objects
-          if (!err.message.includes('already exists')) {
+          if (err.message.includes('already exists')) {
+            console.log('Object already exists, skipping');
+          } else {
             console.error('Migration error:', err.message);
+            console.error('Statement:', statement.substring(0, 100));
           }
         }
       }
