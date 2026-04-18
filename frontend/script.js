@@ -14,6 +14,16 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: ' OpenStreetMap contributors'
 }).addTo(map);
 
+// Auto-load soil zones immediately
+setTimeout(() => {
+    try {
+        loadSoilZonesVectorTiles();
+    } catch (e) {
+        console.log('Vector tiles failed, using GeoJSON fallback');
+        loadSoilZonesGeoJSON();
+    }
+}, 1000);
+
 // Soil Zones Vector Tiles Layer
 let soilZonesLayer = null;
 
@@ -132,15 +142,6 @@ async function loadUserPoints() {
     }
 }
 
-// Auto-load soil zones on page load
-map.on('load', () => {
-    try {
-        loadSoilZonesVectorTiles();
-    } catch (e) {
-        console.log('Vector tiles failed, using GeoJSON fallback');
-        loadSoilZonesGeoJSON();
-    }
-});
 
 // Refresh points button
 document.getElementById('refreshPoints').addEventListener('click', () => {
