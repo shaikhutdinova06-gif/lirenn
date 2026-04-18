@@ -54,6 +54,7 @@ function setCurrentPoint(lat, lng) {
         .bindPopup("Выбранная точка")
         .openPopup();
     map.setView([lat, lng], 13);
+    loadNearbyPoints();
 }
 
 // Найти участок
@@ -114,6 +115,8 @@ async function addPoint() {
         return;
     }
     addPointToMap(result.point);
+    loadNearbyPoints();
+    loadMyPoints();
 }
 
 // Конвертация файла в base64
@@ -165,6 +168,62 @@ function addPointToMap(point) {
         </div>
     `);
 }
+
+// Загрузка ближайших точек
+async function loadNearbyPoints() {
+    if (!currentPoint) return;
+    
+    const res = await fetch(`/api/nearby-points?lat=${currentPoint.lat}&lng=${currentPoint.lng}&radius_km=5`);
+    const points = await res.json();
+    
+    points.forEach(point => {
+        addPointToMap(point);
+    });
+}
+
+// Загрузка точек пользователя в кабинет
+async function loadMyPoints() {
+    const userId = localStorage.getItem("user_id");
+    const res = await fetch(`/api/my-points?user_id=${userId}`);
+    const points = await res.json();
+    
+    const list = document.getElementById("my-points-list");
+    list.innerHTML = "";
+    
+    if (points.length === 0) {
+        list.innerHTML = "<p>У вас пока нет точек</p>";
+        return;
+    }
+    
+    points.forEach(point => {
+        const div = document.createElement("div");
+        div.className = "cabinet-point";
+        div.innerHTML = `
+            <h4>Точка #${point.id.slice(0, 8)}</h4>
+            <p>Координаты: ${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}</p>
+            <p>pH: ${point.ph || "-"} | Влажность: ${point.moisture || "-"}%</p>
+            ${point.tags ? `<p>Теги: ${point.tags.join(", ")}</p>` : ""}
+            ${point.notes ? `<p>${point.notes}</p>` : ""}
+        `;
+        list.appendChild(div);
+    });
+}
+
+// Загружать точки пользователя при инициализации
+setTimeout(loadMyPoints, 1000);
+
+// Загрузка всех публичных точек на карту
+async function loadAllPublicPoints() {
+    const res = await fetch("/api/points");
+    const points = await res.json();
+    
+    points.forEach(point => {
+        addPointToMap(point);
+    });
+}
+
+// Загружать все публичные точки при инициализации
+setTimeout(loadAllPublicPoints, 1500);
 
 // User points layer
 let userPointsLayer = null;
