@@ -171,6 +171,53 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// Debug endpoint to check database state
+app.get("/debug/db", async (req, res) => {
+  try {
+    // Check if tables exist
+    const tablesCheck = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `);
+    
+    // Check soil_zones count
+    let soilZonesCount = 0;
+    let soilZonesData = [];
+    try {
+      const countResult = await pool.query('SELECT COUNT(*) FROM soil_zones');
+      soilZonesCount = countResult.rows[0].count;
+      
+      const dataResult = await pool.query('SELECT * FROM soil_zones LIMIT 5');
+      soilZonesData = dataResult.rows;
+    } catch (err) {
+      // Table might not exist
+    }
+    
+    // Check user_points count
+    let userPointsCount = 0;
+    try {
+      const countResult = await pool.query('SELECT COUNT(*) FROM user_points');
+      userPointsCount = countResult.rows[0].count;
+    } catch (err) {
+      // Table might not exist
+    }
+    
+    res.json({
+      tables: tablesCheck.rows.map(r => r.table_name),
+      soilZones: {
+        count: soilZonesCount,
+        sample: soilZonesData
+      },
+      userPoints: {
+        count: userPointsCount
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 
 // Auto-migrate database on startup
