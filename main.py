@@ -73,3 +73,17 @@ def root():
         with open(index_file, encoding="utf-8") as f:
             return f.read()
     return "<h1>Frontend not found</h1>"
+
+@app.get("/debug/files")
+def debug_files():
+    """Debug endpoint to check files in container"""
+    files = {}
+    for root, dirs, filenames in os.walk(FRONTEND_DIR):
+        for filename in filenames:
+            filepath = os.path.join(root, filename)
+            relpath = os.path.relpath(filepath, FRONTEND_DIR)
+            files[relpath] = {
+                "size": os.path.getsize(filepath),
+                "mtime": os.path.getmtime(filepath)
+            }
+    return files
