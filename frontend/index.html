@@ -62,77 +62,185 @@
     </div>
 
     <div class="analysis-section">
-        <h2>Анализ почвы</h2>
+        <h2>Анализ почвы — Блок 1</h2>
         <div class="accent-line"></div>
         
-        <div class="content-grid">
-            <div class="panel">
-                <div class="panel-header">
-                    <h2>📍 Параметры точки</h2>
+        <!-- Progress Steps -->
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-step active" data-step="1">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Фото</div>
                 </div>
-                <div class="panel-body">
-                    <div class="input-group">
-                        <label>Фото почвы (автоматическая классификация)</label>
-                        <input type="file" id="image" accept="image/*">
-                    </div>
-                    <div class="input-group">
-                        <label>Широта (lat)</label>
-                        <input type="number" id="lat" step="0.000001" value="55.7558">
-                    </div>
-                    <div class="input-group">
-                        <label>Долгота (lng)</label>
-                        <input type="number" id="lng" step="0.000001" value="37.6173">
-                    </div>
-                    <div class="input-group">
-                        <label>pH почвы</label>
-                        <input type="number" id="ph" step="0.1" min="0" max="14">
-                    </div>
-                    <div class="input-group">
-                        <label>Влажность (%)</label>
-                        <input type="number" id="moisture" step="1" min="0" max="100">
-                    </div>
-                    <div class="input-group">
-                        <label>Цвет метки</label>
-                        <select id="color">
-                            <option value="green">🟢 Норма</option>
-                            <option value="yellow">🟡 Внимание</option>
-                            <option value="red">🔴 Аномалия</option>
-                            <option value="blue">🔵 Интерес</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>Иконка</label>
-                        <select id="icon">
-                            <option value="sample">🧪 Образец</option>
-                            <option value="analysis">📊 Анализ</option>
-                            <option value="interest">⭐ Интерес</option>
-                            <option value="control">🎯 Контроль</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>Теги</label>
-                        <input type="text" id="tags" placeholder="#чернозём, #суглинок">
-                    </div>
-                    <div class="input-group">
-                        <label>Текстовые заметки</label>
-                        <textarea id="notes" rows="3" placeholder="Описание участка, наблюдения, комментарии"></textarea>
-                    </div>
-                    <div class="button-group">
-                        <button class="btn btn-primary" onclick="getMyLocation()">
-                            🎯 Моё местоположение
-                        </button>
-                        <button class="btn btn-secondary" onclick="loadTestLocation()">
-                            🧪 Тестовое местоположение
-                        </button>
-                        <button class="btn btn-success" onclick="addPoint()">
-                            💾 Сохранить точку
-                        </button>
-                    </div>
+                <div class="progress-step" data-step="2">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Проверка</div>
+                </div>
+                <div class="progress-step" data-step="3">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Химия</div>
+                </div>
+                <div class="progress-step" data-step="4">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Геолокация</div>
+                </div>
+                <div class="progress-step" data-step="5">
+                    <div class="step-number">5</div>
+                    <div class="step-title">Карта</div>
+                </div>
+                <div class="progress-step" data-step="6">
+                    <div class="step-number">6</div>
+                    <div class="step-title">База</div>
+                </div>
+                <div class="progress-step" data-step="7">
+                    <div class="step-number">7</div>
+                    <div class="step-title">Кабинет</div>
+                </div>
+                <div class="progress-step" data-step="8">
+                    <div class="step-number">8</div>
+                    <div class="step-title">Пометки</div>
+                </div>
+                <div class="progress-step" data-step="9">
+                    <div class="step-number">9</div>
+                    <div class="step-title">Готово</div>
                 </div>
             </div>
+        </div>
 
-            <div class="map-wrapper">
-                <div id="map"></div>
+        <!-- Step Content -->
+        <div class="step-content" id="step-content">
+            <!-- Step 1: Photo Classification -->
+            <div class="step-panel active" data-step="1">
+                <h3>Шаг 1: Входной анализ фото</h3>
+                <p>Загрузите фото почвы для автоматической классификации</p>
+                <div class="input-group">
+                    <label>Фото почвы</label>
+                    <input type="file" id="step1-image" accept="image/*" onchange="handleStep1Image()">
+                </div>
+                <div id="step1-result"></div>
+                <button class="btn btn-primary" onclick="nextStep(2)">Далее →</button>
+                <button class="btn btn-secondary" onclick="skipPhoto()">Пропустить</button>
+            </div>
+
+            <!-- Step 2: Check Photo Presence -->
+            <div class="step-panel" data-step="2">
+                <h3>Шаг 2: Проверка наличия фото</h3>
+                <p id="step2-message"></p>
+                <div id="step2-result"></div>
+                <button class="btn btn-primary" onclick="nextStep(3)">Далее →</button>
+                <button class="btn btn-secondary" onclick="prevStep(1)">← Назад</button>
+            </div>
+
+            <!-- Step 3: Physical-Chemical Analysis -->
+            <div class="step-panel" data-step="3">
+                <h3>Шаг 3: Анализ физико-химических показателей</h3>
+                <p>Введите данные о почве (pH, влажность)</p>
+                <div class="input-group">
+                    <label>pH почвы</label>
+                    <input type="number" id="step3-ph" step="0.1" min="0" max="14">
+                </div>
+                <div class="input-group">
+                    <label>Влажность (%)</label>
+                    <input type="number" id="step3-moisture" step="1" min="0" max="100">
+                </div>
+                <div id="step3-result"></div>
+                <button class="btn btn-primary" onclick="nextStep(4)">Далее →</button>
+                <button class="btn btn-secondary" onclick="prevStep(2)">← Назад</button>
+            </div>
+
+            <!-- Step 4: Geolocation -->
+            <div class="step-panel" data-step="4">
+                <h3>Шаг 4: Работа с геолокацией</h3>
+                <p>Зафиксируйте местоположение точки</p>
+                <div class="input-group">
+                    <label>Широта (lat)</label>
+                    <input type="number" id="step4-lat" step="0.000001" value="55.7558">
+                </div>
+                <div class="input-group">
+                    <label>Долгота (lng)</label>
+                    <input type="number" id="step4-lng" step="0.000001" value="37.6173">
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="getMyLocation()">🎯 Моё местоположение</button>
+                </div>
+                <div id="step4-result"></div>
+                <button class="btn btn-primary" onclick="nextStep(5)">Далее →</button>
+                <button class="btn btn-secondary" onclick="prevStep(3)">← Назад</button>
+            </div>
+
+            <!-- Step 5: Map Fixation -->
+            <div class="step-panel" data-step="5">
+                <h3>Шаг 5: Фиксация точки на карте</h3>
+                <p>Выберите точку на интерактивной карте</p>
+                <div class="map-wrapper">
+                    <div id="map"></div>
+                </div>
+                <div id="step5-result"></div>
+                <button class="btn btn-primary" onclick="nextStep(6)">Далее →</button>
+                <button class="btn btn-secondary" onclick="prevStep(4)">← Назад</button>
+            </div>
+
+            <!-- Step 6: Database Comparison -->
+            <div class="step-panel" data-step="6">
+                <h3>Шаг 6: Сопоставление с базой данных</h3>
+                <p>Сравнение с существующими данными</p>
+                <div id="step6-result"></div>
+                <button class="btn btn-primary" onclick="nextStep(7)">Далее →</button>
+                <button class="btn btn-secondary" onclick="prevStep(5)">← Назад</button>
+            </div>
+
+            <!-- Step 7: Personal Cabinet -->
+            <div class="step-panel" data-step="7">
+                <h3>Шаг 7: Создание личного кабинета</h3>
+                <p>Ваши данные будут сохранены в персональной базе</p>
+                <div id="step7-result"></div>
+                <button class="btn btn-primary" onclick="nextStep(8)">Далее →</button>
+                <button class="btn btn-secondary" onclick="prevStep(6)">← Назад</button>
+            </div>
+
+            <!-- Step 8: Annotations -->
+            <div class="step-panel" data-step="8">
+                <h3>Шаг 8: Пометки на карте</h3>
+                <p>Добавьте заметки, теги и маркеры</p>
+                <div class="input-group">
+                    <label>Цвет метки</label>
+                    <select id="step8-color">
+                        <option value="green">🟢 Норма</option>
+                        <option value="yellow">🟡 Внимание</option>
+                        <option value="red">🔴 Аномалия</option>
+                        <option value="blue">🔵 Интерес</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Иконка</label>
+                    <select id="step8-icon">
+                        <option value="sample">🧪 Образец</option>
+                        <option value="analysis">📊 Анализ</option>
+                        <option value="interest">⭐ Интерес</option>
+                        <option value="control">🎯 Контроль</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Теги</label>
+                    <input type="text" id="step8-tags" placeholder="#чернозём, #суглинок">
+                </div>
+                <div class="input-group">
+                    <label>Текстовые заметки</label>
+                    <textarea id="step8-notes" rows="3" placeholder="Описание участка, наблюдения, комментарии"></textarea>
+                </div>
+                <div id="step8-result"></div>
+                <button class="btn btn-primary" onclick="nextStep(9)">Далее →</button>
+                <button class="btn btn-secondary" onclick="prevStep(7)">← Назад</button>
+            </div>
+
+            <!-- Step 9: Final Actions -->
+            <div class="step-panel" data-step="9">
+                <h3>Шаг 9: Финальные действия</h3>
+                <p>Проверьте все данные и сохраните точку</p>
+                <div id="step9-result"></div>
+                <div id="final-summary"></div>
+                <button class="btn btn-success" onclick="saveFinalPoint()">💾 Сохранить точку</button>
+                <button class="btn btn-secondary" onclick="prevStep(8)">← Назад</button>
             </div>
         </div>
     </div>

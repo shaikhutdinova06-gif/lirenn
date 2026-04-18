@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException
 from backend.services.block1_logic import process_block1
 from backend.services.storage import get_user_points, get_points, get_user_annotations, get_user_data, initialize_test_location, delete_user_point
+from backend.services.ai_model import deepseek_classify
 from math import radians, cos, sin, sqrt, asin
 router = APIRouter()
 
@@ -21,6 +22,18 @@ def get_client_ip(request: Request):
         return real_ip
     
     return request.client.host if request.client else "unknown"
+
+@router.post("/classify-image")
+async def classify_image(request: Request):
+    """Классификация изображения: почва или не почва"""
+    data = await request.json()
+    image = data.get("image")
+    
+    if not image:
+        return {"classification": "not_soil"}
+    
+    classification = await deepseek_classify(image)
+    return {"classification": classification}
 
 @router.post("/block1")
 async def block1(request: Request):

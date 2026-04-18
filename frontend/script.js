@@ -2,125 +2,539 @@
 // Replaces the current LIRENN map
 
 // =========================
-// BLOCK 1 MAP LOGIC
+// BLOCK 1 STEP-BY-STEP LOGIC
+// =========================
+let currentStep = 1;
+let stepData = {
+    image: null,
+    ph: null,
+    moisture: null,
+    lat: null,
+    lng: null,
+    color: 'green',
+    icon: 'sample',
+    tags: [],
+    notes: null
+};
+
+// =========================
+// MAP INITIALIZATION
 // =========================
 let currentPoint = null;
 let currentMarker = null;
+let map = null;
 
-// Идентификация по IP (теперь на бэкенде)
-// localStorage больше не используется для user_id
+// Initialize map
+function initMap() {
+    if (map) return;
+    
+    map = L.map("map", {
+        maxBounds: [[40, 20], [75, 180]],
+        maxBoundsViscosity: 1.0,
+        minZoom: 3,
+        maxZoom: 18
+    }).setView([60, 90], 3);
 
-// =========================
-// ORIGINAL MAP CODE
-// =========================
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: ' OpenStreetMap contributors'
+    }).addTo(map);
 
-// API URL - use relative path for same-origin requests
-const API_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:3000'
-    : 'https://liren-map-backend.onrender.com';
+    map.on("click", function(e) {
+        setCurrentPoint(e.latlng.lat, e.latlng.lng);
+    });
+}
 
-// Initialize map with bounds
-const map = L.map("map", {
-    maxBounds: [[40, 20], [75, 180]],
-    maxBoundsViscosity: 1.0,
-    minZoom: 3,
-    maxZoom: 18
-}).setView([60, 90], 3);
-
-// Base map
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: ' OpenStreetMap contributors'
-}).addTo(map);
-
-// =========================
-// BLOCK 1 MAP FUNCTIONS (after map init)
-// =========================
-
-// Клик по карте
-map.on("click", function(e) {
-    setCurrentPoint(e.latlng.lat, e.latlng.lng);
+// Initialize map when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initMap();
 });
 
-// Установка точки
-function setCurrentPoint(lat, lng) {
-    currentPoint = { lat, lng };
-    document.getElementById("lat").value = lat.toFixed(6);
-    document.getElementById("lng").value = lng.toFixed(6);
-    if (currentMarker) {
-        map.removeLayer(currentMarker);
+// =========================
+// STEP NAVIGATION
+// =========================
+function nextStep(step) {
+    if (step > currentStep) {
+        // Validate current step before proceeding
+        if (!validateStep(currentStep)) {
+            return;
+        }
+        
+        // Mark current step as completed
+        document.querySelector(`.progress-step[data-step="${currentStep}"]`).classList.add('completed');
     }
-    currentMarker = L.marker([lat, lng]).addTo(map)
-        .bindPopup("Выбранная точка")
-        .openPopup();
-    map.setView([lat, lng], 13);
-    loadNearbyPoints();
+    
+    currentStep = step;
+    updateStepUI();
+    processStep(step);
 }
 
-// Найти участок
-function goToLocation() {
-    const lat = parseFloat(document.getElementById("lat").value);
-    const lng = parseFloat(document.getElementById("lng").value);
-    if (isNaN(lat) || isNaN(lng)) {
-        alert("Введите координаты");
-        return;
-    }
-    setCurrentPoint(lat, lng);
+function prevStep(step) {
+    currentStep = step;
+    updateStepUI();
 }
 
-// Моё местоположение
-function getMyLocation() {
-    navigator.geolocation.getCurrentPosition((pos) => {
-        setCurrentPoint(pos.coords.latitude, pos.coords.longitude);
+function updateStepUI() {
+    // Hide all panels
+    document.querySelectorAll('.step-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
+    
+    // Show current panel
+    document.querySelector(`.step-panel[data-step="${currentStep}"]`).classList.add('active');
+    
+    // Update progress steps
+    document.querySelectorAll('.progress-step').forEach(stepEl => {
+        const stepNum = parseInt(stepEl.dataset.step);
+        stepEl.classList.remove('active');
+        if (stepNum === currentStep) {
+            stepEl.classList.add('active');
+        }
     });
 }
 
-// Добавить точку
-async function addPoint() {
-    if (!currentPoint) {
-        alert("Выберите точку");
-        return;
+function validateStep(step) {
+    switch(step) {
+        case 1:
+            // Photo is optional, can skip
+            return true;
+        case 3:
+            // Chemistry is optional
+            return true;
+        case 4:
+            // Geolocation required
+            const lat = document.getElementById('step4-lat').value;
+            const lng = document.getElementById('step4-lng').value;
+            if (!lat || !lng) {
+                alert('Пожалуйста, введите координаты');
+                return false;
+            }
+            stepData.lat = parseFloat(lat);
+            stepData.lng = parseFloat(lng);
+            return true;
+        default:
+            return true;
     }
+}
 
-    const imageInput = document.getElementById("image");
-    let imageData = null;
+// =========================
+// STEP PROCESSING
+// =========================
+async function processStep(step) {
+    switch(step) {
+        case 1:
+            // Photo classification
+            break;
+        case 2:
+            await processStep2();
+            break;
+        case 3:
+            await processStep3();
+            break;
+        case 4:
+            await processStep4();
+            break;
+        case 5:
+            // Map fixation - map is already initialized
+            break;
+        case 6:
+            await processStep6();
+            break;
+        case 7:
+            await processStep7();
+            break;
+        case 8:
+            await processStep8();
+            break;
+        case 9:
+            await processStep9();
+            break;
+    }
+}
+
+// =========================
+// STEP 1: Photo Classification
+// =========================
+async function handleStep1Image() {
+    const imageInput = document.getElementById('step1-image');
     if (imageInput.files.length > 0) {
-        imageData = await toBase64(imageInput.files[0]);
+        stepData.image = await toBase64(imageInput.files[0]);
+        
+        // Classify image
+        const result = await fetch('/api/classify-image', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({image: stepData.image})
+        });
+        const response = await result.json();
+        
+        const resultDiv = document.getElementById('step1-result');
+        if (response.classification === 'soil') {
+            resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; color: #4CAF50;">✅ Изображение содержит образец почвы</div>`;
+        } else {
+            resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; color: #F44336;">❌ Загруженное изображение не содержит образца почвы. Пожалуйста, загрузите фото почвы или введите данные вручную</div>`;
+        }
     }
+}
 
+function skipPhoto() {
+    stepData.image = null;
+    nextStep(2);
+}
+
+// =========================
+// STEP 2: Check Photo Presence
+// =========================
+async function processStep2() {
+    const messageDiv = document.getElementById('step2-message');
+    const resultDiv = document.getElementById('step2-result');
+    
+    if (stepData.image) {
+        messageDiv.textContent = 'Фото загружено. Переход к анализу физико-химических показателей.';
+        resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">✅ Фото пользователя присутствует</div>`;
+    } else {
+        messageDiv.textContent = 'Фото не загружено. Будут использованы предположения от AI.';
+        resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(234, 179, 8, 0.1); border-radius: 8px;">⚠️ Фото отсутствует - анализ через AI</div>`;
+    }
+}
+
+// =========================
+// STEP 3: Physical-Chemical Analysis
+// =========================
+async function processStep3() {
+    const ph = document.getElementById('step3-ph').value;
+    const moisture = document.getElementById('step3-moisture').value;
+    
+    stepData.ph = ph ? parseFloat(ph) : null;
+    stepData.moisture = moisture ? parseFloat(moisture) : null;
+    
+    const resultDiv = document.getElementById('step3-result');
+    
+    if (stepData.ph && stepData.moisture) {
+        resultDiv.innerHTML = `
+            <div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
+                <h4>📊 Показатели получены:</h4>
+                <p><strong>pH:</strong> ${stepData.ph}</p>
+                <p><strong>Влажность:</strong> ${stepData.moisture}%</p>
+                <p>Данные будут сопоставлены с базой данных</p>
+            </div>
+        `;
+    } else {
+        resultDiv.innerHTML = `
+            <div style="padding: 15px; background: rgba(234, 179, 8, 0.1); border-radius: 8px;">
+                <h4>⚠️ Показатели не введены</h4>
+                <p>Будет использован AI-анализ для предположения значений</p>
+            </div>
+        `;
+    }
+}
+
+// =========================
+// STEP 4: Geolocation
+// =========================
+async function processStep4() {
+    const resultDiv = document.getElementById('step4-result');
+    
+    if (stepData.lat && stepData.lng) {
+        resultDiv.innerHTML = `
+            <div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
+                <h4>📍 Геолокация получена:</h4>
+                <p><strong>Широта:</strong> ${stepData.lat}</p>
+                <p><strong>Долгота:</strong> ${stepData.lng}</p>
+                <p>Данные будут сопоставлены с базой данных</p>
+            </div>
+        `;
+        
+        // Update map
+        if (map && currentMarker) {
+            map.removeLayer(currentMarker);
+        }
+        if (map) {
+            currentMarker = L.marker([stepData.lat, stepData.lng]).addTo(map)
+                .bindPopup("Выбранная точка")
+                .openPopup();
+            map.setView([stepData.lat, stepData.lng], 13);
+        }
+    }
+}
+
+// =========================
+// STEP 6: Database Comparison
+// =========================
+async function processStep6() {
+    const resultDiv = document.getElementById('step6-result');
+    
+    try {
+        const res = await fetch('/api/nearby-points?lat=' + stepData.lat + '&lng=' + stepData.lng + '&radius_km=5');
+        const nearbyPoints = await res.json();
+        
+        resultDiv.innerHTML = `
+            <div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
+                <h4>🗄️ Сопоставление с базой данных:</h4>
+                <p><strong>Близлежащие точки (радиус 5 км):</strong> ${nearbyPoints.length}</p>
+                ${nearbyPoints.length > 0 ? '<p>Найдены похожие точки в базе данных</p>' : '<p>Новых точек в этом районе нет</p>'}
+            </div>
+        `;
+    } catch (error) {
+        resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(234, 179, 8, 0.1); border-radius: 8px;">⚠️ Ошибка при проверке базы данных</div>`;
+    }
+}
+
+// =========================
+// STEP 7: Personal Cabinet
+// =========================
+async function processStep7() {
+    const resultDiv = document.getElementById('step7-result');
+    
+    resultDiv.innerHTML = `
+        <div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
+            <h4>👤 Личный кабинет:</h4>
+            <p>✅ Будет создана персональная база данных пользователя</p>
+            <p>✅ Точка будет добавлена к вашим записям</p>
+            <p>✅ Данные изолированы от других пользователей</p>
+        </div>
+    `;
+}
+
+// =========================
+// STEP 8: Annotations
+// =========================
+async function processStep8() {
+    stepData.color = document.getElementById('step8-color').value;
+    stepData.icon = document.getElementById('step8-icon').value;
+    stepData.tags = document.getElementById('step8-tags').value.split(',').map(t => t.trim()).filter(t => t);
+    stepData.notes = document.getElementById('step8-notes').value;
+    
+    const resultDiv = document.getElementById('step8-result');
+    
+    resultDiv.innerHTML = `
+        <div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
+            <h4>🏷️ Пометки:</h4>
+            <p><strong>Цвет:</strong> ${stepData.color}</p>
+            <p><strong>Иконка:</strong> ${stepData.icon}</p>
+            <p><strong>Теги:</strong> ${stepData.tags.join(', ') || 'Нет'}</p>
+            <p><strong>Заметки:</strong> ${stepData.notes || 'Нет'}</p>
+        </div>
+    `;
+}
+
+// =========================
+// STEP 9: Final Actions
+// =========================
+async function processStep9() {
+    const summaryDiv = document.getElementById('final-summary');
+    const resultDiv = document.getElementById('step9-result');
+    
+    summaryDiv.innerHTML = `
+        <div style="padding: 20px; background: rgba(255, 255, 255, 0.9); border-radius: 8px; border: 2px solid #4CAF50;">
+            <h4>📋 Итоговые данные:</h4>
+            <p><strong>Фото:</strong> ${stepData.image ? 'Загружено' : 'Нет'}</p>
+            <p><strong>pH:</strong> ${stepData.ph || 'Не указано'}</p>
+            <p><strong>Влажность:</strong> ${stepData.moisture || 'Не указано'}%</p>
+            <p><strong>Координаты:</strong> ${stepData.lat}, ${stepData.lng}</p>
+            <p><strong>Цвет:</strong> ${stepData.color}</p>
+            <p><strong>Иконка:</strong> ${stepData.icon}</p>
+            <p><strong>Теги:</strong> ${stepData.tags.join(', ') || 'Нет'}</p>
+            <p><strong>Заметки:</strong> ${stepData.notes || 'Нет'}</p>
+        </div>
+    `;
+    
+    resultDiv.innerHTML = `
+        <div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
+            <h4>✅ Готово к сохранению</h4>
+            <p>Все данные собраны. Точка будет сохранена в общей базе (append-only) и в вашей персональной базе.</p>
+        </div>
+    `;
+}
+
+// =========================
+// SAVE FINAL POINT
+// =========================
+async function saveFinalPoint() {
     const data = {
-        lat: currentPoint.lat,
-        lng: currentPoint.lng,
-        ph: document.getElementById("ph")?.value,
-        moisture: document.getElementById("moisture")?.value,
-        color: document.getElementById("color")?.value,
-        icon: document.getElementById("icon")?.value,
-        tags: document.getElementById("tags")?.value.split(",").map(t => t.trim()),
-        notes: document.getElementById("notes")?.value
-        // user_id больше не отправляем - бэкенд использует IP
+        lat: stepData.lat,
+        lng: stepData.lng,
+        ph: stepData.ph,
+        moisture: stepData.moisture,
+        color: stepData.color,
+        icon: stepData.icon,
+        tags: stepData.tags,
+        notes: stepData.notes
     };
-
-    if (imageData) {
-        data.image = imageData;
+    
+    if (stepData.image) {
+        data.image = stepData.image;
     }
-
-    const res = await fetch("/api/block1", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
+    
+    const res = await fetch('/api/block1', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(data)
     });
+    
     const result = await res.json();
+    
     if (result.error) {
         alert(result.error);
         return;
     }
     
-    // Отобразить результаты анализа
-    displayAnalysisResult(result);
+    alert('Точка успешно сохранена! Данные добавлены в базу (append-only).');
     
-    addPointToMap(result.point);
-    loadNearbyPoints();
+    // Reset and reload
+    currentStep = 1;
+    stepData = {
+        image: null,
+        ph: null,
+        moisture: null,
+        lat: null,
+        lng: null,
+        color: 'green',
+        icon: 'sample',
+        tags: [],
+        notes: null
+    };
+    
+    updateStepUI();
     loadMyPoints();
     loadUserCabinet();
+    
+    // Add point to map
+    addPointToMap(result.point);
+}
+
+// =========================
+// HELPER FUNCTIONS
+// =========================
+function toBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+}
+
+function getMyLocation() {
+    navigator.geolocation.getCurrentPosition((pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        document.getElementById('step4-lat').value = lat.toFixed(6);
+        document.getElementById('step4-lng').value = lng.toFixed(6);
+        stepData.lat = lat;
+        stepData.lng = lng;
+        
+        if (map && currentMarker) {
+            map.removeLayer(currentMarker);
+        }
+        if (map) {
+            currentMarker = L.marker([lat, lng]).addTo(map)
+                .bindPopup("Ваше местоположение")
+                .openPopup();
+            map.setView([lat, lng], 13);
+        }
+    }, (error) => {
+        alert('Не удалось определить местоположение');
+    });
+}
+
+function setCurrentPoint(lat, lng) {
+    stepData.lat = lat;
+    stepData.lng = lng;
+    
+    if (map && currentMarker) {
+        map.removeLayer(currentMarker);
+    }
+    if (map) {
+        currentMarker = L.marker([lat, lng]).addTo(map)
+            .bindPopup("Выбранная точка")
+            .openPopup();
+        map.setView([lat, lng], 13);
+    }
+}
+
+function addPointToMap(point) {
+    if (!map) return;
+    
+    const colorMap = {
+        'green': '#4CAF50',
+        'yellow': '#FFC107',
+        'red': '#F44336',
+        'blue': '#2196F3'
+    };
+    
+    const marker = L.circleMarker([point.lat, point.lng], {
+        radius: 8,
+        fillColor: colorMap[point.color] || '#4CAF50',
+        color: '#fff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.8
+    }).addTo(map);
+    
+    const popupContent = `
+        <div>
+            <strong>pH:</strong> ${point.ph || 'N/A'}<br>
+            <strong>Влажность:</strong> ${point.moisture || 'N/A'}%<br>
+            ${point.tags ? '<strong>Теги:</strong> ' + point.tags.join(', ') : ''}<br>
+            ${point.notes ? '<strong>Заметки:</strong> ' + point.notes : ''}
+        </div>
+    `;
+    
+    marker.bindPopup(popupContent);
+}
+
+async function loadMyPoints() {
+    try {
+        const res = await fetch('/api/my-points');
+        const points = await res.json();
+        
+        points.forEach(point => {
+            addPointToMap(point);
+        });
+    } catch (error) {
+        console.error('Error loading points:', error);
+    }
+}
+
+async function loadUserCabinet() {
+    try {
+        const res = await fetch('/api/user-cabinet');
+        const data = await res.json();
+        
+        const cabinetDiv = document.getElementById('my-points-list');
+        if (data.points && data.points.length > 0) {
+            cabinetDiv.innerHTML = data.points.map(point => `
+                <div class="cabinet-point">
+                    <h4>Точка #${point.id.slice(0, 8)}</h4>
+                    <p><strong>Координаты:</strong> ${point.lat}, ${point.lng}</p>
+                    <p><strong>pH:</strong> ${point.ph || 'N/A'}</p>
+                    <p><strong>Влажность:</strong> ${point.moisture || 'N/A'}%</p>
+                    ${point.tags ? `<p><strong>Теги:</strong> ${point.tags.join(', ')}</p>` : ''}
+                </div>
+            `).join('');
+        } else {
+            cabinetDiv.innerHTML = '<p>У вас пока нет сохранённых точек</p>';
+        }
+    } catch (error) {
+        console.error('Error loading cabinet:', error);
+    }
+}
+
+function loadTestLocation() {
+    stepData.lat = 55.7558;
+    stepData.lng = 37.6173;
+    
+    if (map && currentMarker) {
+        map.removeLayer(currentMarker);
+    }
+    if (map) {
+        currentMarker = L.marker([55.7558, 37.6173]).addTo(map)
+            .bindPopup("Тестовое местоположение")
+            .openPopup();
+        map.setView([55.7558, 37.6173], 13);
+    }
+    
+    alert('Загружено тестовое местоположение (Москва)');
 }
 
 // Отобразить результаты анализа
