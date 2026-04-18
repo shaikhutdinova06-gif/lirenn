@@ -5,123 +5,135 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ЛИРЕН — Экологический анализ почвы (Блок 1)</title>
 <link rel="stylesheet" href="/static/style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Roboto:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 
 <body>
-<nav class="nav">
-    <div class="nav-logo">
-        🌱 ЛИРЕН
-    </div>
-    <div class="nav-menu">
-        <a href="#" class="nav-link">Карта</a>
-        <a href="#" class="nav-link">Кабинет</a>
-        <a href="#" class="nav-link">О проекте</a>
-    </div>
-</nav>
-
-<div class="hero">
-    <div class="hero-content">
-        <h1>Экологический анализ почвы</h1>
-        <p>Блок 1: Обработка данных о пользователе и почве</p>
-        <button class="cta-button" onclick="document.querySelector('.main').scrollIntoView({behavior: 'smooth'})">Начать анализ</button>
+<div class="soil-header">
+    <div class="soil-content">
+        <h1>Почва — основа жизни</h1>
+        <p>Баланс экосистемы начинается под ногами</p>
+        <div class="soil-icon">🌱</div>
     </div>
 </div>
 
+<nav class="nav">
+    <div class="nav-logo">
+        <span class="logo-icon">🌱</span> ЛИРЕН
+    </div>
+    <ul class="nav-menu">
+        <li><a href="#" class="nav-link">О почве</a></li>
+        <li><a href="#" class="nav-link">Экосистемы</a></li>
+        <li><a href="#" class="nav-link">Исследования</a></li>
+        <li><a href="#" class="nav-link">Защита почвы</a></li>
+        <li><a href="#" class="nav-link">Новости</a></li>
+        <li><a href="#" class="nav-link">Контакты</a></li>
+    </ul>
+</nav>
+
 <main class="main">
-    <div class="cards-grid">
-        <div class="card">
-            <div class="card-icon">
-                📷
+    <div class="hero-section">
+        <h2>Почему почва важна?</h2>
+        <div class="accent-line"></div>
+        <div class="features-grid">
+            <div class="feature">
+                <div class="feature-icon">🐛</div>
+                <h3>Биоразнообразие</h3>
+                <p>Дом для миллионов организмов</p>
             </div>
-            <h3>Классификация фото</h3>
-            <p>Автоматическая проверка: почва или не почва</p>
+            <div class="feature">
+                <div class="feature-icon">🌾</div>
+                <h3>Плодородие</h3>
+                <p>Основа сельского хозяйства</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🍃</div>
+                <h3>Углеродный цикл</h3>
+                <p>Регулятор климата</p>
+            </div>
         </div>
-        <div class="card">
-            <div class="card-icon">
-                📍
-            </div>
-            <h3>Геолокация</h3>
-            <p>Фиксация точек на единой интерактивной карте</p>
-        </div>
-        <div class="card">
-            <div class="card-icon">
-                💾
-            </div>
-            <h3>База данных</h3>
-            <p>Принцип append-only: только добавление данных</p>
+        <div class="fact-box">
+            <span>📊 Факт: 1 см почвы формируется 300 лет</span>
         </div>
     </div>
 
-    <div class="content-grid">
-        <div class="panel">
-            <div class="panel-header">
-                <h2>📍 Параметры точки</h2>
+    <div class="analysis-section">
+        <h2>Анализ почвы</h2>
+        <div class="accent-line"></div>
+        
+        <div class="content-grid">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>📍 Параметры точки</h2>
+                </div>
+                <div class="panel-body">
+                    <div class="input-group">
+                        <label>Фото почвы (автоматическая классификация)</label>
+                        <input type="file" id="image" accept="image/*">
+                    </div>
+                    <div class="input-group">
+                        <label>Широта (lat)</label>
+                        <input type="number" id="lat" step="0.000001" value="55.7558">
+                    </div>
+                    <div class="input-group">
+                        <label>Долгота (lng)</label>
+                        <input type="number" id="lng" step="0.000001" value="37.6173">
+                    </div>
+                    <div class="input-group">
+                        <label>pH почвы</label>
+                        <input type="number" id="ph" step="0.1" min="0" max="14">
+                    </div>
+                    <div class="input-group">
+                        <label>Влажность (%)</label>
+                        <input type="number" id="moisture" step="1" min="0" max="100">
+                    </div>
+                    <div class="input-group">
+                        <label>Цвет метки</label>
+                        <select id="color">
+                            <option value="green">🟢 Норма</option>
+                            <option value="yellow">🟡 Внимание</option>
+                            <option value="red">🔴 Аномалия</option>
+                            <option value="blue">🔵 Интерес</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Иконка</label>
+                        <select id="icon">
+                            <option value="sample">🧪 Образец</option>
+                            <option value="analysis">📊 Анализ</option>
+                            <option value="interest">⭐ Интерес</option>
+                            <option value="control">🎯 Контроль</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Теги</label>
+                        <input type="text" id="tags" placeholder="#чернозём, #суглинок">
+                    </div>
+                    <div class="input-group">
+                        <label>Текстовые заметки</label>
+                        <textarea id="notes" rows="3" placeholder="Описание участка, наблюдения, комментарии"></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="getMyLocation()">
+                            🎯 Моё местоположение
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadTestLocation()">
+                            🧪 Тестовое местоположение
+                        </button>
+                        <button class="btn btn-success" onclick="addPoint()">
+                            💾 Сохранить точку
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="panel-body">
-                <div class="input-group">
-                    <label>Фото почвы (автоматическая классификация)</label>
-                    <input type="file" id="image" accept="image/*">
-                </div>
-                <div class="input-group">
-                    <label>Широта (lat)</label>
-                    <input type="number" id="lat" step="0.000001" value="55.7558">
-                </div>
-                <div class="input-group">
-                    <label>Долгота (lng)</label>
-                    <input type="number" id="lng" step="0.000001" value="37.6173">
-                </div>
-                <div class="input-group">
-                    <label>pH почвы</label>
-                    <input type="number" id="ph" step="0.1" min="0" max="14">
-                </div>
-                <div class="input-group">
-                    <label>Влажность (%)</label>
-                    <input type="number" id="moisture" step="1" min="0" max="100">
-                </div>
-                <div class="input-group">
-                    <label>Цвет метки</label>
-                    <select id="color">
-                        <option value="green">🟢 Норма</option>
-                        <option value="yellow">🟡 Внимание</option>
-                        <option value="red">🔴 Аномалия</option>
-                        <option value="blue">🔵 Интерес</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>Иконка</label>
-                    <select id="icon">
-                        <option value="sample">🧪 Образец</option>
-                        <option value="analysis">📊 Анализ</option>
-                        <option value="interest">⭐ Интерес</option>
-                        <option value="control">🎯 Контроль</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>Теги</label>
-                    <input type="text" id="tags" placeholder="#чернозём, #суглинок">
-                </div>
-                <div class="input-group">
-                    <label>Текстовые заметки</label>
-                    <textarea id="notes" rows="3" placeholder="Описание участка, наблюдения, комментарии"></textarea>
-                </div>
-                <div class="button-group">
-                    <button class="btn btn-primary" onclick="getMyLocation()">
-                        🎯 Моё местоположение
-                    </button>
-                    <button class="btn btn-secondary" onclick="loadTestLocation()">
-                        🧪 Тестовое местоположение
-                    </button>
-                    <button class="btn btn-success" onclick="addPoint()">
-                        💾 Сохранить точку
-                    </button>
-                </div>
-            </div>
-        </div>
 
-        <div class="map-wrapper">
-            <div id="map"></div>
+            <div class="map-wrapper">
+                <div id="map"></div>
+            </div>
         </div>
     </div>
 
@@ -136,12 +148,19 @@
 </main>
 
 <footer class="footer">
-    <div class="footer-icons">
-        <span>🌱</span>
-        <span>🌍</span>
-        <span>♻️</span>
+    <div class="footer-content">
+        <div class="footer-links">
+            <a href="#">Контакты</a>
+            <a href="#">Социальные сети</a>
+            <a href="#">О проекте</a>
+        </div>
+        <div class="footer-icons">
+            <span>🌱</span>
+            <span>🌍</span>
+            <span>♻️</span>
+        </div>
+        <p>© 2024 ЛИРЕН — Экологический анализ почвы (Блок 1)</p>
     </div>
-    <p>© 2024 ЛИРЕН — Экологический анализ почвы (Блок 1)</p>
 </footer>
 
 <script src="/static/script.js"></script>
