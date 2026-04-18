@@ -158,6 +158,59 @@ body::before {
     padding: 100px 40px 60px;
 }
 
+.hero-section {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    padding: 60px 40px;
+    margin-bottom: 60px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.hero-section h2 {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 700;
+    font-size: 36px;
+    color: #5D4037;
+    margin-bottom: 20px;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+.feature {
+    text-align: center;
+    padding: 30px 20px;
+    background: rgba(255,255,255,0.8);
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+}
+
+.feature:hover {
+    transform: translateY(-5px);
+}
+
+.feature-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.feature h3 {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 700;
+    color: #5D4037;
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.feature p {
+    color: #424242;
+    font-size: 18px;
+}
+
 .panel {
     background: white;
     border-radius: 10px;
