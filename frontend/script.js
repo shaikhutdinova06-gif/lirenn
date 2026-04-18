@@ -59,16 +59,19 @@ function showSection(sectionName) {
         targetSection.classList.add('active');
     }
     
-    // If showing map, initialize it
+    // If showing map, initialize it after section is visible
     if (sectionName === 'map') {
         setTimeout(() => {
             if (!map) {
                 initMap();
-            } else {
+            }
+            // Invalidate size to ensure proper dimensions
+            if (map) {
                 map.invalidateSize();
             }
+            // Load all user points
             loadMyPoints();
-        }, 100);
+        }, 300);
     }
     
     // If showing cabinet, load user points
