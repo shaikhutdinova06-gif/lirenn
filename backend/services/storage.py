@@ -2,7 +2,7 @@ import json
 import time
 import os
 
-FILE = "points.json"
+FILE = "/data/points.json"
 
 def save_point(data):
     """Сохраняет точку в points.json"""
