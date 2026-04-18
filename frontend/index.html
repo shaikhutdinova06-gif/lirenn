@@ -25,11 +25,18 @@
     <div class="nav-logo">
         <span class="logo-icon">🌱</span> ЛИРЕН
     </div>
+    <ul class="nav-menu">
+        <li><a href="#" class="nav-link" onclick="showSection('input-analysis')">Входной анализ</a></li>
+        <li><a href="#" class="nav-link" onclick="showSection('map')">Общая карта</a></li>
+        <li><a href="#" class="nav-link" onclick="showSection('cabinet')">Мой кабинет</a></li>
+    </ul>
 </nav>
 
 <main class="main">
-    <div class="analysis-section">
-        <!-- Step Content -->
+    <!-- Input Analysis Section -->
+    <div class="section" id="input-analysis-section">
+        <div class="analysis-section">
+            <!-- Step Content -->
         <div class="step-content" id="step-content">
             <!-- Step 1: Photo Classification -->
             <div class="step-panel active" data-step="1">
@@ -166,13 +173,25 @@
             </div>
         </div>
     </div>
+    </div>
 
-    <div class="user-cabinet">
-        <div class="cabinet-header">
-            <h2>👤 Мой кабинет</h2>
+    <!-- Map Section -->
+    <div class="section" id="map-section" style="display: none;">
+        <div class="map-wrapper">
+            <h2>Общая карта</h2>
+            <div id="map"></div>
         </div>
-        <div class="cabinet-body">
-            <div id="my-points-list"></div>
+    </div>
+
+    <!-- Cabinet Section -->
+    <div class="section" id="cabinet-section" style="display: none;">
+        <div class="user-cabinet">
+            <div class="cabinet-header">
+                <h2>👤 Мой кабинет</h2>
+            </div>
+            <div class="cabinet-body">
+                <div id="my-points-list"></div>
+            </div>
         </div>
     </div>
 </main>

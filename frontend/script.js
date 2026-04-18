@@ -44,10 +44,38 @@ function initMap() {
     });
 }
 
-// Initialize map when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    initMap();
-});
+// =========================
+// SECTION NAVIGATION
+// =========================
+function showSection(sectionName) {
+    // Hide all sections
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Show selected section
+    const targetSection = document.getElementById(`${sectionName}-section`);
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
+    
+    // If showing map, initialize it
+    if (sectionName === 'map') {
+        setTimeout(() => {
+            if (!map) {
+                initializeMap();
+            } else {
+                map.invalidateSize();
+            }
+            loadAllPoints();
+        }, 100);
+    }
+    
+    // If showing cabinet, load user points
+    if (sectionName === 'cabinet') {
+        loadUserCabinet();
+    }
+}
 
 // =========================
 // STEP NAVIGATION
@@ -307,20 +335,13 @@ async function processStep7() {
 // STEP 8: Annotations
 // =========================
 async function processStep8() {
-    stepData.color = document.getElementById('step8-color').value;
-    stepData.icon = document.getElementById('step8-icon').value;
-    stepData.tags = document.getElementById('step8-tags').value.split(',').map(t => t.trim()).filter(t => t);
-    stepData.notes = document.getElementById('step8-notes').value;
-    
     const resultDiv = document.getElementById('step8-result');
     
     resultDiv.innerHTML = `
         <div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
-            <h4>🏷️ Пометки:</h4>
-            <p><strong>Цвет:</strong> ${stepData.color}</p>
-            <p><strong>Иконка:</strong> ${stepData.icon}</p>
-            <p><strong>Теги:</strong> ${stepData.tags.join(', ') || 'Нет'}</p>
-            <p><strong>Заметки:</strong> ${stepData.notes || 'Нет'}</p>
+            <h4>🏷️ Пометки на карте:</h4>
+            <p>✅ Выберите цвет и иконку для точки</p>
+            <p>✅ Добавьте теги и заметки</p>
         </div>
     `;
 }
@@ -329,27 +350,13 @@ async function processStep8() {
 // STEP 9: Final Actions
 // =========================
 async function processStep9() {
-    const summaryDiv = document.getElementById('final-summary');
     const resultDiv = document.getElementById('step9-result');
-    
-    summaryDiv.innerHTML = `
-        <div style="padding: 20px; background: rgba(255, 255, 255, 0.9); border-radius: 8px; border: 2px solid #4CAF50;">
-            <h4>📋 Итоговые данные:</h4>
-            <p><strong>Фото:</strong> ${stepData.image ? 'Загружено' : 'Нет'}</p>
-            <p><strong>pH:</strong> ${stepData.ph || 'Не указано'}</p>
-            <p><strong>Влажность:</strong> ${stepData.moisture || 'Не указано'}%</p>
-            <p><strong>Координаты:</strong> ${stepData.lat}, ${stepData.lng}</p>
-            <p><strong>Цвет:</strong> ${stepData.color}</p>
-            <p><strong>Иконка:</strong> ${stepData.icon}</p>
-            <p><strong>Теги:</strong> ${stepData.tags.join(', ') || 'Нет'}</p>
-            <p><strong>Заметки:</strong> ${stepData.notes || 'Нет'}</p>
-        </div>
-    `;
     
     resultDiv.innerHTML = `
         <div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
-            <h4>✅ Готово к сохранению</h4>
-            <p>Все данные собраны. Точка будет сохранена в общей базе (append-only) и в вашей персональной базе.</p>
+            <h4>🎯 Финальные действия:</h4>
+            <p>✅ Проверьте все данные</p>
+            <p>✅ Сохраните точку в базу данных</p>
         </div>
     `;
 }
@@ -358,37 +365,97 @@ async function processStep9() {
 // SAVE FINAL POINT
 // =========================
 async function saveFinalPoint() {
-    const data = {
+    const summaryDiv = document.getElementById('final-summary');
+    
+    // Build final point data
+    const point = {
+        id: generateUUID(),
+        timestamp: new Date().toISOString(),
+        user_id: await getUserId(),
         lat: stepData.lat,
         lng: stepData.lng,
         ph: stepData.ph,
         moisture: stepData.moisture,
+        notes: stepData.notes,
+        tags: stepData.tags,
         color: stepData.color,
         icon: stepData.icon,
-        tags: stepData.tags,
-        notes: stepData.notes
+        image: stepData.image,
+        result: {
+            image_check: stepData.image ? 'has_image' : 'no_image',
+            has_user_photo: !!stepData.image,
+            chemistry: {ph: stepData.ph, moisture: stepData.moisture},
+            geo_analysis: stepData.lat && stepData.lng ? 'Location provided' : 'No location',
+            annotations: {
+                text_notes: stepData.notes,
+                symbol: stepData.icon,
+                color: stepData.color,
+                tags: stepData.tags,
+                has_photo: !!stepData.image
+            },
+            state: {
+                has_image: !!stepData.image,
+                has_geo: !!stepData.lat && !!stepData.lng,
+                has_chem: !!stepData.ph && !!stepData.moisture,
+                has_annotations: !!stepData.notes || stepData.tags.length > 0,
+                completed: true
+            }
+        }
     };
     
-    if (stepData.image) {
-        data.image = stepData.image;
+    summaryDiv.innerHTML = `
+        <div style="padding: 20px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
+            <h4>📋 Итоговые данные:</h4>
+            <p><strong>Широта:</strong> ${point.lat}</p>
+            <p><strong>Долгота:</strong> ${point.lng}</p>
+            <p><strong>pH:</strong> ${point.ph || 'Не указано'}</p>
+            <p><strong>Влажность:</strong> ${point.moisture || 'Не указано'}%</p>
+            <p><strong>Цвет:</strong> ${point.color}</p>
+            <p><strong>Иконка:</strong> ${point.icon}</p>
+            <p><strong>Теги:</strong> ${point.tags.join(', ') || 'Нет'}</p>
+            <p><strong>Заметки:</strong> ${point.notes || 'Нет'}</p>
+        </div>
+    `;
+    
+    // Save to backend
+    try {
+        const response = await fetch('/api/block1', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(point)
+        });
+        
+        if (response.ok) {
+            // Mark user as having completed analysis
+            localStorage.setItem('hasCompletedAnalysis', 'true');
+            
+            summaryDiv.innerHTML += `
+                <div style="padding: 20px; background: rgba(76, 175, 80, 0.2); border-radius: 8px; margin-top: 15px;">
+                    <h4>✅ Точка успешно сохранена!</h4>
+                    <p>Вы можете добавить ещё точек или перейти в личный кабинет</p>
+                    <button class="btn btn-primary" onclick="resetForm()">➕ Добавить ещё точку</button>
+                    <button class="btn btn-secondary" onclick="showSection('cabinet')">👤 Мой кабинет</button>
+                </div>
+            `;
+        } else {
+            summaryDiv.innerHTML += `
+                <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
+                    <h4>❌ Ошибка при сохранении</h4>
+                    <p>Попробуйте снова</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        summaryDiv.innerHTML += `
+            <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
+                <h4>❌ Ошибка при сохранении</h4>
+                <p>${error.message}</p>
+            </div>
+        `;
     }
-    
-    const res = await fetch('/api/block1', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-    });
-    
-    const result = await res.json();
-    
-    if (result.error) {
-        alert(result.error);
-        return;
-    }
-    
-    alert('Точка успешно сохранена! Данные добавлены в базу (append-only).');
-    
-    // Reset and reload
+}
+
+function resetForm() {
     currentStep = 1;
     stepData = {
         image: null,
@@ -403,12 +470,50 @@ async function saveFinalPoint() {
     };
     
     updateStepUI();
-    loadMyPoints();
+    
+    // Clear input fields
+    document.getElementById('step1-image').value = '';
+    document.getElementById('step3-ph').value = '';
+    document.getElementById('step3-moisture').value = '';
+    document.getElementById('step4-lat').value = '';
+    document.getElementById('step4-lng').value = '';
+    document.getElementById('step7-color').value = 'green';
+    document.getElementById('step7-icon').value = 'sample';
+    document.getElementById('step8-tags').value = '';
+    document.getElementById('step8-notes').value = '';
+    
+    // Clear result divs
+    document.getElementById('step1-result').innerHTML = '';
+    document.getElementById('step2-result').innerHTML = '';
+    document.getElementById('step3-result').innerHTML = '';
+    document.getElementById('step4-result').innerHTML = '';
+    document.getElementById('step6-result').innerHTML = '';
+    document.getElementById('step7-result').innerHTML = '';
+    document.getElementById('step8-result').innerHTML = '';
+    document.getElementById('step9-result').innerHTML = '';
+    document.getElementById('final-summary').innerHTML = '';
+    
+    showSection('input-analysis');
+}
+
+// =========================
+// INITIALIZATION
+// =========================
+document.addEventListener('DOMContentLoaded', function() {
+    initMap();
+    currentStep = 1;
+    updateStepUI();
+    initializeTestLocation();
     loadUserCabinet();
     
-    // Add point to map
-    addPointToMap(result.point);
-}
+    // Check if user is new and show input analysis first
+    const hasCompletedAnalysis = localStorage.getItem('hasCompletedAnalysis');
+    if (!hasCompletedAnalysis) {
+        showSection('input-analysis');
+    } else {
+        showSection('map'); // Default to map for returning users
+    }
+});
 
 // =========================
 // HELPER FUNCTIONS
