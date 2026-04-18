@@ -10,7 +10,7 @@ from backend.api.points import router as points_router
 from backend.api.horizons import router as horizons_router
 from backend.routes.dem import router as dem_router
 
-app = FastAPI(title="LIREN")
+app = FastAPI(title="LIREN API")
 
 app.add_middleware(
     CORSMiddleware,
