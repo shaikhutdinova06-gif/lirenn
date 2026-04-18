@@ -68,7 +68,7 @@ app.include_router(dem_router, prefix="/api/dem")
 
 @app.get("/")
 @limiter.limit("100/minute")
-def root():
+def root(request):
     frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
     index_file = os.path.join(frontend_path, "index.html")
     if os.path.exists(index_file):
