@@ -75,14 +75,29 @@ async function addPoint() {
         alert("Выберите точку");
         return;
     }
+
+    const imageInput = document.getElementById("image");
+    let imageData = null;
+    if (imageInput.files.length > 0) {
+        imageData = await toBase64(imageInput.files[0]);
+    }
+
     const data = {
         lat: currentPoint.lat,
         lng: currentPoint.lng,
         ph: document.getElementById("ph")?.value,
         moisture: document.getElementById("moisture")?.value,
+        color: document.getElementById("color")?.value,
+        icon: document.getElementById("icon")?.value,
+        tags: document.getElementById("tags")?.value.split(",").map(t => t.trim()),
         notes: document.getElementById("notes")?.value,
         user_id: localStorage.getItem("user_id")
     };
+
+    if (imageData) {
+        data.image = imageData;
+    }
+
     const res = await fetch("/api/block1", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
@@ -96,11 +111,54 @@ async function addPoint() {
     addPointToMap(result.point);
 }
 
+// Конвертация файла в base64
+function toBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+}
+
+// Тестовое местоположение
+function loadTestLocation() {
+    setCurrentPoint(55.7558, 37.6173);
+    document.getElementById("ph").value = "7.0";
+    document.getElementById("moisture").value = "50";
+    document.getElementById("tags").value = "#чернозём, #тест";
+    document.getElementById("notes").value = "Тестовая точка для демонстрации";
+}
+
 // Отображение точки
 function addPointToMap(point) {
-    L.marker([point.lat, point.lng])
-        .addTo(map)
-        .bindPopup("Точка пользователя");
+    const colorMap = {
+        green: "#22c55e",
+        yellow: "#eab308",
+        red: "#ef4444",
+        blue: "#3b82f6"
+    };
+
+    const iconMap = {
+        sample: "🧪",
+        analysis: "📊",
+        interest: "⭐",
+        control: "🎯"
+    };
+
+    const color = colorMap[point.color] || "#22c55e";
+    const icon = iconMap[point.icon] || "📍";
+
+    const marker = L.marker([point.lat, point.lng]).addTo(map);
+    marker.bindPopup(`
+        <div style="min-width: 200px;">
+            <strong>${icon} Точка</strong><br>
+            pH: ${point.ph || "-"}<br>
+            Влажность: ${point.moisture || "-"}%<br>
+            ${point.tags ? `Теги: ${point.tags.join(", ")}<br>` : ""}
+            ${point.notes ? `Заметки: ${point.notes}` : ""}
+        </div>
+    `);
 }
 
 // Auto-load soil zones immediately

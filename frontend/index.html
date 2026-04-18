@@ -28,6 +28,10 @@
             </div>
             <div class="panel-body">
                 <div class="input-group">
+                    <label>Фото почвы (опционально)</label>
+                    <input type="file" id="image" accept="image/*">
+                </div>
+                <div class="input-group">
                     <label>Широта (lat)</label>
                     <input type="number" id="lat" step="0.000001" value="55.7558" placeholder="55.7558">
                 </div>
@@ -44,12 +48,35 @@
                     <input type="number" id="moisture" step="1" min="0" max="100" placeholder="50">
                 </div>
                 <div class="input-group">
+                    <label>Цвет метки</label>
+                    <select id="color">
+                        <option value="green">🟢 Зелёный (норма)</option>
+                        <option value="yellow">🟡 Жёлтый (внимание)</option>
+                        <option value="red">🔴 Красный (аномалия)</option>
+                        <option value="blue">🔵 Синий (интерес)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Иконка</label>
+                    <select id="icon">
+                        <option value="sample">🧪 Образец взят</option>
+                        <option value="analysis">📊 Требует анализа</option>
+                        <option value="interest">⭐ Особый интерес</option>
+                        <option value="control">🎯 Контрольная точка</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Теги (через запятую)</label>
+                    <input type="text" id="tags" placeholder="#чернозём, #суглинок">
+                </div>
+                <div class="input-group">
                     <label>Заметки</label>
                     <textarea id="notes" rows="3" placeholder="Описание точки..."></textarea>
                 </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="goToLocation()">📍 Найти участок</button>
                     <button class="btn btn-secondary" onclick="getMyLocation()">🧭 Моё местоположение</button>
+                    <button class="btn btn-secondary" onclick="loadTestLocation()">🧪 Тестовое местоположение</button>
                     <button class="btn btn-success" onclick="addPoint()">💾 Сохранить точку</button>
                 </div>
             </div>
