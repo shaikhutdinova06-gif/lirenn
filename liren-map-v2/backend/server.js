@@ -121,17 +121,21 @@ app.delete("/points/:id", async (req, res) => {
 --------------------------*/
 app.get("/soil-zones", async (req, res) => {
   try {
+    // Query the actual SRID of the geometry column
     const r = await pool.query(`
       SELECT id, zone_type, color,
-             ST_AsGeoJSON(ST_Transform(geom, 4326)) as geom
+             ST_SRID(geom) as srid,
+             ST_AsGeoJSON(geom) as geom
       FROM soil_zones
+      LIMIT 1
     `);
     const features = r.rows.map(row => ({
       type: "Feature",
       properties: {
         id: row.id,
         zone_type: row.zone_type,
-        color: row.color
+        color: row.color,
+        srid: row.srid
       },
       geometry: JSON.parse(row.geom)
     }));
@@ -232,6 +236,68 @@ app.get("/debug/db", async (req, res) => {
     console.error('Debug endpoint error:', error);
     res.status(500).json({ 
       error: error.message || "Unknown error",
+      stack: error.stack 
+    });
+  }
+});
+
+// Debug endpoint to test SRID transformations for soil zones
+app.get("/debug/test-srid", async (req, res) => {
+  try {
+    // Test different source SRIDs to find which produces valid WGS84 coordinates
+    const testQuery = `
+      WITH test_transforms AS (
+        SELECT 
+          id,
+          ST_X(ST_Centroid(geom)) as orig_x,
+          ST_Y(ST_Centroid(geom)) as orig_y,
+          -- Test EPSG:32637 (WGS 84 / UTM zone 37N)
+          ST_X(ST_Transform(ST_SetSRID(ST_Centroid(geom), 32637), 4326)) as lon_32637,
+          ST_Y(ST_Transform(ST_SetSRID(ST_Centroid(geom), 32637), 4326)) as lat_32637,
+          -- Test EPSG:32638 (WGS 84 / UTM zone 38N)
+          ST_X(ST_Transform(ST_SetSRID(ST_Centroid(geom), 32638), 4326)) as lon_32638,
+          ST_Y(ST_Transform(ST_SetSRID(ST_Centroid(geom), 32638), 4326)) as lat_32638,
+          -- Test EPSG:28403 (Pulkovo 1942 / Gauss-Kruger zone 3)
+          ST_X(ST_Transform(ST_SetSRID(ST_Centroid(geom), 28403), 4326)) as lon_28403,
+          ST_Y(ST_Transform(ST_SetSRID(ST_Centroid(geom), 28403), 4326)) as lat_28403,
+          -- Test EPSG:28404 (Pulkovo 1942 / Gauss-Kruger zone 4)
+          ST_X(ST_Transform(ST_SetSRID(ST_Centroid(geom), 28404), 4326)) as lon_28404,
+          ST_Y(ST_Transform(ST_SetSRID(ST_Centroid(geom), 28404), 4326)) as lat_28404
+        FROM soil_zones
+        LIMIT 10
+      )
+      SELECT 
+        id,
+        orig_x, orig_y,
+        lon_32637, lat_32637,
+        lon_32638, lat_32638,
+        lon_28403, lat_28403,
+        lon_28404, lat_28404,
+        -- Check which are in valid WGS84 range
+        CASE WHEN lon_32637 BETWEEN -180 AND 180 AND lat_32637 BETWEEN -90 AND 90 THEN 'VALID' ELSE 'INVALID' END as status_32637,
+        CASE WHEN lon_32638 BETWEEN -180 AND 180 AND lat_32638 BETWEEN -90 AND 90 THEN 'VALID' ELSE 'INVALID' END as status_32638,
+        CASE WHEN lon_28403 BETWEEN -180 AND 180 AND lat_28403 BETWEEN -90 AND 90 THEN 'VALID' ELSE 'INVALID' END as status_28403,
+        CASE WHEN lon_28404 BETWEEN -180 AND 180 AND lat_28404 BETWEEN -90 AND 90 THEN 'VALID' ELSE 'INVALID' END as status_28404
+      FROM test_transforms
+    `;
+    
+    const result = await pool.query(testQuery);
+    
+    res.json({
+      success: true,
+      tests: result.rows,
+      summary: {
+        total_tested: result.rows.length,
+        valid_32637: result.rows.filter(r => r.status_32637 === 'VALID').length,
+        valid_32638: result.rows.filter(r => r.status_32638 === 'VALID').length,
+        valid_28403: result.rows.filter(r => r.status_28403 === 'VALID').length,
+        valid_28404: result.rows.filter(r => r.status_28404 === 'VALID').length,
+      }
+    });
+  } catch (error) {
+    console.error('SRID test error:', error);
+    res.status(500).json({ 
+      error: error.message,
       stack: error.stack 
     });
   }
