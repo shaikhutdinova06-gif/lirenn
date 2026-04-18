@@ -144,33 +144,44 @@ body::before {
 
 .step-content {
     position: relative;
-    min-height: 400px;
-    overflow: hidden;
+    min-height: 500px;
+    overflow: visible;
 }
 
 .step-panel {
-    display: none;
     position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     opacity: 0;
-    transform: translateX(50px);
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateX(100%);
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    padding: 40px;
 }
 
 .step-panel.active {
-    display: block;
     opacity: 1;
     transform: translateX(0);
+    pointer-events: auto;
+    z-index: 10;
 }
 
-.step-panel.slide-out-left {
-    opacity: 0;
-    transform: translateX(-50px);
+.step-panel.previous {
+    opacity: 0.3;
+    transform: translateX(-20%) scale(0.95);
+    pointer-events: none;
+    z-index: 5;
 }
 
-.step-panel.slide-out-right {
-    opacity: 0;
-    transform: translateX(50px);
+.step-panel.completed {
+    opacity: 0.5;
+    transform: translateX(-40%) scale(0.9);
+    pointer-events: none;
+    z-index: 3;
 }
 
 .hero-icon {
