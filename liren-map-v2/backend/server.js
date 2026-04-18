@@ -117,6 +117,19 @@ app.delete("/points/:id", async (req, res) => {
 });
 
 /* -------------------------
+   🌍 CHECK SOIL ZONES COUNT
+--------------------------*/
+app.get("/soil-zones-count", async (req, res) => {
+  try {
+    const r = await pool.query("SELECT COUNT(*) as count FROM soil_zones");
+    res.json({ count: r.rows[0].count });
+  } catch (error) {
+    console.error("Error counting soil zones:", error);
+    res.status(500).json({ error: "Failed to count soil zones" });
+  }
+});
+
+/* -------------------------
    🌍 GET SOIL ZONES (GeoJSON)
 --------------------------*/
 app.get("/soil-zones", async (req, res) => {
