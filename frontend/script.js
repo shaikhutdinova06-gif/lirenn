@@ -59,28 +59,45 @@ function nextStep(step) {
             return;
         }
         
+        // Add slide-out animation to current panel
+        const currentPanel = document.querySelector(`.step-panel[data-step="${currentStep}"]`);
+        currentPanel.classList.add('slide-out-left');
+        
         // Mark current step as completed
         document.querySelector(`.progress-step[data-step="${currentStep}"]`).classList.add('completed');
+        
+        setTimeout(() => {
+            currentStep = step;
+            updateStepUI();
+            processStep(step);
+        }, 300);
+    } else {
+        currentStep = step;
+        updateStepUI();
+        processStep(step);
     }
-    
-    currentStep = step;
-    updateStepUI();
-    processStep(step);
 }
 
 function prevStep(step) {
-    currentStep = step;
-    updateStepUI();
+    // Add slide-out animation to current panel
+    const currentPanel = document.querySelector(`.step-panel[data-step="${currentStep}"]`);
+    currentPanel.classList.add('slide-out-right');
+    
+    setTimeout(() => {
+        currentStep = step;
+        updateStepUI();
+    }, 300);
 }
 
 function updateStepUI() {
     // Hide all panels
     document.querySelectorAll('.step-panel').forEach(panel => {
-        panel.classList.remove('active');
+        panel.classList.remove('active', 'slide-out-left', 'slide-out-right');
     });
     
     // Show current panel
-    document.querySelector(`.step-panel[data-step="${currentStep}"]`).classList.add('active');
+    const newPanel = document.querySelector(`.step-panel[data-step="${currentStep}"]`);
+    newPanel.classList.add('active');
     
     // Update progress steps
     document.querySelectorAll('.progress-step').forEach(stepEl => {
