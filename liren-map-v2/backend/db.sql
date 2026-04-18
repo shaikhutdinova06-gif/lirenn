@@ -38,14 +38,8 @@ CREATE INDEX IF NOT EXISTS user_points_geom_idx ON user_points USING GIST (geom)
 CREATE INDEX IF NOT EXISTS user_points_user_idx ON user_points (user_id);
 CREATE INDEX IF NOT EXISTS user_points_created_idx ON user_points (created_at DESC);
 
--- Insert sample soil zones (for testing - will be replaced by real Russian data)
-INSERT INTO soil_zones (soil_type, zone_type, color, description, geom) VALUES
-    ('chernozem', 'chernozem', '#8B4513', 'Чернозём - плодородная почва с высоким содержанием гумуса', 
-     ST_Multi(ST_GeomFromGeoJSON('{"type":"Polygon","coordinates":[[[37.5,55.5],[38.5,55.5],[38.5,56.0],[37.5,56.0],[37.5,55.5]]]}'))),
-    ('podzol', 'podzol', '#D2B48C', 'Подзолистая почва - бедная гумусом, кислая', 
-     ST_Multi(ST_GeomFromGeoJSON('{"type":"Polygon","coordinates":[[[35.0,55.0],[36.0,55.0],[36.0,55.5],[35.0,55.5],[35.0,55.0]]]}'))),
-    ('gray_forest', 'gray_forest', '#808080', 'Серая лесная почва - умеренно плодородная', 
-     ST_Multi(ST_GeomFromGeoJSON('{"type":"Polygon","coordinates":[[[36.0,54.5],[37.0,54.5],[37.0,55.0],[36.0,55.0],[36.0,54.5]]]}')));
+-- NOTE: Sample soil zones removed. Load real Russian soil data using setup-russia-soils.sh
+-- See SOIL_DATA_SETUP.md for instructions
 
 -- Create function to get soil zone by point
 CREATE OR REPLACE FUNCTION get_soil_zone_at_point(lat FLOAT, lng FLOAT)
