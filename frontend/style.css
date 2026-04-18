@@ -235,17 +235,18 @@ button:active {
 }
 
 .btn-secondary {
-    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
 }
 
 .btn-secondary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(107, 114, 128, 0.5);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
 }
 
 .btn-secondary.active {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.4);
 }
 
 #point-form {
