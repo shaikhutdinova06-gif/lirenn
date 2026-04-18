@@ -3,6 +3,7 @@ services:
     name: liren-map-backend
     env: node
     plan: free
+    rootDir: liren-map-v2/backend
     buildCommand: npm install
     startCommand: npm start
     envVars:
