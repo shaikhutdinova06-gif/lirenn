@@ -142,18 +142,7 @@ app.get("/soil-zones", async (req, res) => {
       FROM soil_zones
       LIMIT 5
     `);
-    const features = r.rows.map(row => ({
-      id: row.id,
-      zone_type: row.zone_type,
-      color: row.color,
-      x: row.x,
-      y: row.y,
-      srid: row.srid
-    }));
-    res.json({
-      type: "FeatureCollection",
-      features: features
-    });
+    res.json(r.rows);
   } catch (error) {
     console.error("Error fetching soil zones:", error);
     res.status(500).json({ error: "Failed to fetch soil zones" });
