@@ -10,13 +10,8 @@ services:
         sync: false
       - key: PORT
         value: 3000
-    disk:
-      name: uploads
-      mountPath: /app/uploads
-      sizeGB: 1
 
 databases:
   - name: liren-map-db
     plan: free
     databaseName: liren
-    user: postgres
