@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -19,16 +20,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(main_router, prefix="/api")
-app.include_router(calc_router, prefix="/api")
+# app.include_router(main_router, prefix="/api")
+# app.include_router(calc_router, prefix="/api")
 app.include_router(health_router, prefix="/api")
-app.include_router(points_router, prefix="/api")
-app.include_router(horizons_router, prefix="/api")
-app.include_router(dem_router, prefix="/api/dem")
+# app.include_router(points_router, prefix="/api")
+# app.include_router(horizons_router, prefix="/api")
+# app.include_router(dem_router, prefix="/api/dem")
 
 @app.get("/")
 def root():
     with open("frontend/index.html", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+static_path = os.path.join(os.path.dirname(__file__), "frontend")
+if os.path.exists(static_path):
+    app.mount("/static", StaticFiles(directory=static_path), name="static")
