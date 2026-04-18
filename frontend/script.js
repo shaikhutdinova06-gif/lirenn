@@ -63,11 +63,11 @@ function showSection(sectionName) {
     if (sectionName === 'map') {
         setTimeout(() => {
             if (!map) {
-                initializeMap();
+                initMap();
             } else {
                 map.invalidateSize();
             }
-            loadAllPoints();
+            loadMyPoints();
         }, 100);
     }
     
