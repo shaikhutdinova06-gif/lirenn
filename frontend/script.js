@@ -1,4 +1,4 @@
-// LIRENN MAP v2 - Interactive Map with Soil Zoning & User Points
+// LIRENN MAP v2 - Interactive Map with Russian Soil Zoning & User Points
 // Replaces the current LIRENN map
 
 // API URL - use relative path for same-origin requests
@@ -7,136 +7,189 @@ const API_URL = window.location.hostname === 'localhost'
     : 'https://liren-map-backend.onrender.com';
 
 // Initialize map
-const map = L.map("map").setView([55.75, 37.6], 6);
+const map = L.map("map").setView([60, 90], 3);
 
 // Base map
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '© OpenStreetMap contributors'
+    attribution: ' OpenStreetMap contributors'
 }).addTo(map);
 
-// Soil zones layer
+// Soil Zones Vector Tiles Layer
 let soilZonesLayer = null;
-let soilZonesVisible = true;
 
-// User points markers
-let pointsMarkers = [];
-let selectedLocation = null;
+function loadSoilZonesVectorTiles() {
+    if (soilZonesLayer) {
+        map.removeLayer(soilZonesLayer);
+    }
+    
+    soilZonesLayer = L.vectorGrid.protobuf(
+        `${API_URL}/tiles/{z}/{x}/{y}`,
+        {
+            vectorTileLayerStyles: {
+                soil_zones: function(properties, zoom) {
+                    return {
+                        fillColor: properties.color || '#10b981',
+                        fillOpacity: 0.4,
+                        weight: 1,
+                        color: '#333',
+                        opacity: 0.6
+                    };
+                }
+            },
+            interactive: true,
+            getFeatureId: function(f) {
+                return f.properties.id;
+            }
+        }
+    ).addTo(map);
+    
+    // Add popup on click
+    soilZonesLayer.on('click', function(e) {
+        const props = e.layer.properties;
+        const popupContent = `
+            <div class="popup-content">
+                <h3>${props.soil_type || props.zone_type || 'Почвенная зона'}</h3>
+                ${props.description ? `<p>${props.description}</p>` : ''}
+                ${props.soil_name ? `<p><small>Тип: ${props.soil_name}</small></p>` : ''}
+            </div>
+        `;
+        L.popup()
+            .setLatLng(e.latlng)
+            .setContent(popupContent)
+            .openOn(map);
+    });
+    
+    console.log('Soil zones vector tiles loaded');
+}
 
-// Load soil zones
-async function loadSoilZones() {
+// Fallback: Load soil zones as GeoJSON if vector tiles fail
+async function loadSoilZonesGeoJSON() {
     try {
         const response = await fetch(`${API_URL}/soil-zones`);
-        const data = await response.json();
+        const zones = await response.json();
         
         if (soilZonesLayer) {
             map.removeLayer(soilZonesLayer);
         }
         
-        soilZonesLayer = L.geoJSON(data, {
+        soilZonesLayer = L.geoJSON(zones, {
             style: function(feature) {
                 return {
+                    color: feature.properties.color || '#10b981',
                     fillColor: feature.properties.color || '#10b981',
-                    fillOpacity: 0.4,
-                    weight: 2,
-                    color: '#333',
-                    dashArray: '5, 5'
+                    fillOpacity: 0.3,
+                    weight: 2
                 };
             },
             onEachFeature: function(feature, layer) {
                 layer.bindPopup(`
                     <div class="popup-content">
-                        <h3>${feature.properties.zone_type}</h3>
-                        <p>${feature.properties.description || 'Нет описания'}</p>
+                        <h3>${feature.properties.soil_type || feature.properties.zone_type || 'Почвенная зона'}</h3>
+                        ${feature.properties.description ? `<p>${feature.properties.description}</p>` : ''}
                     </div>
                 `);
             }
         }).addTo(map);
         
-        console.log('Soil zones loaded');
+        console.log('Soil zones GeoJSON loaded:', zones.length);
     } catch (error) {
-        console.error('Error loading soil zones:', error);
+        console.error('Failed to load soil zones:', error);
     }
 }
 
-// Load user points
-async function loadPoints() {
+// User points layer
+let userPointsLayer = null;
+
+async function loadUserPoints() {
     try {
         const response = await fetch(`${API_URL}/points`);
         const points = await response.json();
         
-        // Clear existing markers
-        pointsMarkers.forEach(marker => map.removeLayer(marker));
-        pointsMarkers = [];
+        if (userPointsLayer) {
+            map.removeLayer(userPointsLayer);
+        }
         
-        // Add markers for each point
-        points.forEach(point => {
-            const marker = L.marker([point.lat, point.lng]).addTo(map);
-            
-            const popupContent = `
-                <div class="popup-content">
-                    <h3>${point.title}</h3>
-                    <p>${point.description || 'Нет описания'}</p>
-                    ${point.photo_url ? `<img src="${API_URL}${point.photo_url}" alt="Photo" style="max-width: 200px; border-radius: 8px;"/>` : ''}
-                    <small>Создано: ${new Date(point.created_at).toLocaleString('ru')}</small>
-                </div>
-            `;
-            
-            marker.bindPopup(popupContent);
-            pointsMarkers.push(marker);
-        });
+        userPointsLayer = L.geoJSON(points, {
+            pointToLayer: function(feature, latlng) {
+                return L.marker(latlng);
+            },
+            onEachFeature: function(feature, layer) {
+                const popupContent = `
+                    <div class="popup-content">
+                        <h3>${feature.properties.title}</h3>
+                        ${feature.properties.description ? `<p>${feature.properties.description}</p>` : ''}
+                        ${feature.properties.photo_url ? `<img src="${API_URL}${feature.properties.photo_url}" alt="Photo" />` : ''}
+                        <small>${new Date(feature.properties.created_at).toLocaleString('ru')}</small>
+                    </div>
+                `;
+                layer.bindPopup(popupContent);
+            }
+        }).addTo(map);
         
-        console.log(`Loaded ${points.length} points`);
+        console.log('User points loaded:', points.length);
     } catch (error) {
-        console.error('Error loading points:', error);
+        console.error('Failed to load user points:', error);
     }
 }
 
-// Add point on map click
-map.on('click', function(e) {
-    selectedLocation = e.latlng;
-    showPointForm();
+// Toggle soil zones visibility
+let soilZonesVisible = false;
+
+document.getElementById('toggleSoilZones').addEventListener('click', () => {
+    if (!soilZonesVisible) {
+        // Try vector tiles first, fallback to GeoJSON
+        try {
+            loadSoilZonesVectorTiles();
+        } catch (e) {
+            console.log('Vector tiles failed, using GeoJSON fallback');
+            loadSoilZonesGeoJSON();
+        }
+        soilZonesVisible = true;
+        document.getElementById('toggleSoilZones').classList.add('active');
+    } else {
+        if (soilZonesLayer) {
+            map.removeLayer(soilZonesLayer);
+        }
+        soilZonesVisible = false;
+        document.getElementById('toggleSoilZones').classList.remove('active');
+    }
 });
 
-// Show point form
-function showPointForm() {
+// Refresh points button
+document.getElementById('refreshPoints').addEventListener('click', () => {
+    loadUserPoints();
+});
+
+// Add point form handling
+document.getElementById('addPointBtn').addEventListener('click', () => {
     document.getElementById('point-form').classList.remove('hidden');
-    document.getElementById('pointTitle').focus();
-}
+});
 
-// Hide point form
-function hidePointForm() {
+document.getElementById('cancelPoint').addEventListener('click', () => {
     document.getElementById('point-form').classList.add('hidden');
-    document.getElementById('pointTitle').value = '';
-    document.getElementById('pointDescription').value = '';
-    document.getElementById('pointPhoto').value = '';
-    selectedLocation = null;
-}
+});
 
-// Save point
-async function savePoint() {
-    const title = document.getElementById('pointTitle').value.trim();
-    const description = document.getElementById('pointDescription').value.trim();
-    const photoFile = document.getElementById('pointPhoto').files[0];
+document.getElementById('savePoint').addEventListener('click', async () => {
+    const title = document.getElementById('pointTitle').value;
+    const description = document.getElementById('pointDescription').value;
+    const photoInput = document.getElementById('pointPhoto');
     
     if (!title) {
-        alert('Пожалуйста, введите название точки');
+        alert('Введите название точки');
         return;
     }
     
-    if (!selectedLocation) {
-        alert('Пожалуйста, выберите местоположение на карте');
-        return;
-    }
+    // Get current map center
+    const center = map.getCenter();
     
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
-    formData.append('lat', selectedLocation.lat);
-    formData.append('lng', selectedLocation.lng);
-    formData.append('user_id', 'anon');
+    formData.append('lat', center.lat);
+    formData.append('lng', center.lng);
     
-    if (photoFile) {
-        formData.append('photo', photoFile);
+    if (photoInput.files[0]) {
+        formData.append('photo', photoInput.files[0]);
     }
     
     try {
@@ -146,64 +199,23 @@ async function savePoint() {
         });
         
         if (response.ok) {
-            alert('Точка успешно сохранена!');
-            hidePointForm();
-            loadPoints(); // Reload points
+            alert('Точка сохранена');
+            document.getElementById('point-form').classList.add('hidden');
+            document.getElementById('pointTitle').value = '';
+            document.getElementById('pointDescription').value = '';
+            document.getElementById('pointPhoto').value = '';
+            loadUserPoints();
         } else {
-            alert('Ошибка при сохранении точки');
+            alert('Ошибка сохранения точки');
         }
     } catch (error) {
-        console.error('Error saving point:', error);
-        alert('Ошибка при сохранении точки');
+        console.error('Failed to save point:', error);
+        alert('Ошибка сохранения точки');
     }
-}
+});
 
-// Toggle soil zones
-function toggleSoilZones() {
-    soilZonesVisible = !soilZonesVisible;
-    
-    if (soilZonesLayer) {
-        if (soilZonesVisible) {
-            map.addLayer(soilZonesLayer);
-            document.getElementById('toggleSoilZones').classList.add('active');
-        } else {
-            map.removeLayer(soilZonesLayer);
-            document.getElementById('toggleSoilZones').classList.remove('active');
-        }
-    }
-}
-
-// Event listeners
-if (document.getElementById('addPointBtn')) {
-    document.getElementById('addPointBtn').addEventListener('click', () => {
-        alert('Кликните на карту, чтобы выбрать местоположение для новой точки');
-    });
-}
-
-if (document.getElementById('toggleSoilZones')) {
-    document.getElementById('toggleSoilZones').addEventListener('click', toggleSoilZones);
-}
-
-if (document.getElementById('refreshPoints')) {
-    document.getElementById('refreshPoints').addEventListener('click', loadPoints);
-}
-
-if (document.getElementById('savePoint')) {
-    document.getElementById('savePoint').addEventListener('click', savePoint);
-}
-
-if (document.getElementById('cancelPoint')) {
-    document.getElementById('cancelPoint').addEventListener('click', hidePointForm);
-}
-
-// Initialize map functions
-loadSoilZones();
-loadPoints();
-
-// Set initial button state
-if (document.getElementById('toggleSoilZones')) {
-    document.getElementById('toggleSoilZones').classList.add('active');
-}
+// Load initial data
+loadUserPoints();
 
 // ============================================================
 // ПОЧВЕННЫЙ ДИАГНОСТИЧЕСКИЙ КАЛЬКУЛЯТОР (по визуальным признакам)

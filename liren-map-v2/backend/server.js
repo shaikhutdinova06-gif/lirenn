@@ -35,7 +35,7 @@ app.get("/tiles/:z/:x/:y", async (req, res) => {
     const sql = `
       SELECT ST_AsMVT(q, 'soil_zones', 4096, 'geom')
       FROM (
-        SELECT id, zone_type, color,
+        SELECT id, soil_type, zone_type, color, description,
         ST_AsMVTGeom(
           geom,
           ST_TileEnvelope($1::int,$2::int,$3::int),
@@ -47,15 +47,16 @@ app.get("/tiles/:z/:x/:y", async (req, res) => {
     `;
     const r = await pool.query(sql, [z, x, y]);
     
-    if (r.rows[0] && r.rows[0].st_asmvtq) {
-      res.setHeader("Content-Type", "application/x-protobuf");
-      res.send(r.rows[0].st_asmvtq);
-    } else {
+    if (r.rows.length === 0 || !r.rows[0].st_asmvtq) {
       res.status(204).send();
+      return;
     }
+    
+    res.setHeader("Content-Type", "application/x-protobuf");
+    res.send(r.rows[0].st_asmvtq);
   } catch (error) {
-    console.error("Error generating tile:", error);
-    res.status(500).json({ error: "Failed to generate tile" });
+    console.error("Tile error:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
