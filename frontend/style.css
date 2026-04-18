@@ -171,14 +171,14 @@ body::before {
 }
 
 .step-panel.previous {
-    opacity: 0.3;
+    opacity: 1;
     transform: translateX(-20%) scale(0.95);
     pointer-events: none;
     z-index: 5;
 }
 
 .step-panel.completed {
-    opacity: 0.5;
+    opacity: 1;
     transform: translateX(-40%) scale(0.9);
     pointer-events: none;
     z-index: 3;
