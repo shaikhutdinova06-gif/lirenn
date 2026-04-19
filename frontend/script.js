@@ -56,29 +56,6 @@ async function initUser() {
 }
 
 // =========================
-// ROUTING LOGIC
-// =========================
-async function routeUser() {
-    const userId = localStorage.getItem("user_id");
-    try {
-        const res = await fetch(`/api/user-cabinet?user_id=${userId}`);
-        const data = await res.json();
-        const points = data.points || [];
-        
-        if (!points || points.length === 0) {
-            // Новый пользователь → анализ
-            showSection("analysis");
-        } else {
-            // Есть данные → личный кабинет
-            showSection("cabinet");
-        }
-    } catch (e) {
-        console.error("Ошибка загрузки пользователя", e);
-        showSection("analysis");
-    }
-}
-
-// =========================
 // SECTION NAVIGATION
 // =========================
 function showSection(section) {
@@ -99,7 +76,7 @@ function showSection(section) {
                 map.invalidateSize();
             }
             loadMyPoints();
-        }, 300);
+        }, 100);
     }
     
     if (section === "cabinet") {
@@ -443,16 +420,11 @@ async function saveFinalPoint() {
             summaryDiv.innerHTML += `
                 <div style="padding: 20px; background: rgba(76, 175, 80, 0.2); border-radius: 8px; margin-top: 15px;">
                     <h4>✅ Точка успешно сохранена!</h4>
-                    <p>Вы можете добавить ещё точек или перейти в личный кабинет</p>
+                    <p>Вы можете добавить ещё точек или перейти на карту</p>
                     <button class="btn btn-primary" onclick="resetForm()">➕ Добавить ещё точку</button>
-                    <button class="btn btn-secondary" onclick="showSection('cabinet')">👤 Мой кабинет</button>
+                    <button class="btn btn-secondary" onclick="showSection('map')">🌍 Общая карта</button>
                 </div>
             `;
-            
-            // Автоматически переходим в кабинет
-            setTimeout(() => {
-                showSection('cabinet');
-            }, 2000);
         } else {
             summaryDiv.innerHTML += `
                 <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
@@ -521,7 +493,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     currentStep = 1;
     updateStepUI();
     initializeTestLocation();
-    await routeUser();
+    showSection('map'); // Всегда карта по умолчанию
 });
 
 // =========================
