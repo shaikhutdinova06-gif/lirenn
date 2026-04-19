@@ -28,7 +28,7 @@ let map = null;
 function initMap() {
     if (map) return;
     
-    map = L.map("map", {
+    map = L.map("map-container", {
         maxBounds: [[40, 20], [75, 180]],
         maxBoundsViscosity: 1.0,
         minZoom: 3,
