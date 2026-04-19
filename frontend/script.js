@@ -371,10 +371,8 @@ async function saveFinalPoint() {
     const summaryDiv = document.getElementById('final-summary');
     
     // Build final point data
+    const userId = localStorage.getItem('user_id');
     const point = {
-        id: generateUUID(),
-        timestamp: new Date().toISOString(),
-        user_id: await getUserId(),
         lat: stepData.lat,
         lng: stepData.lng,
         ph: stepData.ph,
@@ -384,26 +382,7 @@ async function saveFinalPoint() {
         color: stepData.color,
         icon: stepData.icon,
         image: stepData.image,
-        result: {
-            image_check: stepData.image ? 'has_image' : 'no_image',
-            has_user_photo: !!stepData.image,
-            chemistry: {ph: stepData.ph, moisture: stepData.moisture},
-            geo_analysis: stepData.lat && stepData.lng ? 'Location provided' : 'No location',
-            annotations: {
-                text_notes: stepData.notes,
-                symbol: stepData.icon,
-                color: stepData.color,
-                tags: stepData.tags,
-                has_photo: !!stepData.image
-            },
-            state: {
-                has_image: !!stepData.image,
-                has_geo: !!stepData.lat && !!stepData.lng,
-                has_chem: !!stepData.ph && !!stepData.moisture,
-                has_annotations: !!stepData.notes || stepData.tags.length > 0,
-                completed: true
-            }
-        }
+        user_id: userId
     };
     
     summaryDiv.innerHTML = `
@@ -428,7 +407,9 @@ async function saveFinalPoint() {
             body: JSON.stringify(point)
         });
         
-        if (response.ok) {
+        const result = await response.json();
+        
+        if (result.status === 'ok') {
             // Mark user as having completed analysis
             localStorage.setItem('hasCompletedAnalysis', 'true');
             
@@ -444,7 +425,7 @@ async function saveFinalPoint() {
             summaryDiv.innerHTML += `
                 <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
                     <h4>❌ Ошибка при сохранении</h4>
-                    <p>Попробуйте снова</p>
+                    <p>${result.error || 'Попробуйте снова'}</p>
                 </div>
             `;
         }
@@ -503,6 +484,11 @@ function resetForm() {
 // INITIALIZATION
 // =========================
 document.addEventListener('DOMContentLoaded', function() {
+    // Generate user_id if not exists
+    if (!localStorage.getItem('user_id')) {
+        localStorage.setItem('user_id', crypto.randomUUID());
+    }
+    
     initMap();
     currentStep = 1;
     updateStepUI();
@@ -587,21 +573,12 @@ function addPointToMap(point) {
         fillOpacity: 0.8
     }).addTo(map);
     
-    const popupContent = `
-        <div>
-            <strong>pH:</strong> ${point.ph || 'N/A'}<br>
-            <strong>Влажность:</strong> ${point.moisture || 'N/A'}%<br>
-            ${point.tags ? '<strong>Теги:</strong> ' + point.tags.join(', ') : ''}<br>
-            ${point.notes ? '<strong>Заметки:</strong> ' + point.notes : ''}
-        </div>
-    `;
-    
-    marker.bindPopup(popupContent);
+    marker.bindPopup(createPopup(point));
 }
 
 async function loadMyPoints() {
     try {
-        const res = await fetch('/api/my-points');
+        const res = await fetch('/api/points');
         const points = await res.json();
         
         points.forEach(point => {
@@ -612,19 +589,38 @@ async function loadMyPoints() {
     }
 }
 
+function createPopup(p) {
+    return `
+        <div style="max-width:250px">
+            ${p.image ? `<img src="${p.image}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
+            <b>Описание:</b> ${p.report ? p.report.slice(0, 150) + "..." : "нет"}
+            <br><br>
+            <b>pH:</b> ${p.ph || "—"}
+            <br>
+            <b>Влажность:</b> ${p.moisture || "—"}
+            <br>
+            ${p.notes ? `<i>${p.notes}</i>` : ""}
+        </div>
+    `;
+}
+
 async function loadUserCabinet() {
     try {
-        const res = await fetch('/api/user-cabinet');
+        const userId = localStorage.getItem('user_id');
+        const res = await fetch(`/api/user-cabinet?user_id=${userId}`);
         const data = await res.json();
         
         const cabinetDiv = document.getElementById('my-points-list');
         if (data.points && data.points.length > 0) {
             cabinetDiv.innerHTML = data.points.map(point => `
-                <div class="cabinet-point">
+                <div class="cabinet-point" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+                    ${point.image ? `<img src="${point.image}" style="width:100%; margin-bottom:10px;">` : ""}
                     <h4>Точка #${point.id.slice(0, 8)}</h4>
                     <p><strong>Координаты:</strong> ${point.lat}, ${point.lng}</p>
                     <p><strong>pH:</strong> ${point.ph || 'N/A'}</p>
                     <p><strong>Влажность:</strong> ${point.moisture || 'N/A'}%</p>
+                    <p>${point.report || ''}</p>
+                    ${point.notes ? `<p><strong>Заметки:</strong> ${point.notes}</p>` : ''}
                     ${point.tags ? `<p><strong>Теги:</strong> ${point.tags.join(', ')}</p>` : ''}
                 </div>
             `).join('');

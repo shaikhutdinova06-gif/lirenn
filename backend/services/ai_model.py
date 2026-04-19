@@ -4,6 +4,34 @@ import base64
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
+def call_deepseek(messages):
+    """
+    Общая функция для вызова DeepSeek с контекстом
+    """
+    if not DEEPSEEK_API_KEY:
+        return "AI API ключ не настроен"
+    
+    try:
+        url = "https://api.deepseek.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "deepseek-chat",
+            "messages": messages,
+            "temperature": 0.3
+        }
+        
+        response = httpx.post(url, headers=headers, json=payload, timeout=30.0)
+        if response.status_code != 200:
+            return f"Ошибка API: {response.text}"
+        
+        return response.json()["choices"][0]["message"]["content"]
+        
+    except Exception as e:
+        return f"Ошибка: {str(e)}"
+
 async def deepseek_classify(image):
     """
     Классификация изображения: почва или не почва
