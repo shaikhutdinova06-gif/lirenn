@@ -204,14 +204,6 @@ body::before {
     padding: 100px 40px 60px;
 }
 
-.section {
-    display: none;
-}
-
-.section.active {
-    display: block;
-}
-
 .hero-section {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 10px;

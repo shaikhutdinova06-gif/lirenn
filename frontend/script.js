@@ -45,37 +45,64 @@ function initMap() {
 }
 
 // =========================
+// USER INITIALIZATION
+// =========================
+async function initUser() {
+    let userId = localStorage.getItem("user_id");
+    if (!userId) {
+        userId = crypto.randomUUID();
+        localStorage.setItem("user_id", userId);
+    }
+}
+
+// =========================
+// ROUTING LOGIC
+// =========================
+async function routeUser() {
+    const userId = localStorage.getItem("user_id");
+    try {
+        const res = await fetch(`/api/user-cabinet?user_id=${userId}`);
+        const data = await res.json();
+        const points = data.points || [];
+        
+        if (!points || points.length === 0) {
+            // Новый пользователь → анализ
+            showSection("analysis");
+        } else {
+            // Есть данные → личный кабинет
+            showSection("cabinet");
+        }
+    } catch (e) {
+        console.error("Ошибка загрузки пользователя", e);
+        showSection("analysis");
+    }
+}
+
+// =========================
 // SECTION NAVIGATION
 // =========================
-function showSection(sectionName) {
+function showSection(section) {
     // Hide all sections
-    document.querySelectorAll('.section').forEach(section => {
-        section.classList.remove('active');
-    });
+    document.getElementById("analysis").style.display = "none";
+    document.getElementById("map").style.display = "none";
+    document.getElementById("cabinet").style.display = "none";
     
     // Show selected section
-    const targetSection = document.getElementById(`${sectionName}-section`);
-    if (targetSection) {
-        targetSection.classList.add('active');
-    }
+    document.getElementById(section).style.display = "block";
     
-    // If showing map, initialize it after section is visible
-    if (sectionName === 'map') {
+    if (section === "map") {
         setTimeout(() => {
             if (!map) {
                 initMap();
             }
-            // Invalidate size to ensure proper dimensions
             if (map) {
                 map.invalidateSize();
             }
-            // Load all user points
             loadMyPoints();
         }, 300);
     }
     
-    // If showing cabinet, load user points
-    if (sectionName === 'cabinet') {
+    if (section === "cabinet") {
         loadUserCabinet();
     }
 }
@@ -421,6 +448,11 @@ async function saveFinalPoint() {
                     <button class="btn btn-secondary" onclick="showSection('cabinet')">👤 Мой кабинет</button>
                 </div>
             `;
+            
+            // Автоматически переходим в кабинет
+            setTimeout(() => {
+                showSection('cabinet');
+            }, 2000);
         } else {
             summaryDiv.innerHTML += `
                 <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
@@ -477,31 +509,19 @@ function resetForm() {
     document.getElementById('step9-result').innerHTML = '';
     document.getElementById('final-summary').innerHTML = '';
     
-    showSection('input-analysis');
+    showSection('analysis');
 }
 
 // =========================
 // INITIALIZATION
 // =========================
-document.addEventListener('DOMContentLoaded', function() {
-    // Generate user_id if not exists
-    if (!localStorage.getItem('user_id')) {
-        localStorage.setItem('user_id', crypto.randomUUID());
-    }
-    
+document.addEventListener('DOMContentLoaded', async function() {
+    await initUser();
     initMap();
     currentStep = 1;
     updateStepUI();
     initializeTestLocation();
-    loadUserCabinet();
-    
-    // Check if user is new and show input analysis first
-    const hasCompletedAnalysis = localStorage.getItem('hasCompletedAnalysis');
-    if (!hasCompletedAnalysis) {
-        showSection('input-analysis');
-    } else {
-        showSection('map'); // Default to map for returning users
-    }
+    await routeUser();
 });
 
 // =========================
