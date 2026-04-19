@@ -5,9 +5,9 @@
 }
 
 body {
-    font-family: 'Montserrat', sans-serif;
-    background: linear-gradient(to bottom, #F5F5DC 0%, #E8E8E8 50%, #455A64 100%);
-    color: #424242;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(to bottom, #E8F5E9 0%, #C8E6C9 50%, #A5D6A7 100%);
+    color: #2E7D32;
     min-height: 100vh;
     line-height: 1.6;
     position: relative;
@@ -26,7 +26,7 @@ body::before {
 }
 
 .nav {
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(232, 245, 233, 0.95);
     backdrop-filter: blur(10px);
     padding: 15px 40px;
     display: flex;
@@ -35,12 +35,12 @@ body::before {
     position: sticky;
     top: 0;
     z-index: 1000;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(46, 125, 50, 0.1);
 }
 
 .nav-logo {
-    color: #5D4037;
-    font-family: 'Playfair Display', serif;
+    color: #2E7D32;
+    font-family: 'Poppins', sans-serif;
     font-weight: 700;
     font-size: 1.4em;
     display: flex;
@@ -59,15 +59,15 @@ body::before {
 }
 
 .nav-link {
-    color: #5D4037;
+    color: #2E7D32;
     text-decoration: none;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 500;
     transition: color 0.3s ease;
 }
 
 .nav-link:hover {
-    color: #4CAF50;
+    color: #1B5E20;
     text-decoration: underline;
 }
 
@@ -213,10 +213,10 @@ body::before {
 }
 
 .hero-section h2 {
-    font-family: 'Roboto', sans-serif;
-    font-weight: 700;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
     font-size: 36px;
-    color: #5D4037;
+    color: #2E7D32;
     margin-bottom: 20px;
 }
 
@@ -245,9 +245,9 @@ body::before {
 }
 
 .feature h3 {
-    font-family: 'Roboto', sans-serif;
-    font-weight: 700;
-    color: #5D4037;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    color: #2E7D32;
     font-size: 20px;
     margin-bottom: 10px;
 }
@@ -265,14 +265,14 @@ body::before {
 }
 
 .panel-header {
-    background: linear-gradient(135deg, #8D6E63 0%, #A1887F 100%);
+    background: linear-gradient(135deg, #66BB6A 0%, #81C784 100%);
     padding: 20px 30px;
 }
 
 .panel-header h2 {
-    color: #F5F5DC;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 700;
+    color: white;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
     font-size: 1.2em;
 }
 
@@ -287,8 +287,8 @@ body::before {
 .input-group label {
     display: block;
     margin-bottom: 8px;
-    font-weight: 600;
-    color: #5D4037;
+    font-weight: 500;
+    color: #2E7D32;
     font-size: 16px;
 }
 
@@ -297,12 +297,12 @@ body::before {
 .input-group select {
     width: 100%;
     padding: 12px 16px;
-    border: 2px solid #A1887F;
+    border: 2px solid #A5D6A7;
     border-radius: 8px;
     font-size: 16px;
-    font-family: 'Montserrat', sans-serif;
-    color: #424242;
-    background: #F5F5DC;
+    font-family: 'Poppins', sans-serif;
+    color: #2E7D32;
+    background: #E8F5E9;
     transition: border-color 0.3s ease;
 }
 
@@ -310,7 +310,7 @@ body::before {
 .input-group textarea:focus,
 .input-group select:focus {
     outline: none;
-    border-color: #4CAF50;
+    border-color: #66BB6A;
     background: white;
 }
 
@@ -330,10 +330,10 @@ body::before {
     border: none;
     border-radius: 8px;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Poppins', sans-serif;
 }
 
 .btn:hover {
@@ -342,18 +342,18 @@ body::before {
 }
 
 .btn-primary {
-    background: #4CAF50;
+    background: #66BB6A;
     color: white;
 }
 
 .btn-secondary {
     background: white;
-    color: #8D6E63;
-    border: 2px solid #8D6E63;
+    color: #66BB6A;
+    border: 2px solid #66BB6A;
 }
 
 .btn-success {
-    background: #8D6E63;
+    background: #43A047;
     color: white;
 }
 
@@ -387,14 +387,14 @@ body::before {
 }
 
 .cabinet-header {
-    background: linear-gradient(135deg, #8D6E63 0%, #A1887F 100%);
+    background: linear-gradient(135deg, #66BB6A 0%, #81C784 100%);
     padding: 20px 30px;
 }
 
 .cabinet-header h2 {
-    color: #F5F5DC;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 700;
+    color: white;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
     font-size: 1.2em;
 }
 
@@ -404,7 +404,7 @@ body::before {
 
 .cabinet-point {
     background: white;
-    border: 2px solid #A1887F;
+    border: 2px solid #A5D6A7;
     border-radius: 8px;
     padding: 20px;
     margin-bottom: 15px;
@@ -416,7 +416,7 @@ body::before {
 }
 
 .cabinet-point h4 {
-    color: #5D4037;
+    color: #2E7D32;
     margin-bottom: 10px;
     font-size: 18px;
 }
