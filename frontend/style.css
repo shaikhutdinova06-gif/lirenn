@@ -364,7 +364,7 @@ body::before {
     box-shadow: 0 2px 15px rgba(0,0,0,0.1);
 }
 
-#map {
+#map-container {
     height: 500px;
     width: 100%;
 }
