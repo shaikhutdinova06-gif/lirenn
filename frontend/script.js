@@ -505,7 +505,16 @@ async function saveFinalPoint() {
             body: JSON.stringify(point)
         });
         
-        const result = await response.json();
+        const text = await response.text();
+        console.log('Backend response text:', text);
+        
+        let result;
+        try {
+            result = JSON.parse(text);
+        } catch (e) {
+            result = { error: `Backend returned non-JSON: ${text.substring(0, 200)}` };
+        }
+        
         console.log('Backend response:', result);
         
         if (result.status === 'ok') {
