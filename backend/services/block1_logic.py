@@ -10,6 +10,7 @@ async def process_block1(data):
     Полная реализация Блока 1 с DeepSeek Vision + DeepSeek и структурированным отчётом
     """
     result = {}
+    validate_only = data.get("validate_only", False)
     lat = data.get("lat")
     lng = data.get("lng")
     ph = data.get("ph")
@@ -119,6 +120,13 @@ async def process_block1(data):
                 report["general"]["notes"] = vision_result
         
         result["vision_analysis"] = vision_result
+    
+    # Если только валидация - возвращаем результат после проверки фото
+    if validate_only:
+        return {
+            "status": "ok",
+            "message": "Фото прошло валидацию"
+        }
 
     # =========================
     # ШАГ 2 — DEEPSEEK СТРУКТУРИРОВАНИЕ
