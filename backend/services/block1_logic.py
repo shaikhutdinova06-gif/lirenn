@@ -237,6 +237,27 @@ async def process_block1(data):
         }
 
     # =========================
+    # ПРОВЕРКА ДОСТОВЕРНОСТИ ХИМИЧЕСКИХ ПОКАЗАТЕЛЕЙ (если нет фото)
+    # =========================
+    if not images or len(images) == 0:
+        if ph or nitrogen or phosphorus or potassium:
+            msg = [
+                {"role": "system", "content": "Ты почвовед. Оцени достоверность химических показателей без фото. Ответь ТОЛЬКО 'ДА' или 'НЕТ'."},
+                {"role": "user", "content": f"pH={ph}, азот={nitrogen}, фосфор={phosphorus}, калий={potassium}. Эти показатели реалистичны для почвы или похожи на случайные числа? Напиши ДА если реалистичны, НЕТ если похожи на ложные/случайные."}
+            ]
+            reliability_check = call_deepseek(msg)
+            
+            reliability_lower = str(reliability_check).lower().strip()
+            first_word = reliability_lower.split()[0] if reliability_lower else ""
+            
+            if first_word == "нет" or first_word == "no":
+                return {
+                    "error": "Химические показатели кажутся недостоверными. Без фото невозможно подтвердить их точность. Пожалуйста, загрузите фото или введите более реалистичные значения."
+                }
+            
+            result["reliability_check"] = reliability_check
+
+    # =========================
     # ШАГ 2 — DEEPSEEK СТРУКТУРИРОВАНИЕ
     # =========================
     if image:
