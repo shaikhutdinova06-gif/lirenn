@@ -87,10 +87,11 @@ function showSection(section) {
 // =========================
 // STEP NAVIGATION
 // =========================
-function nextStep(step) {
+async function nextStep(step) {
     if (step > currentStep) {
         // Validate current step before proceeding
-        if (!validateStep(currentStep)) {
+        const isValid = await validateStep(currentStep);
+        if (!isValid) {
             return;
         }
         
@@ -135,10 +136,29 @@ function updateLayers(oldStep, newStep) {
     }
 }
 
-function validateStep(step) {
+async function validateStep(step) {
     switch(step) {
         case 1:
-            // Photo is optional, can skip
+            // Validate photo if present
+            if (stepData.image) {
+                try {
+                    const response = await fetch('/api/block1', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            image: stepData.image,
+                            validate_only: true
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.error) {
+                        alert(result.error);
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('Validation error:', error);
+                }
+            }
             return true;
         case 3:
             // Chemistry is optional
