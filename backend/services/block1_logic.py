@@ -23,32 +23,35 @@ async def process_block1(data):
     """
     Полная реализация Блока 1 с DeepSeek Vision + DeepSeek и структурированным отчётом
     """
-    result = {}
-    validate_only = data.get("validate_only", False)
-    lat = data.get("lat")
-    lng = data.get("lng")
-    ph = data.get("ph")
-    moisture = data.get("moisture")
-    nitrogen = data.get("nitrogen")
-    phosphorus = data.get("phosphorus")
-    potassium = data.get("potassium")
-    images = data.get("images", [])
-    color = data.get("color", "green")
-    icon = data.get("icon", "sample")
-    tags = data.get("tags", [])
-    notes = data.get("notes")
-    user_id = data.get("user_id")
-    soil_type = data.get("soil_type")  # Выбранный пользователем тип почвы
-    
-    # Базовый отчёт
-    report = {
-        "general": {
-            "soil_type": "",
-            "color": "",
-            "structure": "",
-            "density": "",
-            "notes": notes or ""
-        },
+    try:
+        result = {}
+        validate_only = data.get("validate_only", False)
+        lat = data.get("lat")
+        lng = data.get("lng")
+        ph = data.get("ph")
+        moisture = data.get("moisture")
+        nitrogen = data.get("nitrogen")
+        phosphorus = data.get("phosphorus")
+        potassium = data.get("potassium")
+        images = data.get("images", [])
+        color = data.get("color", "green")
+        icon = data.get("icon", "sample")
+        tags = data.get("tags", [])
+        notes = data.get("notes")
+        user_id = data.get("user_id")
+        soil_type = data.get("soil_type")  # Выбранный пользователем тип почвы
+        
+        print(f"Processing block1: lat={lat}, lng={lng}, user_id={user_id}, soil_type={soil_type}")
+        
+        # Базовый отчёт
+        report = {
+            "general": {
+                "soil_type": "",
+                "color": "",
+                "structure": "",
+                "density": "",
+                "notes": notes or ""
+            },
         "chemistry": {
             "ph": ph,
             "organic_matter": None,
@@ -378,9 +381,15 @@ async def process_block1(data):
         }
         save_user_annotation(user_id, annotation)
 
-    return {
-        "status": "ok",
-        "point": point,
-        "analysis": result,
-        "message": "Точка успешно сохранена. Данные добавлены в базу (append-only)."
-    }
+        return {
+            "status": "ok",
+            "point": point,
+            "analysis": result,
+            "message": "Точка успешно сохранена. Данные добавлены в базу (append-only)."
+        }
+    
+    except Exception as e:
+        import traceback
+        error_msg = f"Error in process_block1: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        return {"error": error_msg}
