@@ -1022,6 +1022,8 @@ function displayAnalysisResult(result) {
         resultDiv.id = "analysis-result";
         resultDiv.style.cssText = "margin-top: 20px;";
         document.querySelector(".panel-body").appendChild(resultDiv);
+    } else {
+        resultDiv.style.cssText = "margin-top: 20px;";
     }
     resultDiv.innerHTML = html;
 }
@@ -1475,8 +1477,10 @@ function updateMap(lat, lon){
 }
 
 async function send(){
-    let analysisType = document.getElementById("analysisType").value
-    let f = document.getElementById("file").files[0]
+    const analysisTypeEl = document.getElementById("analysisType");
+    let analysisType = analysisTypeEl ? analysisTypeEl.value : "visual";
+    const fileEl = document.getElementById("file");
+    let f = fileEl ? fileEl.files[0] : null;
 
     if (!f && analysisType === "photo") {
         lirenSay("Пожалуйста, выберите файл для анализа 📷")
