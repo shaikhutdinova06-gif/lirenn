@@ -5,6 +5,7 @@ from backend.services.ai_model import deepseek_classify
 from math import radians, cos, sin, sqrt, asin
 import json
 import os
+import traceback
 router = APIRouter()
 
 # Инициализация тестового местоположения при запуске
@@ -39,11 +40,20 @@ async def classify_image(request: Request):
 
 @router.post("/block1")
 async def block1(request: Request):
-    data = await request.json()
-    # Если user_id не передан, используем IP
-    if not data.get("user_id"):
-        data["user_id"] = get_client_ip(request)
-    return await process_block1(data)
+    try:
+        data = await request.json()
+        # Если user_id не передан, используем IP
+        if not data.get("user_id"):
+            data["user_id"] = get_client_ip(request)
+        result = await process_block1(data)
+        return result
+    except Exception as e:
+        print("🔥 ERROR in /block1:", e)
+        traceback.print_exc()
+        return {
+            "error": "internal_error",
+            "message": str(e)
+        }
 
 @router.get("/points")
 async def all_points():
