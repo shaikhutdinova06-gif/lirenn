@@ -355,7 +355,13 @@ async def process_block1(data):
         "is_test": False,
         "soil_type": report.get("general", {}).get("soil_type", "")  # Добавляем soil_type на верхний уровень
     }
-    save_point(point)
+    
+    try:
+        save_point(point)
+    except Exception as e:
+        return {
+            "error": f"Ошибка при сохранении точки в базу данных: {str(e)}"
+        }
 
     # =========================
     # СОХРАНЕНИЕ ПОМЕТОК В ПЕРСОНАЛЬНУЮ БАЗУ
