@@ -265,46 +265,13 @@ function skipPhoto() {
 async function processStep2() {
     const messageDiv = document.getElementById('step2-message');
     const resultDiv = document.getElementById('step2-result');
-    const soilTypeSelectionDiv = document.getElementById('soil-type-selection');
     
     if (stepData.images && stepData.images.length > 0) {
         messageDiv.textContent = `Загружено ${stepData.images.length} фото. Переход к анализу физико-химических показателей.`;
         resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">✅ ${stepData.images.length} фото пользователя присутствуют</div>`;
-        
-        // Проверяем результат валидации на соответствие типа почвы списку
-        if (stepData.validationResult && stepData.validationResult.soil_type_not_in_list) {
-            soilTypeSelectionDiv.style.display = 'block';
-            
-            // Загружаем типы почв в селект
-            const select = document.getElementById('step2-soil-type');
-            select.innerHTML = '<option value="">Выберите тип почвы</option>';
-            
-            allSoilTypes.forEach(category => {
-                const optgroup = document.createElement('optgroup');
-                optgroup.label = category.category;
-                category.types.forEach(type => {
-                    const option = document.createElement('option');
-                    option.value = type;
-                    option.textContent = type;
-                    optgroup.appendChild(option);
-                });
-                select.appendChild(optgroup);
-            });
-            
-            resultDiv.innerHTML += `
-                <div style="padding: 15px; background: rgba(234, 179, 8, 0.1); border-radius: 8px; margin-top: 10px;">
-                    <h4>⚠️ Тип почвы не найден в классификации</h4>
-                    <p>AI определил: "${stepData.validationResult.identified_soil_type}"</p>
-                    <p>Пожалуйста, выберите правильный тип почвы из списка ниже</p>
-                </div>
-            `;
-        } else {
-            soilTypeSelectionDiv.style.display = 'none';
-        }
     } else {
         messageDiv.textContent = 'Фото не загружено. Будут использованы предположения от AI.';
         resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(234, 179, 8, 0.1); border-radius: 8px;">⚠️ Фото отсутствуют - анализ через AI</div>`;
-        soilTypeSelectionDiv.style.display = 'none';
     }
 }
 
@@ -421,14 +388,56 @@ async function processStep8() {
 // =========================
 async function processStep9() {
     const resultDiv = document.getElementById('step9-result');
+    const aiSoilTypeDisplay = document.getElementById('ai-soil-type-display');
+    const soilTypeSelectionDiv = document.getElementById('soil-type-selection-step9');
+    const select = document.getElementById('step9-soil-type');
     
     resultDiv.innerHTML = `
         <div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
             <h4>🎯 Финальные действия:</h4>
             <p>✅ Проверьте все данные</p>
+            <p>✅ Выберите тип почвы</p>
             <p>✅ Сохраните точку в базу данных</p>
         </div>
     `;
+    
+    // Показываем AI-определенный тип если есть
+    if (stepData.validationResult && stepData.validationResult.identified_soil_type) {
+        aiSoilTypeDisplay.innerHTML = `<strong>AI определил:</strong> ${stepData.validationResult.identified_soil_type}`;
+        // Предзаполняем селект AI-определенным типом
+        select.innerHTML = '<option value="">Выберите тип почвы</option>';
+        
+        allSoilTypes.forEach(category => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = category.category;
+            category.types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                if (type === stepData.validationResult.identified_soil_type) {
+                    option.selected = true;
+                }
+                optgroup.appendChild(option);
+            });
+            select.appendChild(optgroup);
+        });
+    } else {
+        aiSoilTypeDisplay.innerHTML = '<em>AI не определил тип почвы</em>';
+        // Загружаем типы почв в селект
+        select.innerHTML = '<option value="">Выберите тип почвы</option>';
+        
+        allSoilTypes.forEach(category => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = category.category;
+            category.types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                optgroup.appendChild(option);
+            });
+            select.appendChild(optgroup);
+        });
+    }
 }
 
 // =========================
