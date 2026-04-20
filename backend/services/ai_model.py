@@ -3,47 +3,59 @@ import httpx
 import base64
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-GIGACHAT_TOKEN = os.getenv("GIGACHAT_TOKEN")
 
-def analyze_image_gigachat(image):
+def analyze_image_deepseek_vision(image):
     """
-    Анализ изображения с GigaChat
+    Анализ изображения с DeepSeek Vision
     """
-    if not GIGACHAT_TOKEN:
-        return "GIGACHAT_TOKEN не настроен"
+    if not DEEPSEEK_API_KEY:
+        return "DEEPSEEK_API_KEY не настроен"
     
     try:
         # Декодируем base64 изображение если нужно
         if image.startswith("data:image"):
-            image_data = image.split(",")[1]
-        else:
             image_data = image
+        else:
+            image_data = f"data:image/jpeg;base64,{image}"
         
-        url = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
+        url = "https://api.deepseek.com/v1/chat/completions"
         headers = {
-            "Authorization": f"Bearer {GIGACHAT_TOKEN}",
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
             "Content-Type": "application/json"
         }
         
-        prompt = """
-Перед тобой изображение почвы в формате base64.
+        data = {
+            "model": "deepseek-vl",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": """Перед тобой изображение.
+
+Сначала ответь на вопрос: ЭТО ПОЧВА? (ДА/НЕТ)
+Если ответ НЕТ - напиши ТОЛЬКО "НЕ ПОЧВА" и остановись.
+Если ответ ДА - продолжай анализ:
 
 Определи:
-1. Это почва или нет
-2. Тип почвы
-3. Цвет
-4. Структуру
-5. Плотность
-6. Особенности
+1. Тип почвы
+2. Цвет
+3. Структуру
+4. Плотность
+5. Особенности
 
 Ответ дай в формате JSON с полями: soil_type, color, structure, density, features.
-Если не уверен — напиши "неопределено".
-"""
-        
-        data = {
-            "model": "GigaChat",
-            "messages": [
-                {"role": "user", "content": prompt + "\n" + image_data[:5000]}
+Если не уверен — напиши "неопределено"."""
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": image_data
+                            }
+                        }
+                    ]
+                }
             ],
             "temperature": 0.3
         }
@@ -54,7 +66,7 @@ def analyze_image_gigachat(image):
         if "choices" in result and len(result["choices"]) > 0:
             return result["choices"][0]["message"]["content"]
         else:
-            return "Ошибка GigaChat API"
+            return "Ошибка DeepSeek Vision API"
             
     except Exception as e:
         return f"Ошибка: {str(e)}"
