@@ -1079,25 +1079,6 @@ async function loadUserCabinet() {
     }
 }
 
-// Конвертация файла в base64
-function toBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
-}
-
-// Тестовое местоположение
-function loadTestLocation() {
-    setCurrentPoint(55.7558, 37.6173);
-    document.getElementById("ph").value = "7.0";
-    document.getElementById("moisture").value = "50";
-    document.getElementById("tags").value = "#чернозём, #тест";
-    document.getElementById("notes").value = "Тестовая точка для демонстрации";
-}
-
 // Загрузка ближайших точек
 async function loadNearbyPoints() {
     if (!currentPoint) return;
@@ -1221,9 +1202,12 @@ if (cancelPointBtn && pointForm) {
 
 if (savePointBtn) {
     savePointBtn.addEventListener('click', async () => {
-        const title = document.getElementById('pointTitle').value;
-        const description = document.getElementById('pointDescription').value;
+        const pointTitle = document.getElementById('pointTitle');
+        const pointDescription = document.getElementById('pointDescription');
         const photoInput = document.getElementById('pointPhoto');
+        
+        const title = pointTitle ? pointTitle.value : '';
+        const description = pointDescription ? pointDescription.value : '';
         
         if (!title) {
             alert('Введите название точки');
@@ -1251,19 +1235,20 @@ if (savePointBtn) {
             
             if (response.ok) {
                 alert('Точка сохранена');
-            document.getElementById('point-form').classList.add('hidden');
-            document.getElementById('pointTitle').value = '';
-            document.getElementById('pointDescription').value = '';
-            document.getElementById('pointPhoto').value = '';
-            loadUserPoints();
-        } else {
+                if (pointForm) pointForm.classList.add('hidden');
+                if (pointTitle) pointTitle.value = '';
+                if (pointDescription) pointDescription.value = '';
+                if (photoInput) photoInput.value = '';
+                loadUserPoints();
+            } else {
+                alert('Ошибка сохранения точки');
+            }
+        } catch (error) {
+            console.error('Failed to save point:', error);
             alert('Ошибка сохранения точки');
         }
-    } catch (error) {
-        console.error('Failed to save point:', error);
-        alert('Ошибка сохранения точки');
-    }
-});
+    });
+}
 
 // Load initial data
 loadUserPoints();
