@@ -365,8 +365,56 @@ body::before {
 }
 
 #map-container {
-    height: 500px;
+    height: 100%;
     width: 100%;
+}
+
+.gis-layout {
+    display: flex;
+    height: calc(100vh - 140px);
+    gap: 10px;
+}
+
+.sidebar {
+    width: 200px;
+    background: rgba(232, 245, 233, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar h3 {
+    color: #2E7D32;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.map-area {
+    flex: 1;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+}
+
+.details-panel {
+    width: 300px;
+    background: rgba(232, 245, 233, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    overflow-y: auto;
+}
+
+.details-panel h3 {
+    color: #2E7D32;
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+#point-info {
+    font-size: 14px;
 }
 
 .leaflet-popup-content-wrapper {

@@ -575,6 +575,61 @@ function addPointToMap(point) {
     }).addTo(map);
     
     marker.bindPopup(createPopup(point));
+    marker.on('click', () => showPointDetails(point));
+}
+
+function findMyLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            map.setView([lat, lng], 13);
+            
+            if (currentMarker) {
+                map.removeLayer(currentMarker);
+            }
+            
+            currentMarker = L.marker([lat, lng]).addTo(map)
+                .bindPopup("Вы здесь")
+                .openPopup();
+        }, (error) => {
+            alert('Не удалось определить местоположение');
+        });
+    } else {
+        alert('Геолокация не поддерживается браузером');
+    }
+}
+
+let pointMode = false;
+
+function enablePointMode() {
+    pointMode = true;
+    map.getContainer().style.cursor = 'crosshair';
+    alert('Режим добавления точки: кликните на карту для выбора местоположения');
+}
+
+map.on('click', function(e) {
+    if (pointMode) {
+        setCurrentPoint(e.latlng.lat, e.latlng.lng);
+        pointMode = false;
+        map.getContainer().style.cursor = '';
+        showSection('analysis');
+    }
+});
+
+function showPointDetails(point) {
+    const pointInfoDiv = document.getElementById('point-info');
+    
+    pointInfoDiv.innerHTML = `
+        ${point.image ? `<img src="${point.image}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
+        <h4 style="color:#2E7D32;">${point.type === 'professional' ? '🎓 ПРОФЕССИОНАЛЬНАЯ' : '🔬 ЛЮБИТЕЛЬСКАЯ'} ТОЧКА</h4>
+        <p><strong>Координаты:</strong> ${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}</p>
+        <hr style="margin:10px 0; border-color:#A5D6A7;">
+        ${formatStructuredReport(point.report)}
+        ${point.notes ? `<p><strong>Заметки:</strong> ${point.notes}</p>` : ''}
+        ${point.tags && point.tags.length > 0 ? `<p><strong>Теги:</strong> ${point.tags.join(', ')}</p>` : ''}
+        <button class="btn btn-primary" onclick="map.setView([${point.lat}, ${point.lng}], 13)">📍 Центрировать</button>
+    `;
 }
 
 async function loadMyPoints() {
