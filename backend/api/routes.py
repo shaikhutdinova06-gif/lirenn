@@ -68,7 +68,7 @@ async def my_points(request: Request, user_id: str = None, soil_type: str = None
     points = get_user_points(user_id)
     
     if soil_type:
-        points = [p for p in points if p.get("report", {}).get("general", {}).get("soil_type") == soil_type]
+        points = [p for p in points if p.get("soil_type") == soil_type or p.get("report", {}).get("general", {}).get("soil_type") == soil_type]
     
     return points
 

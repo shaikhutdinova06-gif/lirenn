@@ -352,7 +352,8 @@ async def process_block1(data):
         "report": report,
         "type": point_type,
         "result": result,
-        "is_test": False
+        "is_test": False,
+        "soil_type": report.get("general", {}).get("soil_type", "")  # Добавляем soil_type на верхний уровень
     }
     save_point(point)
 
