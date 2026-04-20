@@ -155,6 +155,8 @@ async function validateStep(step) {
                         alert(result.error);
                         return false;
                     }
+                    // Сохраняем результат валидации для проверки типа почвы
+                    stepData.validationResult = result;
                 } catch (error) {
                     console.error('Validation error:', error);
                 }
@@ -263,13 +265,46 @@ function skipPhoto() {
 async function processStep2() {
     const messageDiv = document.getElementById('step2-message');
     const resultDiv = document.getElementById('step2-result');
+    const soilTypeSelectionDiv = document.getElementById('soil-type-selection');
     
     if (stepData.images && stepData.images.length > 0) {
         messageDiv.textContent = `Загружено ${stepData.images.length} фото. Переход к анализу физико-химических показателей.`;
         resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">✅ ${stepData.images.length} фото пользователя присутствуют</div>`;
+        
+        // Проверяем результат валидации на соответствие типа почвы списку
+        if (stepData.validationResult && stepData.validationResult.soil_type_not_in_list) {
+            soilTypeSelectionDiv.style.display = 'block';
+            
+            // Загружаем типы почв в селект
+            const select = document.getElementById('step2-soil-type');
+            select.innerHTML = '<option value="">Выберите тип почвы</option>';
+            
+            allSoilTypes.forEach(category => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = category.category;
+                category.types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    optgroup.appendChild(option);
+                });
+                select.appendChild(optgroup);
+            });
+            
+            resultDiv.innerHTML += `
+                <div style="padding: 15px; background: rgba(234, 179, 8, 0.1); border-radius: 8px; margin-top: 10px;">
+                    <h4>⚠️ Тип почвы не найден в классификации</h4>
+                    <p>AI определил: "${stepData.validationResult.identified_soil_type}"</p>
+                    <p>Пожалуйста, выберите правильный тип почвы из списка ниже</p>
+                </div>
+            `;
+        } else {
+            soilTypeSelectionDiv.style.display = 'none';
+        }
     } else {
         messageDiv.textContent = 'Фото не загружено. Будут использованы предположения от AI.';
         resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(234, 179, 8, 0.1); border-radius: 8px;">⚠️ Фото отсутствуют - анализ через AI</div>`;
+        soilTypeSelectionDiv.style.display = 'none';
     }
 }
 
@@ -409,21 +444,7 @@ async function saveFinalPoint() {
     
     // Build final point data
     const userId = localStorage.getItem('user_id');
-    const point = {
-        lat: stepData.lat,
-        lng: stepData.lng,
-        ph: stepData.ph,
-        moisture: stepData.moisture,
-        nitrogen: stepData.nitrogen,
-        phosphorus: stepData.phosphorus,
-        potassium: stepData.potassium,
-        notes: stepData.notes,
-        tags: stepData.tags,
-        color: stepData.color,
-        icon: stepData.icon,
-        images: stepData.images || [],
-        user_id: userId
-    };
+    const point = collectStepData();
     
     summaryDiv.innerHTML = `
         <div style="padding: 20px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
@@ -529,9 +550,53 @@ function resetForm() {
 }
 
 // =========================
+// SOIL TYPES FILTERING
+// =========================
+let allSoilTypes = [];
+
+async function loadSoilTypes() {
+    try {
+        const response = await fetch('/api/soil-types');
+        const data = await response.json();
+        allSoilTypes = data.soil_types || [];
+        
+        const select = document.getElementById('soil-type-filter');
+        select.innerHTML = '<option value="">Все типы</option>';
+        
+        allSoilTypes.forEach(category => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = category.category;
+            category.types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                optgroup.appendChild(option);
+            });
+            select.appendChild(optgroup);
+        });
+    } catch (error) {
+        console.error('Error loading soil types:', error);
+    }
+}
+
+function filterPointsBySoilType() {
+    const selectedType = document.getElementById('soil-type-filter').value;
+    
+    // Remove all markers
+    if (markers) {
+        markers.forEach(marker => map.removeLayer(marker));
+        markers = [];
+    }
+    
+    // Load points with filter
+    loadMyPoints(selectedType);
+}
+
+// =========================
 // INITIALIZATION
 // =========================
 document.addEventListener('DOMContentLoaded', async function() {
+    loadSoilTypes();
     await initUser();
     initMap();
     currentStep = 1;
@@ -653,9 +718,14 @@ function showPointDetails(point) {
     `;
 }
 
-async function loadMyPoints() {
+async function loadMyPoints(soilTypeFilter = '') {
     try {
-        const res = await fetch('/api/points');
+        const userId = localStorage.getItem('user_id');
+        let url = `/api/my-points?user_id=${userId}`;
+        if (soilTypeFilter) {
+            url += `&soil_type=${encodeURIComponent(soilTypeFilter)}`;
+        }
+        const res = await fetch(url);
         const points = await res.json();
         
         points.forEach(point => {

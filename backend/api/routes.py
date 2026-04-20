@@ -3,6 +3,8 @@ from backend.services.block1_logic import process_block1
 from backend.services.storage import get_user_points, get_points, get_user_annotations, get_user_data, initialize_test_location, delete_user_point
 from backend.services.ai_model import deepseek_classify
 from math import radians, cos, sin, sqrt, asin
+import json
+import os
 router = APIRouter()
 
 # Инициализация тестового местоположения при запуске
@@ -47,12 +49,28 @@ async def block1(request: Request):
 async def all_points():
     return get_points()
 
+@router.get("/soil-types")
+async def get_soil_types():
+    """Получить список типов почв"""
+    try:
+        soil_types_path = os.path.join(os.path.dirname(__file__), "..", "data", "soil_types.json")
+        with open(soil_types_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        return {"soil_types": []}
+
 @router.get("/my-points")
-async def my_points(request: Request, user_id: str = None):
-    """Получить точки пользователя (по IP или переданному user_id)"""
+async def my_points(request: Request, user_id: str = None, soil_type: str = None):
+    """Получить точки пользователя (по IP или переданному user_id) с фильтрацией по типу почвы"""
     if not user_id:
         user_id = get_client_ip(request)
-    return get_user_points(user_id)
+    
+    points = get_user_points(user_id)
+    
+    if soil_type:
+        points = [p for p in points if p.get("report", {}).get("general", {}).get("soil_type") == soil_type]
+    
+    return points
 
 @router.get("/nearby-points")
 async def nearby_points(lat: float, lng: float, radius_km: float = 5):

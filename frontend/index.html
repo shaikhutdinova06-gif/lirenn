@@ -33,6 +33,13 @@
                 <button class="btn btn-primary" onclick="findMyLocation()">📍 Найти меня</button>
                 <button class="btn btn-secondary" onclick="showSection('analysis')">🧪 Входной анализ</button>
                 <button class="btn btn-secondary" onclick="showSection('cabinet')">👤 Мой кабинет</button>
+                
+                <hr style="margin: 15px 0; border-color: #A5D6A7;">
+                
+                <h4>Фильтр по типу почвы</h4>
+                <select id="soil-type-filter" class="input-field" onchange="filterPointsBySoilType()">
+                    <option value="">Все типы</option>
+                </select>
             </aside>
             <div class="map-area">
                 <div id="map-container"></div>
@@ -70,6 +77,15 @@
                 <h3>Шаг 2: Проверка наличия фото</h3>
                 <p id="step2-message"></p>
                 <div id="step2-result"></div>
+                
+                <div id="soil-type-selection" style="display: none; margin-top: 20px;">
+                    <h4>Выберите тип почвы из списка</h4>
+                    <p>AI не смог идентифицировать тип почвы из классификации. Пожалуйста, выберите из списка:</p>
+                    <select id="step2-soil-type" class="input-field">
+                        <option value="">Выберите тип почвы</option>
+                    </select>
+                </div>
+                
                 <button class="btn btn-primary" onclick="nextStep(3)">Далее →</button>
                 <button class="btn btn-secondary" onclick="prevStep(1)">← Назад</button>
             </div>

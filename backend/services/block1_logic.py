@@ -4,6 +4,20 @@ from datetime import datetime
 from backend.services.storage import save_point, get_points, get_user_points, save_user_annotation, get_user_annotations
 from backend.services.ai_model import deepseek_analyze, deepseek_classify, call_deepseek, analyze_image_deepseek_vision
 from backend.services.compare import find_similar
+import os
+
+def get_valid_soil_types():
+    """Загрузить список валидных типов почв"""
+    try:
+        soil_types_path = os.path.join(os.path.dirname(__file__), "..", "data", "soil_types.json")
+        with open(soil_types_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            all_types = []
+            for category in data.get("soil_types", []):
+                all_types.extend(category.get("types", []))
+            return all_types
+    except:
+        return []
 
 async def process_block1(data):
     """
@@ -24,6 +38,7 @@ async def process_block1(data):
     tags = data.get("tags", [])
     notes = data.get("notes")
     user_id = data.get("user_id")
+    soil_type = data.get("soil_type")  # Выбранный пользователем тип почвы
     
     # Базовый отчёт
     report = {
@@ -82,7 +97,29 @@ async def process_block1(data):
                     vision_result = vision_result.replace("```json", "").replace("```", "").strip()
                 vision_data = json.loads(vision_result)
                 
-                report["general"]["soil_type"] = vision_data.get("soil_type", "")
+                identified_soil_type = vision_data.get("soil_type", "")
+                
+                # Если пользователь выбрал тип почвы вручную, используем его
+                if soil_type:
+                    report["general"]["soil_type"] = soil_type
+                else:
+                    # Проверяем, соответствует ли тип почвы списку
+                    valid_types = get_valid_soil_types()
+                    if identified_soil_type and valid_types:
+                        # Проверяем точное совпадение или частичное
+                        matches_exact = identified_soil_type in valid_types
+                        matches_partial = any(identified_soil_type.lower() in t.lower() or t.lower() in identified_soil_type.lower() for t in valid_types)
+                        
+                        if not matches_exact and not matches_partial:
+                            result["soil_type_not_in_list"] = True
+                            result["identified_soil_type"] = identified_soil_type
+                            result["valid_soil_types"] = valid_types
+                            report["general"]["soil_type"] = identified_soil_type  # Сохраняем AI-определение
+                        else:
+                            report["general"]["soil_type"] = identified_soil_type
+                    else:
+                        report["general"]["soil_type"] = identified_soil_type
+                
                 report["general"]["color"] = vision_data.get("color", "")
                 report["general"]["structure"] = vision_data.get("structure", "")
                 report["general"]["density"] = vision_data.get("density", "")
