@@ -2570,13 +2570,3 @@ async function runBlock1() {
   console.log(result)
   addPointToMap(result.saved_point)
 }
-
-function addPointToMap(point) {
-  const marker = L.marker([point.lat, point.lng]).addTo(map)
-  marker.bindPopup(`
-    <b>Точка</b>
-    pH: ${point.ph || "-"}
-    Влажность: ${point.moisture || "-"}
-    Заметки: ${point.notes || ""}
-  `)
-}
