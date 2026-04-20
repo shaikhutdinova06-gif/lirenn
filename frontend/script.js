@@ -1484,12 +1484,15 @@ async function send(){
 
     if (!f && analysisType === "photo") {
         lirenSay("Пожалуйста, выберите файл для анализа 📷")
-        document.getElementById("out").innerHTML = `
+        const outEl = document.getElementById("out");
+        if (outEl) {
+            outEl.innerHTML = `
 <div class="card">
     <h2>❌ Ошибка</h2>
     <p>Пожалуйста, выберите файл для анализа по фото</p>
 </div>
 `
+        }
         return
     }
 
@@ -1497,8 +1500,10 @@ async function send(){
 
     let form = new FormData()
     if (f) form.append("file", f)
-    form.append("lat", document.getElementById("lat").value)
-    form.append("lon", document.getElementById("lon").value)
+    const latEl = document.getElementById("lat");
+    const lonEl = document.getElementById("lon");
+    if (latEl) form.append("lat", latEl.value)
+    if (lonEl) form.append("lon", lonEl.value)
     form.append("analysis_type", analysisType)
 
     try {
