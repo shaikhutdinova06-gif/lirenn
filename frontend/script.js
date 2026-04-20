@@ -222,20 +222,14 @@ async function handleStep1Image() {
     if (imageInput.files.length > 0) {
         stepData.image = await toBase64(imageInput.files[0]);
         
-        // Classify image
-        const result = await fetch('/api/classify-image', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({image: stepData.image})
-        });
-        const response = await result.json();
-        
         const resultDiv = document.getElementById('step1-result');
-        if (response.classification === 'soil') {
-            resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; color: #4CAF50;">✅ Изображение содержит образец почвы</div>`;
-        } else {
-            resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; color: #F44336;">❌ Загруженное изображение не содержит образца почвы. Пожалуйста, загрузите фото почвы или введите данные вручную</div>`;
-        }
+        resultDiv.innerHTML = `
+            <div style="padding: 15px; background: rgba(234, 179, 8, 0.1); border-radius: 8px;">
+                <h4>⏳ Фото загружено</h4>
+                <p>Нажмите "Далее" для проверки изображения</p>
+                <p>Размер: ${Math.round(stepData.image.length / 1024)} KB</p>
+            </div>
+        `;
     }
 }
 
