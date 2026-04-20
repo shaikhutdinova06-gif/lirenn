@@ -441,6 +441,29 @@ async function processStep9() {
 }
 
 // =========================
+// COLLECT STEP DATA
+// =========================
+function collectStepData() {
+    const selectedSoilType = document.getElementById('step9-soil-type').value;
+    
+    return {
+        images: stepData.images,
+        ph: stepData.ph,
+        moisture: stepData.moisture,
+        nitrogen: stepData.nitrogen,
+        phosphorus: stepData.phosphorus,
+        potassium: stepData.potassium,
+        lat: stepData.lat,
+        lng: stepData.lng,
+        color: stepData.color,
+        icon: stepData.icon,
+        tags: stepData.tags,
+        notes: stepData.notes,
+        soil_type: selectedSoilType || stepData.validationResult?.identified_soil_type || ""
+    };
+}
+
+// =========================
 // SAVE FINAL POINT
 // =========================
 async function saveFinalPoint() {
