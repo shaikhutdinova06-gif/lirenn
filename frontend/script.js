@@ -776,8 +776,16 @@ async function loadMyPoints(soilTypeFilter = '') {
         if (soilTypeFilter) {
             url += `&soil_type=${encodeURIComponent(soilTypeFilter)}`;
         }
+        console.log('Loading points from:', url);
         const res = await fetch(url);
         const points = await res.json();
+        console.log('Loaded points:', points);
+        
+        // Удаляем старые маркеры
+        if (markers) {
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+        }
         
         points.forEach(point => {
             addPointToMap(point);
