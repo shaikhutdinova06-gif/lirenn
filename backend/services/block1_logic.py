@@ -2,12 +2,12 @@ import uuid
 import json
 from datetime import datetime
 from backend.services.storage import save_point, get_points, get_user_points, save_user_annotation, get_user_annotations
-from backend.services.ai_model import deepseek_analyze, deepseek_classify, call_deepseek, analyze_image_gemini
+from backend.services.ai_model import deepseek_analyze, deepseek_classify, call_deepseek, analyze_image_gigachat
 from backend.services.compare import find_similar
 
 async def process_block1(data):
     """
-    Полная реализация Блока 1 с Gemini + DeepSeek и структурированным отчётом
+    Полная реализация Блока 1 с GigaChat + DeepSeek и структурированным отчётом
     """
     result = {}
     lat = data.get("lat")
@@ -56,32 +56,39 @@ async def process_block1(data):
     }
 
     # =========================
-    # ШАГ 1 — GEMINI АНАЛИЗ ФОТО
+    # ШАГ 1 — GIGACHAT АНАЛИЗ ФОТО
     # =========================
     if image:
-        gemini_result = analyze_image_gemini(image)
-        if "Ошибка" in gemini_result or "не настроен" in gemini_result:
-            result["gemini_error"] = gemini_result
+        gigachat_result = analyze_image_gigachat(image)
+        
+        # Проверка на "не почва"
+        if "не почва" in str(gigachat_result).lower():
+            return {
+                "error": "Загруженное изображение не содержит образца почвы. Пожалуйста, загрузите фото почвы или введите данные вручную"
+            }
+        
+        if "Ошибка" in gigachat_result or "не настроен" in gigachat_result:
+            result["gigachat_error"] = gigachat_result
         else:
-            # Парсим JSON из ответа Gemini
+            # Парсим JSON из ответа GigaChat
             try:
-                if gemini_result.startswith("```json"):
-                    gemini_result = gemini_result.replace("```json", "").replace("```", "").strip()
-                gemini_data = json.loads(gemini_result)
+                if gigachat_result.startswith("```json"):
+                    gigachat_result = gigachat_result.replace("```json", "").replace("```", "").strip()
+                gigachat_data = json.loads(gigachat_result)
                 
-                report["general"]["soil_type"] = gemini_data.get("soil_type", "")
-                report["general"]["color"] = gemini_data.get("color", "")
-                report["general"]["structure"] = gemini_data.get("structure", "")
-                report["general"]["density"] = gemini_data.get("density", "")
-                report["physical"]["texture"] = gemini_data.get("features", "")
+                report["general"]["soil_type"] = gigachat_data.get("soil_type", "")
+                report["general"]["color"] = gigachat_data.get("color", "")
+                report["general"]["structure"] = gigachat_data.get("structure", "")
+                report["general"]["density"] = gigachat_data.get("density", "")
+                report["physical"]["texture"] = gigachat_data.get("features", "")
                 
                 report["meta"]["source"] = "ai"
                 report["meta"]["confidence"] = 0.8
             except:
                 # Если не JSON, используем как текст
-                report["general"]["notes"] = gemini_result
+                report["general"]["notes"] = gigachat_result
         
-        result["gemini_analysis"] = gemini_result
+        result["gigachat_analysis"] = gigachat_result
 
     # =========================
     # ШАГ 2 — DEEPSEEK СТРУКТУРИРОВАНИЕ
@@ -89,7 +96,7 @@ async def process_block1(data):
     if image:
         msg = [
             {"role": "system", "content": "Ты почвовед. Структурируй данные почвы в JSON с полями: soil_type, color, structure, density, texture, organic_matter_estimate. Ответь только JSON."},
-            {"role": "user", "content": f"Фото анализ: {gemini_result}\nДанные: pH={ph}, влажность={moisture}%, азот={nitrogen}, фосфор={phosphorus}, калий={potassium}"}
+            {"role": "user", "content": f"Фото анализ: {gigachat_result}\nДанные: pH={ph}, влажность={moisture}%, азот={nitrogen}, фосфор={phosphorus}, калий={potassium}"}
         ]
         deepseek_result = call_deepseek(msg)
         
