@@ -580,8 +580,8 @@ function resetForm() {
     document.getElementById('step3-potassium').value = '';
     document.getElementById('step4-lat').value = '';
     document.getElementById('step4-lng').value = '';
-    document.getElementById('step7-color').value = 'green';
-    document.getElementById('step7-icon').value = 'sample';
+    document.getElementById('step8-color').value = 'green';
+    document.getElementById('step8-icon').value = 'sample';
     document.getElementById('step8-tags').value = '';
     document.getElementById('step8-notes').value = '';
     
@@ -1096,37 +1096,6 @@ function loadTestLocation() {
     document.getElementById("notes").value = "Тестовая точка для демонстрации";
 }
 
-// Отображение точки
-function addPointToMap(point) {
-    const colorMap = {
-        green: "#22c55e",
-        yellow: "#eab308",
-        red: "#ef4444",
-        blue: "#3b82f6"
-    };
-
-    const iconMap = {
-        sample: "🧪",
-        analysis: "📊",
-        interest: "⭐",
-        control: "🎯"
-    };
-
-    const color = colorMap[point.color] || "#22c55e";
-    const icon = iconMap[point.icon] || "📍";
-
-    const marker = L.marker([point.lat, point.lng]).addTo(map);
-    marker.bindPopup(`
-        <div style="min-width: 200px;">
-            <strong>${icon} Точка</strong><br>
-            pH: ${point.ph || "-"}<br>
-            Влажность: ${point.moisture || "-"}%<br>
-            ${point.tags ? `Теги: ${point.tags.join(", ")}<br>` : ""}
-            ${point.notes ? `Заметки: ${point.notes}` : ""}
-        </div>
-    `);
-}
-
 // Загрузка ближайших точек
 async function loadNearbyPoints() {
     if (!currentPoint) return;
@@ -1223,50 +1192,63 @@ async function loadUserPoints() {
 
 
 // Refresh points button
-document.getElementById('refreshPoints').addEventListener('click', () => {
-    loadUserPoints();
-});
+const refreshPointsBtn = document.getElementById('refreshPoints');
+if (refreshPointsBtn) {
+    refreshPointsBtn.addEventListener('click', () => {
+        loadUserPoints();
+    });
+}
 
 // Add point form handling
-document.getElementById('addPointBtn').addEventListener('click', () => {
-    document.getElementById('point-form').classList.remove('hidden');
-});
+const addPointBtn = document.getElementById('addPointBtn');
+const pointForm = document.getElementById('point-form');
+const cancelPointBtn = document.getElementById('cancelPoint');
+const savePointBtn = document.getElementById('savePoint');
 
-document.getElementById('cancelPoint').addEventListener('click', () => {
-    document.getElementById('point-form').classList.add('hidden');
-});
+if (addPointBtn && pointForm) {
+    addPointBtn.addEventListener('click', () => {
+        pointForm.classList.remove('hidden');
+    });
+}
 
-document.getElementById('savePoint').addEventListener('click', async () => {
-    const title = document.getElementById('pointTitle').value;
-    const description = document.getElementById('pointDescription').value;
-    const photoInput = document.getElementById('pointPhoto');
-    
-    if (!title) {
-        alert('Введите название точки');
-        return;
-    }
-    
-    // Get current map center
-    const center = map.getCenter();
-    
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('description', description);
-    formData.append('lat', center.lat);
-    formData.append('lng', center.lng);
-    
-    if (photoInput.files[0]) {
-        formData.append('photo', photoInput.files[0]);
-    }
-    
-    try {
-        const response = await fetch(`${API_URL}/points`, {
-            method: 'POST',
-            body: formData
-        });
+if (cancelPointBtn && pointForm) {
+    cancelPointBtn.addEventListener('click', () => {
+        pointForm.classList.add('hidden');
+    });
+}
+
+if (savePointBtn) {
+    savePointBtn.addEventListener('click', async () => {
+        const title = document.getElementById('pointTitle').value;
+        const description = document.getElementById('pointDescription').value;
+        const photoInput = document.getElementById('pointPhoto');
         
-        if (response.ok) {
-            alert('Точка сохранена');
+        if (!title) {
+            alert('Введите название точки');
+            return;
+        }
+        
+        // Get current map center
+        const center = map.getCenter();
+        
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('description', description);
+        formData.append('lat', center.lat);
+        formData.append('lng', center.lng);
+        
+        if (photoInput && photoInput.files[0]) {
+            formData.append('photo', photoInput.files[0]);
+        }
+        
+        try {
+            const response = await fetch(`${API_URL}/points`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                alert('Точка сохранена');
             document.getElementById('point-form').classList.add('hidden');
             document.getElementById('pointTitle').value = '';
             document.getElementById('pointDescription').value = '';
@@ -2569,14 +2551,4 @@ async function runBlock1() {
   }
   console.log(result)
   addPointToMap(result.saved_point)
-}
-
-function addPointToMap(point) {
-  const marker = L.marker([point.lat, point.lng]).addTo(map)
-  marker.bindPopup(`
-    <b>Точка</b>
-    pH: ${point.ph || "-"}
-    Влажность: ${point.moisture || "-"}
-    Заметки: ${point.notes || ""}
-  `)
 }
