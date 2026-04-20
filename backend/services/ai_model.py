@@ -3,6 +3,46 @@ import httpx
 import base64
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+def analyze_image_gemini(image):
+    """
+    Анализ изображения с Google Gemini
+    """
+    if not GEMINI_API_KEY:
+        return "GEMINI_API_KEY не настроен"
+    
+    try:
+        # Декодируем base64 изображение если нужно
+        if image.startswith("data:image"):
+            image_data = image.split(",")[1]
+        else:
+            image_data = image
+        
+        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent?key={GEMINI_API_KEY}"
+        
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": "Это почва? Определи тип, цвет, структуру, плотность, особенности. Ответь в формате JSON с полями: soil_type, color, structure, density, features"},
+                    {"inline_data": {
+                        "mime_type": "image/jpeg",
+                        "data": image_data
+                    }}
+                ]
+            }]
+        }
+        
+        response = httpx.post(url, json=payload, timeout=30.0)
+        result = response.json()
+        
+        if "candidates" in result and len(result["candidates"]) > 0:
+            return result["candidates"][0]["content"]["parts"][0]["text"]
+        else:
+            return "Ошибка Gemini API"
+            
+    except Exception as e:
+        return f"Ошибка: {str(e)}"
 
 def call_deepseek(messages):
     """
