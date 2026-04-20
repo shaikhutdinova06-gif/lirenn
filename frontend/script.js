@@ -450,6 +450,19 @@ async function saveFinalPoint() {
     const userId = localStorage.getItem('user_id');
     const point = collectStepData();
     
+    console.log('Saving point:', point);
+    
+    // Проверяем что тип почвы выбран
+    if (!point.soil_type) {
+        summaryDiv.innerHTML = `
+            <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px;">
+                <h4>❌ Ошибка</h4>
+                <p>Пожалуйста, выберите тип почвы из списка</p>
+            </div>
+        `;
+        return;
+    }
+    
     // Определяем тип почвы для отображения
     let soilTypeDisplay = point.soil_type || stepData.validationResult?.identified_soil_type || "Не определен";
     
@@ -469,6 +482,7 @@ async function saveFinalPoint() {
             <p><strong>Теги:</strong> ${point.tags.join(', ') || 'Нет'}</p>
             <p><strong>Заметки:</strong> ${point.notes || 'Нет'}</p>
         </div>
+        <p style="margin-top: 10px;">Сохранение точки...</p>
     `;
     
     // Save to backend
@@ -480,6 +494,7 @@ async function saveFinalPoint() {
         });
         
         const result = await response.json();
+        console.log('Backend response:', result);
         
         if (result.status === 'ok') {
             // Mark user as having completed analysis
@@ -506,6 +521,7 @@ async function saveFinalPoint() {
             `;
         }
     } catch (error) {
+        console.error('Save error:', error);
         summaryDiv.innerHTML += `
             <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
                 <h4>❌ Ошибка при сохранении</h4>
