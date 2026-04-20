@@ -441,9 +441,15 @@ async function saveFinalPoint() {
     const userId = localStorage.getItem('user_id');
     const point = collectStepData();
     
+    // Определяем тип почвы для отображения
+    let soilTypeDisplay = point.soil_type || stepData.validationResult?.identified_soil_type || "Не определен";
+    
     summaryDiv.innerHTML = `
         <div style="padding: 20px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
             <h4>📋 Итоговые данные:</h4>
+            <div style="padding: 10px; background: rgba(34, 197, 94, 0.1); border-radius: 6px; margin: 10px 0;">
+                <p style="margin: 0; font-weight: 600;">🌱 Тип почвы: ${soilTypeDisplay}</p>
+            </div>
             <p><strong>Широта:</strong> ${point.lat}</p>
             <p><strong>Долгота:</strong> ${point.lng}</p>
             <p><strong>pH:</strong> ${point.ph || 'Не указано'}</p>
