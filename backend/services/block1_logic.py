@@ -62,24 +62,12 @@ async def process_block1(data):
     if image:
         vision_result = analyze_image_deepseek_vision(image)
         
-        # Проверка на "не почва"
-        result_lower = str(vision_result).lower()
+        # Проверяем первое слово ответа DeepSeek
+        result_lower = str(vision_result).lower().strip()
+        first_word = result_lower.split()[0] if result_lower else ""
         
-        # Reject keywords - если встречаем - точно не почва
-        reject_keywords = [
-            "кот", "кошка", "собака", "животное", "человек", "лицо", "рука", "нога",
-            "мебель", "стул", "стол", "машина", "дом", "здание",
-            "еда", "фрукт", "овощ", "мясо", "рыба", "птица"
-        ]
-        
-        for keyword in reject_keywords:
-            if keyword in result_lower:
-                return {
-                    "error": "Загруженное изображение не содержит образца почвы. Пожалуйста, загрузите фото почвы или введите данные вручную"
-                }
-        
-        # Явный отказ
-        if "не почва" in result_lower or "не является почвой" in result_lower or "это не почва" in result_lower:
+        # Если первое слово НЕТ - отклоняем
+        if first_word == "нет" or first_word == "no":
             return {
                 "error": "Загруженное изображение не содержит образца почвы. Пожалуйста, загрузите фото почвы или введите данные вручную"
             }
