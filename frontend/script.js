@@ -680,7 +680,7 @@ function addPointToMap(point) {
 
 function findMyLocation() {
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((pos) => {
+        navigator.geolocation.getCurrentPosition(async (pos) => {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
             map.setView([lat, lng], 13);
@@ -692,6 +692,31 @@ function findMyLocation() {
             currentMarker = L.marker([lat, lng]).addTo(map)
                 .bindPopup("Вы здесь")
                 .openPopup();
+            
+            // Загрузить близлежащие точки
+            try {
+                const res = await fetch(`/api/nearby-points?lat=${lat}&lng=${lng}&radius_km=5`);
+                const nearbyPoints = await res.json();
+                
+                // Удалить старые маркеры
+                if (markers) {
+                    markers.forEach(marker => map.removeLayer(marker));
+                    markers = [];
+                }
+                
+                // Добавить близлежащие точки на карту
+                nearbyPoints.forEach(point => {
+                    addPointToMap(point);
+                });
+                
+                if (nearbyPoints.length > 0) {
+                    alert(`Найдено ${nearbyPoints.length} близлежащих точек в радиусе 5 км`);
+                } else {
+                    alert('Близлежащих точек не найдено в радиусе 5 км');
+                }
+            } catch (error) {
+                console.error('Error loading nearby points:', error);
+            }
         }, (error) => {
             alert('Не удалось определить местоположение');
         });
@@ -704,11 +729,18 @@ function showPointDetails(point) {
     const pointInfoDiv = document.getElementById('point-info');
     const images = point.images || [];
     const firstImage = images.length > 0 ? images[0] : point.image;
+    const soilType = point.report?.general?.soil_type || "Не определен";
     
     pointInfoDiv.innerHTML = `
         ${firstImage ? `<img src="${firstImage}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
         ${images.length > 1 ? `<small style="color:#666;">${images.length} фото</small>` : ""}
         <h4 style="color:#2E7D32;">${point.type === 'professional' ? '🎓 ПРОФЕССИОНАЛЬНАЯ' : '🔬 ЛЮБИТЕЛЬСКАЯ'} ТОЧКА</h4>
+        
+        <div style="padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px; margin: 15px 0;">
+            <h5 style="color: #22c55e; margin: 0 0 8px 0;">🌱 Тип почвы</h5>
+            <p style="margin: 0; font-size: 16px; font-weight: 600;">${soilType}</p>
+        </div>
+        
         <p><strong>Координаты:</strong> ${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}</p>
         <hr style="margin:10px 0; border-color:#A5D6A7;">
         ${formatStructuredReport(point.report)}
@@ -740,6 +772,7 @@ function createPopup(p) {
     const report = p.report;
     const images = p.images || [];
     const firstImage = images.length > 0 ? images[0] : p.image;
+    const soilType = report?.general?.soil_type || "Не определен";
     
     return `
         <div style="max-width:300px">
@@ -747,7 +780,10 @@ function createPopup(p) {
             <b>${p.type === 'professional' ? '🎓 ПРОФ' : '🔬 ЛЮБ'}</b>
             ${images.length > 1 ? `<br><small>${images.length} фото</small>` : ""}
             <br><br>
-            ${report?.general?.soil_type ? `<b>Тип:</b> ${report.general.soil_type}<br>` : ""}
+            <div style="padding: 8px; background: rgba(34, 197, 94, 0.1); border-radius: 6px; margin-bottom: 10px;">
+                <b style="color: #22c55e; font-size: 14px;">🌱 Тип почвы:</b><br>
+                <span style="font-size: 13px; font-weight: 600;">${soilType}</span>
+            </div>
             <b>pH:</b> ${report?.chemistry?.ph || p.ph || "—"}
             <br>
             <b>N:</b> ${report?.chemistry?.nitrogen || p.nitrogen || "—"}
