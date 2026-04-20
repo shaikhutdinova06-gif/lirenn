@@ -3,14 +3,14 @@ import httpx
 import base64
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GIGACHAT_TOKEN = os.getenv("GIGACHAT_TOKEN")
 
-def analyze_image_gemini(image):
+def analyze_image_gigachat(image):
     """
-    Анализ изображения с Google Gemini
+    Анализ изображения с GigaChat
     """
-    if not GEMINI_API_KEY:
-        return "GEMINI_API_KEY не настроен"
+    if not GIGACHAT_TOKEN:
+        return "GIGACHAT_TOKEN не настроен"
     
     try:
         # Декодируем base64 изображение если нужно
@@ -19,27 +19,42 @@ def analyze_image_gemini(image):
         else:
             image_data = image
         
-        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent?key={GEMINI_API_KEY}"
-        
-        payload = {
-            "contents": [{
-                "parts": [
-                    {"text": "Это почва? Определи тип, цвет, структуру, плотность, особенности. Ответь в формате JSON с полями: soil_type, color, structure, density, features"},
-                    {"inline_data": {
-                        "mime_type": "image/jpeg",
-                        "data": image_data
-                    }}
-                ]
-            }]
+        url = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {GIGACHAT_TOKEN}",
+            "Content-Type": "application/json"
         }
         
-        response = httpx.post(url, json=payload, timeout=30.0)
+        prompt = """
+Перед тобой изображение почвы в формате base64.
+
+Определи:
+1. Это почва или нет
+2. Тип почвы
+3. Цвет
+4. Структуру
+5. Плотность
+6. Особенности
+
+Ответ дай в формате JSON с полями: soil_type, color, structure, density, features.
+Если не уверен — напиши "неопределено".
+"""
+        
+        data = {
+            "model": "GigaChat",
+            "messages": [
+                {"role": "user", "content": prompt + "\n" + image_data[:5000]}
+            ],
+            "temperature": 0.3
+        }
+        
+        response = httpx.post(url, headers=headers, json=data, timeout=30.0)
         result = response.json()
         
-        if "candidates" in result and len(result["candidates"]) > 0:
-            return result["candidates"][0]["content"]["parts"][0]["text"]
+        if "choices" in result and len(result["choices"]) > 0:
+            return result["choices"][0]["message"]["content"]
         else:
-            return "Ошибка Gemini API"
+            return "Ошибка GigaChat API"
             
     except Exception as e:
         return f"Ошибка: {str(e)}"
