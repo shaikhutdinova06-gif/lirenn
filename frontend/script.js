@@ -479,11 +479,15 @@ async function saveFinalPoint() {
             summaryDiv.innerHTML += `
                 <div style="padding: 20px; background: rgba(76, 175, 80, 0.2); border-radius: 8px; margin-top: 15px;">
                     <h4>✅ Точка успешно сохранена!</h4>
-                    <p>Вы можете добавить ещё точек или перейти на карту</p>
-                    <button class="btn btn-primary" onclick="resetForm()">➕ Добавить ещё точку</button>
-                    <button class="btn btn-secondary" onclick="showSection('map')">🌍 Общая карта</button>
+                    <p>Перенаправление на карту...</p>
                 </div>
             `;
+            
+            // Перезагрузить точки и перейти на карту
+            loadMyPoints();
+            setTimeout(() => {
+                showSection('map');
+            }, 1000);
         } else {
             summaryDiv.innerHTML += `
                 <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
