@@ -1677,7 +1677,10 @@ async function load3D(){
             }
         }
 
-        Plotly.newPlot('plot3d', [trace], layout)
+        const plot3dEl = document.getElementById('plot3d');
+        if (plot3dEl) {
+            Plotly.newPlot('plot3d', [trace], layout);
+        }
     } catch (error) {
         console.error("Error loading 3D:", error)
         alert("Ошибка загрузки 3D карты: " + error.message)
@@ -1732,7 +1735,10 @@ async function loadDegradation(){
             }
         }
 
-        Plotly.newPlot('plot3d', [trace], layout)
+        const plot3dEl = document.getElementById('plot3d');
+        if (plot3dEl) {
+            Plotly.newPlot('plot3d', [trace], layout);
+        }
         
         // Добавляем круги на карту
         d.forEach(p=>{
@@ -1769,7 +1775,10 @@ async function loadRecovery(soil, health){
             yaxis: { title: 'Индекс здоровья' }
         }
 
-        Plotly.newPlot('plot3d', [trace], layout)
+        const plot3dEl = document.getElementById('plot3d');
+        if (plot3dEl) {
+            Plotly.newPlot('plot3d', [trace], layout);
+        }
     } catch (error) {
         console.error("Error loading recovery:", error)
         alert("Ошибка загрузки восстановления: " + error.message)
@@ -1827,7 +1836,10 @@ function buildUserSoil3D(points){
         }
     }
     
-    Plotly.newPlot('plot3d', [trace], layout)
+    const plot3dEl = document.getElementById('plot3d');
+    if (plot3dEl) {
+        Plotly.newPlot('plot3d', [trace], layout);
+    }
 }
 
 function drawZones(points){
@@ -2246,7 +2258,10 @@ function drawSoil(point){
         margin: {l: 0, r: 0, t: 30, b: 0}
     }
 
-    Plotly.newPlot('soil3d', data, layout)
+    const soil3dEl = document.getElementById('soil3d');
+    if (soil3dEl) {
+        Plotly.newPlot('soil3d', data, layout);
+    }
     lirenSay(`${soilData.name} построен! pH: ${point.ph}, Влажность: ${point.moisture}%, Гумус: ${point.humus}%, Здоровье: ${Math.round(health)}% 🌱`)
 }
 
@@ -2488,7 +2503,10 @@ function showHistoryGraphs(history){
         yaxis: {title: 'Значение'}
     }
 
-    Plotly.newPlot('plot3d', [trace1, trace2, trace3], layout)
+    const plot3dEl = document.getElementById('plot3d');
+    if (plot3dEl) {
+        Plotly.newPlot('plot3d', [trace1, trace2, trace3], layout);
+    }
 }
 
 // BLOCK 1: Soil Analysis with DeepSeek
