@@ -330,12 +330,7 @@ async function processStep3() {
             </div>
         `;
     } else {
-        resultDiv.innerHTML = `
-            <div style="padding: 15px; background: rgba(234, 179, 8, 0.1); border-radius: 8px;">
-                <h4>⚠️ Показатели не введены</h4>
-                <p>Будет использован AI-анализ для предположения значений</p>
-            </div>
-        `;
+        resultDiv.innerHTML = '';
     }
 }
 
