@@ -18,7 +18,7 @@ async def process_block1(data):
     nitrogen = data.get("nitrogen")
     phosphorus = data.get("phosphorus")
     potassium = data.get("potassium")
-    image = data.get("image")
+    images = data.get("images", [])
     color = data.get("color", "green")
     icon = data.get("icon", "sample")
     tags = data.get("tags", [])
@@ -59,8 +59,9 @@ async def process_block1(data):
     # =========================
     # ШАГ 1 — DEEPSEEK VISION АНАЛИЗ ФОТО
     # =========================
-    if image:
-        vision_result = analyze_image_deepseek_vision(image)
+    if images and len(images) > 0:
+        # Анализируем первое фото для валидации
+        vision_result = analyze_image_deepseek_vision(images[0])
         
         # Проверяем первое слово ответа DeepSeek
         result_lower = str(vision_result).lower().strip()
@@ -105,7 +106,7 @@ async def process_block1(data):
     # =========================
     # ПРОВЕРКА ДОСТОВЕРНОСТИ ХИМИЧЕСКИХ ПОКАЗАТЕЛЕЙ (если нет фото)
     # =========================
-    if not image:
+    if not images or len(images) == 0:
         if ph or nitrogen or phosphorus or potassium:
             msg = [
                 {"role": "system", "content": "Ты почвовед. Оцени достоверность химических показателей без фото. Ответь ТОЛЬКО 'ДА' или 'НЕТ'."},
@@ -194,7 +195,7 @@ async def process_block1(data):
     # =========================
     # ОПРЕДЕЛЕНИЕ ТИПА ТОЧКИ
     # =========================
-    point_type = "professional" if (image and report["meta"]["confidence"] >= 0.8) else "amateur"
+    point_type = "professional" if (images and len(images) > 0 and report["meta"]["confidence"] >= 0.8) else "amateur"
 
     # =========================
     # СОХРАНЕНИЕ ТОЧКИ (append-only, без перезаписи)
@@ -214,7 +215,7 @@ async def process_block1(data):
         "tags": tags,
         "color": color,
         "icon": icon,
-        "image": image,
+        "images": images,
         "report": report,
         "type": point_type,
         "result": result,
@@ -225,7 +226,7 @@ async def process_block1(data):
     # =========================
     # СОХРАНЕНИЕ ПОМЕТОК В ПЕРСОНАЛЬНУЮ БАЗУ
     # =========================
-    if user_id and (notes or tags or image):
+    if user_id and (notes or tags or (images and len(images) > 0)):
         annotation = {
             "id": str(uuid.uuid4()),
             "timestamp": datetime.utcnow().isoformat(),
@@ -233,7 +234,7 @@ async def process_block1(data):
             "point_id": point["id"],
             "notes": notes,
             "tags": tags,
-            "image": image
+            "images": images
         }
         save_user_annotation(user_id, annotation)
 
