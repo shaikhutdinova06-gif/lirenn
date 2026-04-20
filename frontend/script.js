@@ -475,7 +475,7 @@ async function saveFinalPoint() {
                     <h4>✅ Точка успешно сохранена!</h4>
                     <p>Вы можете добавить ещё точек или перейти на карту</p>
                     <button class="btn btn-primary" onclick="resetForm()">➕ Добавить ещё точку</button>
-                    <button class="btn btn-secondary" onclick="showSection('map')">🌍 Общая карта</button>
+                    <button class="btn btn-secondary" onclick="goToMapAfterSave()">🌍 Общая карта</button>
                 </div>
             `;
         } else {
@@ -494,6 +494,17 @@ async function saveFinalPoint() {
             </div>
         `;
     }
+}
+
+function goToMapAfterSave() {
+    // Сбросить фильтр типов почв
+    document.getElementById('soil-type-filter').value = '';
+    
+    // Перезагрузить точки на карте
+    loadMyPoints();
+    
+    // Показать карту
+    showSection('map');
 }
 
 function resetForm() {
