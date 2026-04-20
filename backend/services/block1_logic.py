@@ -1,18 +1,22 @@
 import uuid
+import json
 from datetime import datetime
 from backend.services.storage import save_point, get_points, get_user_points, save_user_annotation, get_user_annotations
-from backend.services.ai_model import deepseek_analyze, deepseek_classify, call_deepseek
+from backend.services.ai_model import deepseek_analyze, deepseek_classify, call_deepseek, analyze_image_gemini
 from backend.services.compare import find_similar
 
 async def process_block1(data):
     """
-    Полная реализация Блока 1 согласно спецификации с пошаговыми вызовами DeepSeek
+    Полная реализация Блока 1 с Gemini + DeepSeek и структурированным отчётом
     """
     result = {}
     lat = data.get("lat")
     lng = data.get("lng")
     ph = data.get("ph")
     moisture = data.get("moisture")
+    nitrogen = data.get("nitrogen")
+    phosphorus = data.get("phosphorus")
+    potassium = data.get("potassium")
     image = data.get("image")
     color = data.get("color", "green")
     icon = data.get("icon", "sample")
@@ -20,65 +24,110 @@ async def process_block1(data):
     notes = data.get("notes")
     user_id = data.get("user_id")
     
-    # Контекст для накопления информации
-    context = []
+    # Базовый отчёт
+    report = {
+        "general": {
+            "soil_type": "",
+            "color": "",
+            "structure": "",
+            "density": "",
+            "notes": notes or ""
+        },
+        "chemistry": {
+            "ph": ph,
+            "organic_matter": None,
+            "nitrogen": nitrogen,
+            "phosphorus": phosphorus,
+            "potassium": potassium
+        },
+        "physical": {
+            "moisture": moisture,
+            "texture": "",
+            "porosity": None
+        },
+        "location": {
+            "lat": lat,
+            "lng": lng
+        },
+        "meta": {
+            "source": "user",
+            "confidence": 0.6
+        }
+    }
 
     # =========================
-    # ШАГ 1 — ПРОВЕРКА ФОТО
+    # ШАГ 1 — GEMINI АНАЛИЗ ФОТО
     # =========================
     if image:
-        classification = await deepseek_classify(image)
-        if classification != "soil":
-            return {
-                "error": "Загруженное изображение не содержит образца почвы. Пожалуйста, загрузите фото почвы или введите данные вручную"
-            }
-        context.append("Фото: это почва")
-    else:
-        context.append("Фото отсутствует")
+        gemini_result = analyze_image_gemini(image)
+        if "Ошибка" in gemini_result or "не настроен" in gemini_result:
+            result["gemini_error"] = gemini_result
+        else:
+            # Парсим JSON из ответа Gemini
+            try:
+                if gemini_result.startswith("```json"):
+                    gemini_result = gemini_result.replace("```json", "").replace("```", "").strip()
+                gemini_data = json.loads(gemini_result)
+                
+                report["general"]["soil_type"] = gemini_data.get("soil_type", "")
+                report["general"]["color"] = gemini_data.get("color", "")
+                report["general"]["structure"] = gemini_data.get("structure", "")
+                report["general"]["density"] = gemini_data.get("density", "")
+                report["physical"]["texture"] = gemini_data.get("features", "")
+                
+                report["meta"]["source"] = "ai"
+                report["meta"]["confidence"] = 0.8
+            except:
+                # Если не JSON, используем как текст
+                report["general"]["notes"] = gemini_result
+        
+        result["gemini_analysis"] = gemini_result
 
     # =========================
-    # ШАГ 2 — AI ОПИСАНИЕ
+    # ШАГ 2 — DEEPSEEK СТРУКТУРИРОВАНИЕ
     # =========================
-    msg = [
-        {"role": "system", "content": "Ты почвовед. Опиши характеристики почвы."},
-        {"role": "user", "content": str(context)}
-    ]
-    ai_description = call_deepseek(msg)
-    context.append(ai_description)
-    result["image_analysis"] = ai_description
-
-    # =========================
-    # ШАГ 3 — PH И ВЛАЖНОСТЬ
-    # =========================
-    if ph or moisture:
+    if image:
         msg = [
-            {"role": "system", "content": "Проанализируй pH и влажность почвы."},
-            {"role": "user", "content": f"pH={ph}, влажность={moisture}%"}
+            {"role": "system", "content": "Ты почвовед. Структурируй данные почвы в JSON с полями: soil_type, color, structure, density, texture, organic_matter_estimate. Ответь только JSON."},
+            {"role": "user", "content": f"Фото анализ: {gemini_result}\nДанные: pH={ph}, влажность={moisture}%, азот={nitrogen}, фосфор={phosphorus}, калий={potassium}"}
         ]
-        chem_analysis = call_deepseek(msg)
-        context.append(chem_analysis)
-        result["chemistry"] = {"ph": ph, "moisture": moisture}
-        result["chem_analysis"] = chem_analysis
-    else:
-        msg = [
-            {"role": "system", "content": "Предположи pH и влажность по описанию"},
-            {"role": "user", "content": str(context)}
-        ]
-        guess = call_deepseek(msg)
-        context.append(guess)
-        result["chemistry"] = "Нет данных — оценка через AI"
-        result["chem_analysis"] = guess
+        deepseek_result = call_deepseek(msg)
+        
+        try:
+            if deepseek_result.startswith("```json"):
+                deepseek_result = deepseek_result.replace("```json", "").replace("```", "").strip()
+            deepseek_data = json.loads(deepseek_result)
+            
+            # Объединяем данные
+            if deepseek_data.get("soil_type"):
+                report["general"]["soil_type"] = deepseek_data["soil_type"]
+            if deepseek_data.get("color"):
+                report["general"]["color"] = deepseek_data["color"]
+            if deepseek_data.get("structure"):
+                report["general"]["structure"] = deepseek_data["structure"]
+            if deepseek_data.get("density"):
+                report["general"]["density"] = deepseek_data["density"]
+            if deepseek_data.get("texture"):
+                report["physical"]["texture"] = deepseek_data["texture"]
+            if deepseek_data.get("organic_matter_estimate"):
+                report["chemistry"]["organic_matter"] = deepseek_data["organic_matter_estimate"]
+            
+            report["meta"]["source"] = "mixed"
+            report["meta"]["confidence"] = 0.9
+        except:
+            pass
+        
+        result["deepseek_structuring"] = deepseek_result
 
     # =========================
-    # ШАГ 4 — ГЕОЛОКАЦИЯ
+    # ШАГ 3 — ГЕОЛОКАЦИЯ
     # =========================
     if lat and lng:
         msg = [
-            {"role": "system", "content": "Опиши ландшафт по координатам"},
+            {"role": "system", "content": "Опиши ландшафт и типичные почвы для координат"},
             {"role": "user", "content": f"{lat}, {lng}"}
         ]
         geo = call_deepseek(msg)
-        context.append(geo)
         result["geo_analysis"] = geo
         result["has_location"] = True
         
@@ -103,43 +152,9 @@ async def process_block1(data):
         result["has_location"] = False
 
     # =========================
-    # ШАГ 5 — ФИНАЛЬНЫЙ ОТЧЁТ
+    # ОПРЕДЕЛЕНИЕ ТИПА ТОЧКИ
     # =========================
-    msg = [
-        {"role": "system", "content": "Сформируй структурированный отчёт по почве"},
-        {"role": "user", "content": str(context)}
-    ]
-    final_report = call_deepseek(msg)
-    result["report"] = final_report
-
-    # =========================
-    # ПРОВЕРКА НАЛИЧИЯ ФОТО
-    # =========================
-    result["image_check"] = "soil" if image else "no_image"
-    result["has_user_photo"] = bool(image)
-
-    # =========================
-    # СОХРАНЕНИЕ ПОМЕТОК
-    # =========================
-    annotations = {
-        "text_notes": notes if notes else None,
-        "symbol": icon,
-        "color": color,
-        "tags": tags if tags else [],
-        "has_photo": bool(image)
-    }
-    result["annotations"] = annotations
-
-    # =========================
-    # СОСТОЯНИЕ ПРОЦЕССА
-    # =========================
-    result["state"] = {
-        "has_image": bool(image),
-        "has_geo": bool(lat and lng),
-        "has_chem": bool(ph or moisture),
-        "has_annotations": bool(notes or tags),
-        "completed": bool(image and lat and lng)
-    }
+    point_type = "professional" if (image and report["meta"]["confidence"] >= 0.8) else "amateur"
 
     # =========================
     # СОХРАНЕНИЕ ТОЧКИ (append-only, без перезаписи)
@@ -152,12 +167,16 @@ async def process_block1(data):
         "lng": lng,
         "ph": ph,
         "moisture": moisture,
+        "nitrogen": nitrogen,
+        "phosphorus": phosphorus,
+        "potassium": potassium,
         "notes": notes,
         "tags": tags,
         "color": color,
         "icon": icon,
         "image": image,
-        "report": final_report,
+        "report": report,
+        "type": point_type,
         "result": result,
         "is_test": False
     }

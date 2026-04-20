@@ -381,6 +381,9 @@ async function saveFinalPoint() {
         lng: stepData.lng,
         ph: stepData.ph,
         moisture: stepData.moisture,
+        nitrogen: stepData.nitrogen,
+        phosphorus: stepData.phosphorus,
+        potassium: stepData.potassium,
         notes: stepData.notes,
         tags: stepData.tags,
         color: stepData.color,
@@ -449,6 +452,9 @@ function resetForm() {
         image: null,
         ph: null,
         moisture: null,
+        nitrogen: null,
+        phosphorus: null,
+        potassium: null,
         lat: null,
         lng: null,
         color: 'green',
@@ -463,6 +469,9 @@ function resetForm() {
     document.getElementById('step1-image').value = '';
     document.getElementById('step3-ph').value = '';
     document.getElementById('step3-moisture').value = '';
+    document.getElementById('step3-nitrogen').value = '';
+    document.getElementById('step3-phosphorus').value = '';
+    document.getElementById('step3-potassium').value = '';
     document.getElementById('step4-lat').value = '';
     document.getElementById('step4-lng').value = '';
     document.getElementById('step7-color').value = 'green';
@@ -582,14 +591,20 @@ async function loadMyPoints() {
 }
 
 function createPopup(p) {
+    const report = p.report;
     return `
-        <div style="max-width:250px">
+        <div style="max-width:300px">
             ${p.image ? `<img src="${p.image}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
-            <b>Описание:</b> ${p.report ? p.report.slice(0, 150) + "..." : "нет"}
+            <b>${p.type === 'professional' ? '🎓 ПРОФ' : '🔬 ЛЮБ'}</b>
             <br><br>
-            <b>pH:</b> ${p.ph || "—"}
+            ${report?.general?.soil_type ? `<b>Тип:</b> ${report.general.soil_type}<br>` : ""}
+            <b>pH:</b> ${report?.chemistry?.ph || p.ph || "—"}
             <br>
-            <b>Влажность:</b> ${p.moisture || "—"}
+            <b>N:</b> ${report?.chemistry?.nitrogen || p.nitrogen || "—"}
+            <br>
+            <b>P:</b> ${report?.chemistry?.phosphorus || p.phosphorus || "—"}
+            <br>
+            <b>K:</b> ${report?.chemistry?.potassium || p.potassium || "—"}
             <br>
             ${p.notes ? `<i>${p.notes}</i>` : ""}
         </div>
@@ -605,15 +620,13 @@ async function loadUserCabinet() {
         const cabinetDiv = document.getElementById('my-points-list');
         if (data.points && data.points.length > 0) {
             cabinetDiv.innerHTML = data.points.map(point => `
-                <div class="cabinet-point" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-                    ${point.image ? `<img src="${point.image}" style="width:100%; margin-bottom:10px;">` : ""}
-                    <h4>Точка #${point.id.slice(0, 8)}</h4>
-                    <p><strong>Координаты:</strong> ${point.lat}, ${point.lng}</p>
-                    <p><strong>pH:</strong> ${point.ph || 'N/A'}</p>
-                    <p><strong>Влажность:</strong> ${point.moisture || 'N/A'}%</p>
-                    <p>${point.report || ''}</p>
+                <div class="cabinet-point" style="border:1px solid #A5D6A7; padding:15px; margin-bottom:15px; border-radius:10px; background:white;">
+                    ${point.image ? `<img src="${point.image}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
+                    <h4 style="color:#2E7D32; margin-bottom:10px;">${point.type === 'professional' ? '🎓 ПРОФЕССИОНАЛЬНАЯ' : '🔬 ЛЮБИТЕЛЬСКАЯ'} ТОЧКА #${point.id.slice(0, 8)}</h4>
+                    <p><strong>Координаты:</strong> ${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}</p>
+                    ${formatStructuredReport(point.report)}
                     ${point.notes ? `<p><strong>Заметки:</strong> ${point.notes}</p>` : ''}
-                    ${point.tags ? `<p><strong>Теги:</strong> ${point.tags.join(', ')}</p>` : ''}
+                    ${point.tags && point.tags.length > 0 ? `<p><strong>Теги:</strong> ${point.tags.join(', ')}</p>` : ''}
                 </div>
             `).join('');
         } else {
@@ -622,6 +635,33 @@ async function loadUserCabinet() {
     } catch (error) {
         console.error('Error loading cabinet:', error);
     }
+}
+
+function formatStructuredReport(report) {
+    if (!report) return '<p><i>Нет данных отчёта</i></p>';
+    
+    return `
+        <hr style="margin:10px 0; border-color:#A5D6A7;">
+        <div style="margin-top:10px;">
+            <strong>📋 Общие характеристики:</strong>
+            <p>Тип: ${report.general?.soil_type || '—'}</p>
+            <p>Цвет: ${report.general?.color || '—'}</p>
+            <p>Структура: ${report.general?.structure || '—'}</p>
+            ${report.general?.density ? `<p>Плотность: ${report.general.density}</p>` : ''}
+            
+            <strong>🧪 Химия:</strong>
+            <p>pH: ${report.chemistry?.ph || '—'}</p>
+            <p>Азот (N): ${report.chemistry?.nitrogen || '—'} мг/кг</p>
+            <p>Фосфор (P): ${report.chemistry?.phosphorus || '—'} мг/кг</p>
+            <p>Калий (K): ${report.chemistry?.potassium || '—'} мг/кг</p>
+            
+            <strong>💧 Физика:</strong>
+            <p>Влажность: ${report.physical?.moisture || '—'}%</p>
+            ${report.physical?.texture ? `<p>Текстура: ${report.physical.texture}</p>` : ''}
+            
+            ${report.meta ? `<p style="font-size:12px; color:#666;"><i>Источник: ${report.meta.source}, уверённость: ${report.meta.confidence}</i></p>` : ''}
+        </div>
+    `;
 }
 
 function loadTestLocation() {
