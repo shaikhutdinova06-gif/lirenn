@@ -1077,56 +1077,6 @@ async function loadUserCabinet() {
     }
 }
 
-// Конвертация файла в base64
-function toBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
-}
-
-// Тестовое местоположение
-function loadTestLocation() {
-    setCurrentPoint(55.7558, 37.6173);
-    document.getElementById("ph").value = "7.0";
-    document.getElementById("moisture").value = "50";
-    document.getElementById("tags").value = "#чернозём, #тест";
-    document.getElementById("notes").value = "Тестовая точка для демонстрации";
-}
-
-// Отображение точки
-function addPointToMap(point) {
-    const colorMap = {
-        green: "#22c55e",
-        yellow: "#eab308",
-        red: "#ef4444",
-        blue: "#3b82f6"
-    };
-
-    const iconMap = {
-        sample: "🧪",
-        analysis: "📊",
-        interest: "⭐",
-        control: "🎯"
-    };
-
-    const color = colorMap[point.color] || "#22c55e";
-    const icon = iconMap[point.icon] || "📍";
-
-    const marker = L.marker([point.lat, point.lng]).addTo(map);
-    marker.bindPopup(`
-        <div style="min-width: 200px;">
-            <strong>${icon} Точка</strong><br>
-            pH: ${point.ph || "-"}<br>
-            Влажность: ${point.moisture || "-"}%<br>
-            ${point.tags ? `Теги: ${point.tags.join(", ")}<br>` : ""}
-            ${point.notes ? `Заметки: ${point.notes}` : ""}
-        </div>
-    `);
-}
-
 // Загрузка ближайших точек
 async function loadNearbyPoints() {
     if (!currentPoint) return;
@@ -1223,63 +1173,80 @@ async function loadUserPoints() {
 
 
 // Refresh points button
-document.getElementById('refreshPoints').addEventListener('click', () => {
-    loadUserPoints();
-});
+const refreshPointsBtn = document.getElementById('refreshPoints');
+if (refreshPointsBtn) {
+    refreshPointsBtn.addEventListener('click', () => {
+        loadUserPoints();
+    });
+}
 
 // Add point form handling
-document.getElementById('addPointBtn').addEventListener('click', () => {
-    document.getElementById('point-form').classList.remove('hidden');
-});
+const addPointBtn = document.getElementById('addPointBtn');
+const pointForm = document.getElementById('point-form');
+const cancelPointBtn = document.getElementById('cancelPoint');
+const savePointBtn = document.getElementById('savePoint');
 
-document.getElementById('cancelPoint').addEventListener('click', () => {
-    document.getElementById('point-form').classList.add('hidden');
-});
+if (addPointBtn && pointForm) {
+    addPointBtn.addEventListener('click', () => {
+        pointForm.classList.remove('hidden');
+    });
+}
 
-document.getElementById('savePoint').addEventListener('click', async () => {
-    const title = document.getElementById('pointTitle').value;
-    const description = document.getElementById('pointDescription').value;
-    const photoInput = document.getElementById('pointPhoto');
-    
-    if (!title) {
-        alert('Введите название точки');
-        return;
-    }
-    
-    // Get current map center
-    const center = map.getCenter();
-    
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('description', description);
-    formData.append('lat', center.lat);
-    formData.append('lng', center.lng);
-    
-    if (photoInput.files[0]) {
-        formData.append('photo', photoInput.files[0]);
-    }
-    
-    try {
-        const response = await fetch(`${API_URL}/points`, {
-            method: 'POST',
-            body: formData
-        });
+if (cancelPointBtn && pointForm) {
+    cancelPointBtn.addEventListener('click', () => {
+        pointForm.classList.add('hidden');
+    });
+}
+
+if (savePointBtn) {
+    savePointBtn.addEventListener('click', async () => {
+        const pointTitle = document.getElementById('pointTitle');
+        const pointDescription = document.getElementById('pointDescription');
+        const photoInput = document.getElementById('pointPhoto');
         
-        if (response.ok) {
-            alert('Точка сохранена');
-            document.getElementById('point-form').classList.add('hidden');
-            document.getElementById('pointTitle').value = '';
-            document.getElementById('pointDescription').value = '';
-            document.getElementById('pointPhoto').value = '';
-            loadUserPoints();
-        } else {
+        const title = pointTitle ? pointTitle.value : '';
+        const description = pointDescription ? pointDescription.value : '';
+        
+        if (!title) {
+            alert('Введите название точки');
+            return;
+        }
+        
+        // Get current map center
+        const center = map.getCenter();
+        
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('description', description);
+        formData.append('lat', center.lat);
+        formData.append('lng', center.lng);
+        
+        if (photoInput && photoInput.files[0]) {
+            formData.append('photo', photoInput.files[0]);
+        }
+        
+        try {
+            const response = await fetch(`${API_URL}/points`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                alert('Точка сохранена');
+                if (pointForm) pointForm.classList.add('hidden');
+                if (pointTitle) pointTitle.value = '';
+                if (pointDescription) pointDescription.value = '';
+                if (photoInput) photoInput.value = '';
+                loadUserPoints();
+            } else {
+                alert('Ошибка сохранения точки');
+            }
+        } catch (error) {
+            console.error('Failed to save point:', error);
             alert('Ошибка сохранения точки');
         }
-    } catch (error) {
-        console.error('Failed to save point:', error);
-        alert('Ошибка сохранения точки');
-    }
-});
+    });
+}
 
 // Load initial data
 loadUserPoints();
