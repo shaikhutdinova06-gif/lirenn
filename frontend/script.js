@@ -600,23 +600,6 @@ function findMyLocation() {
     }
 }
 
-let pointMode = false;
-
-function enablePointMode() {
-    pointMode = true;
-    map.getContainer().style.cursor = 'crosshair';
-    alert('Режим добавления точки: кликните на карту для выбора местоположения');
-}
-
-map.on('click', function(e) {
-    if (pointMode) {
-        setCurrentPoint(e.latlng.lat, e.latlng.lng);
-        pointMode = false;
-        map.getContainer().style.cursor = '';
-        showSection('analysis');
-    }
-});
-
 function showPointDetails(point) {
     const pointInfoDiv = document.getElementById('point-info');
     
