@@ -37,9 +37,10 @@
                 <hr style="margin: 15px 0; border-color: #A5D6A7;">
                 
                 <h4>Фильтр по типу почвы</h4>
-                <select id="soil-type-filter" class="input-field" onchange="filterPointsBySoilType()">
+                <select id="soil-type-filter" class="input-field">
                     <option value="">Все типы</option>
                 </select>
+                <button class="btn btn-primary" onclick="filterPointsBySoilType()" style="margin-top: 10px; width: 100%;">🔍 Найти на карте</button>
             </aside>
             <div class="map-area">
                 <div id="map-container"></div>
