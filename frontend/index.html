@@ -54,12 +54,13 @@
             <!-- Step 1: Photo Classification -->
             <div class="step-panel active" data-step="1">
                 <h3>Шаг 1: Входной анализ фото</h3>
-                <p>Загрузите фото почвы для автоматической классификации</p>
+                <p>Загрузите фото почвы для автоматической классификации (до 10 фото с разных ракурсов)</p>
                 <div class="input-group">
-                    <label>Фото почвы</label>
-                    <input type="file" id="step1-image" accept="image/*" onchange="handleStep1Image()">
+                    <label>Фото почвы (макс. 10)</label>
+                    <input type="file" id="step1-image" accept="image/*" multiple onchange="handleStep1Image()">
                 </div>
                 <div id="step1-result"></div>
+                <div id="step1-image-preview" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
                 <button class="btn btn-primary" onclick="nextStep(2)">Далее →</button>
                 <button class="btn btn-secondary" onclick="skipPhoto()">Пропустить</button>
             </div>

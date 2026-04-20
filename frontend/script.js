@@ -139,14 +139,14 @@ function updateLayers(oldStep, newStep) {
 async function validateStep(step) {
     switch(step) {
         case 1:
-            // Validate photo if present
-            if (stepData.image) {
+            // Validate photos if present
+            if (stepData.images && stepData.images.length > 0) {
                 try {
                     const response = await fetch('/api/block1', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
-                            image: stepData.image,
+                            images: stepData.images,
                             validate_only: true
                         })
                     });
@@ -220,21 +220,40 @@ async function processStep(step) {
 async function handleStep1Image() {
     const imageInput = document.getElementById('step1-image');
     if (imageInput.files.length > 0) {
-        stepData.image = await toBase64(imageInput.files[0]);
+        const files = Array.from(imageInput.files).slice(0, 10); // Max 10 photos
+        stepData.images = [];
+        
+        const previewDiv = document.getElementById('step1-image-preview');
+        previewDiv.innerHTML = '';
+        
+        for (const file of files) {
+            const base64 = await toBase64(file);
+            stepData.images.push(base64);
+            
+            // Add preview
+            const img = document.createElement('img');
+            img.src = base64;
+            img.style.width = '100px';
+            img.style.height = '100px';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = '8px';
+            img.style.border = '2px solid #A5D6A7';
+            previewDiv.appendChild(img);
+        }
         
         const resultDiv = document.getElementById('step1-result');
         resultDiv.innerHTML = `
             <div style="padding: 15px; background: rgba(234, 179, 8, 0.1); border-radius: 8px;">
-                <h4>⏳ Фото загружено</h4>
-                <p>Нажмите "Далее" для проверки изображения</p>
-                <p>Размер: ${Math.round(stepData.image.length / 1024)} KB</p>
+                <h4>⏳ Загружено ${stepData.images.length} фото</h4>
+                <p>Нажмите "Далее" для проверки изображений</p>
+                <p>Макс. 10 фото с разных ракурсов</p>
             </div>
         `;
     }
 }
 
 function skipPhoto() {
-    stepData.image = null;
+    stepData.images = [];
     nextStep(2);
 }
 
@@ -245,12 +264,12 @@ async function processStep2() {
     const messageDiv = document.getElementById('step2-message');
     const resultDiv = document.getElementById('step2-result');
     
-    if (stepData.image) {
-        messageDiv.textContent = 'Фото загружено. Переход к анализу физико-химических показателей.';
-        resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">✅ Фото пользователя присутствует</div>`;
+    if (stepData.images && stepData.images.length > 0) {
+        messageDiv.textContent = `Загружено ${stepData.images.length} фото. Переход к анализу физико-химических показателей.`;
+        resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">✅ ${stepData.images.length} фото пользователя присутствуют</div>`;
     } else {
         messageDiv.textContent = 'Фото не загружено. Будут использованы предположения от AI.';
-        resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(234, 179, 8, 0.1); border-radius: 8px;">⚠️ Фото отсутствует - анализ через AI</div>`;
+        resultDiv.innerHTML = `<div style="padding: 15px; background: rgba(234, 179, 8, 0.1); border-radius: 8px;">⚠️ Фото отсутствуют - анализ через AI</div>`;
     }
 }
 
@@ -402,7 +421,7 @@ async function saveFinalPoint() {
         tags: stepData.tags,
         color: stepData.color,
         icon: stepData.icon,
-        image: stepData.image,
+        images: stepData.images || [],
         user_id: userId
     };
     
@@ -413,6 +432,7 @@ async function saveFinalPoint() {
             <p><strong>Долгота:</strong> ${point.lng}</p>
             <p><strong>pH:</strong> ${point.ph || 'Не указано'}</p>
             <p><strong>Влажность:</strong> ${point.moisture || 'Не указано'}%</p>
+            <p><strong>Фото:</strong> ${point.images.length} шт.</p>
             <p><strong>Цвет:</strong> ${point.color}</p>
             <p><strong>Иконка:</strong> ${point.icon}</p>
             <p><strong>Теги:</strong> ${point.tags.join(', ') || 'Нет'}</p>
@@ -463,7 +483,7 @@ async function saveFinalPoint() {
 function resetForm() {
     currentStep = 1;
     stepData = {
-        image: null,
+        images: [],
         ph: null,
         moisture: null,
         nitrogen: null,
@@ -495,6 +515,7 @@ function resetForm() {
     
     // Clear result divs
     document.getElementById('step1-result').innerHTML = '';
+    document.getElementById('step1-image-preview').innerHTML = '';
     document.getElementById('step2-result').innerHTML = '';
     document.getElementById('step3-result').innerHTML = '';
     document.getElementById('step4-result').innerHTML = '';
@@ -616,9 +637,12 @@ function findMyLocation() {
 
 function showPointDetails(point) {
     const pointInfoDiv = document.getElementById('point-info');
+    const images = point.images || [];
+    const firstImage = images.length > 0 ? images[0] : point.image;
     
     pointInfoDiv.innerHTML = `
-        ${point.image ? `<img src="${point.image}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
+        ${firstImage ? `<img src="${firstImage}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
+        ${images.length > 1 ? `<small style="color:#666;">${images.length} фото</small>` : ""}
         <h4 style="color:#2E7D32;">${point.type === 'professional' ? '🎓 ПРОФЕССИОНАЛЬНАЯ' : '🔬 ЛЮБИТЕЛЬСКАЯ'} ТОЧКА</h4>
         <p><strong>Координаты:</strong> ${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}</p>
         <hr style="margin:10px 0; border-color:#A5D6A7;">
@@ -644,10 +668,14 @@ async function loadMyPoints() {
 
 function createPopup(p) {
     const report = p.report;
+    const images = p.images || [];
+    const firstImage = images.length > 0 ? images[0] : p.image;
+    
     return `
         <div style="max-width:300px">
-            ${p.image ? `<img src="${p.image}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
+            ${firstImage ? `<img src="${firstImage}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
             <b>${p.type === 'professional' ? '🎓 ПРОФ' : '🔬 ЛЮБ'}</b>
+            ${images.length > 1 ? `<br><small>${images.length} фото</small>` : ""}
             <br><br>
             ${report?.general?.soil_type ? `<b>Тип:</b> ${report.general.soil_type}<br>` : ""}
             <b>pH:</b> ${report?.chemistry?.ph || p.ph || "—"}
@@ -671,16 +699,21 @@ async function loadUserCabinet() {
         
         const cabinetDiv = document.getElementById('my-points-list');
         if (data.points && data.points.length > 0) {
-            cabinetDiv.innerHTML = data.points.map(point => `
+            cabinetDiv.innerHTML = data.points.map(point => {
+                const images = point.images || [];
+                const firstImage = images.length > 0 ? images[0] : point.image;
+                
+                return `
                 <div class="cabinet-point" style="border:1px solid #A5D6A7; padding:15px; margin-bottom:15px; border-radius:10px; background:white;">
-                    ${point.image ? `<img src="${point.image}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
+                    ${firstImage ? `<img src="${firstImage}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
+                    ${images.length > 1 ? `<small style="color:#666;">${images.length} фото</small>` : ""}
                     <h4 style="color:#2E7D32; margin-bottom:10px;">${point.type === 'professional' ? '🎓 ПРОФЕССИОНАЛЬНАЯ' : '🔬 ЛЮБИТЕЛЬСКАЯ'} ТОЧКА #${point.id.slice(0, 8)}</h4>
                     <p><strong>Координаты:</strong> ${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}</p>
                     ${formatStructuredReport(point.report)}
                     ${point.notes ? `<p><strong>Заметки:</strong> ${point.notes}</p>` : ''}
                     ${point.tags && point.tags.length > 0 ? `<p><strong>Теги:</strong> ${point.tags.join(', ')}</p>` : ''}
                 </div>
-            `).join('');
+            `}).join('');
         } else {
             cabinetDiv.innerHTML = '<p>У вас пока нет сохранённых точек</p>';
         }
