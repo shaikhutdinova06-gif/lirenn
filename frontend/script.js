@@ -452,17 +452,6 @@ async function saveFinalPoint() {
     
     console.log('Saving point:', point);
     
-    // Проверяем что тип почвы выбран
-    if (!point.soil_type) {
-        summaryDiv.innerHTML = `
-            <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px;">
-                <h4>❌ Ошибка</h4>
-                <p>Пожалуйста, выберите тип почвы из списка</p>
-            </div>
-        `;
-        return;
-    }
-    
     // Определяем тип почвы для отображения
     let soilTypeDisplay = point.soil_type || stepData.validationResult?.identified_soil_type || "Не определен";
     
