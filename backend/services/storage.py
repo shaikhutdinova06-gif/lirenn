@@ -24,6 +24,8 @@ def save_point(point):
     Сохранить точку в общую базу (append-only, без перезаписи)
     """
     ensure_directories()
+    print(f"💾 Saving point to: {COMMON_DB}")
+    print(f"💾 DATA_DIR: {DATA_DIR}")
     if not os.path.exists(COMMON_DB):
         with open(COMMON_DB, "w") as f:
             json.dump([], f)
@@ -32,16 +34,22 @@ def save_point(point):
         data.append(point)
         f.seek(0)
         json.dump(data, f, indent=2)
+    print(f"💾 Point saved successfully. Total points: {len(data)}")
 
 def get_points():
     """
     Получить все точки из общей базы
     """
     ensure_directories()
+    print(f"📂 Loading points from: {COMMON_DB}")
+    print(f"📂 DATA_DIR: {DATA_DIR}")
     if not os.path.exists(COMMON_DB):
+        print(f"📂 File does not exist: {COMMON_DB}")
         return []
     with open(COMMON_DB) as f:
-        return json.load(f)
+        points = json.load(f)
+        print(f"📂 Loaded {len(points)} points")
+        return points
 
 def get_user_points(user_id=None):
     """
