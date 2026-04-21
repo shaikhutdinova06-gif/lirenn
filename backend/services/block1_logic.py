@@ -23,12 +23,13 @@ async def process_block1(data):
     """
     Полная реализация Блока 1 с DeepSeek Vision + DeepSeek и структурированным отчётом
     """
-    # Валидация координат
-    if not data.get("lat") or not data.get("lng"):
-        return {"error": "Нет координат. Пожалуйста, укажите местоположение точки на карте."}
-    
     result = {}
     validate_only = data.get("validate_only", False)
+    
+    # Валидация координат только при сохранении (не при validate_only)
+    if not validate_only:
+        if not data.get("lat") or not data.get("lng"):
+            return {"error": "Нет координат. Пожалуйста, укажите местоположение точки на карте."}
     lat = data.get("lat")
     lng = data.get("lng")
     ph = data.get("ph")
