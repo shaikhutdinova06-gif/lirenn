@@ -3,15 +3,15 @@ import os
 import uuid
 
 # Общая база данных (все точки)
-COMMON_DB = os.path.join(os.getcwd(), "data", "points.json")
+DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.getcwd(), "data"))
+COMMON_DB = os.path.join(DATA_DIR, "points.json")
 
 # Персональные базы данных (по пользователям)
-PERSONAL_DB_DIR = os.path.join(os.getcwd(), "data", "personal")
+PERSONAL_DB_DIR = os.path.join(DATA_DIR, "personal")
 
 def ensure_directories():
     """Создать необходимые директории если их нет"""
-    data_dir = os.path.join(os.getcwd(), "data")
-    os.makedirs(data_dir, exist_ok=True)
+    os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(PERSONAL_DB_DIR, exist_ok=True)
 
 def get_user_db_path(user_id):
