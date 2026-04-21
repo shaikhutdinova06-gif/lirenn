@@ -2,8 +2,12 @@
 // Replaces the current LIRENN map
 
 // =========================
-// BLOCK 1 STEP-BY-STEP LOGIC
+// GLOBAL VARIABLES
 // =========================
+let map = null;
+let currentMarker = null;
+let currentPoint = null;
+let markers = [];
 let currentStep = 1;
 let stepData = {
     image: null,
@@ -20,9 +24,6 @@ let stepData = {
 // =========================
 // MAP INITIALIZATION
 // =========================
-let currentPoint = null;
-let currentMarker = null;
-let map = null;
 
 // Initialize map
 function initMap() {
