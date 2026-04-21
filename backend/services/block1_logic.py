@@ -265,7 +265,8 @@ async def process_block1(data):
     # =========================
     # ШАГ 2 — DEEPSEEK СТРУКТУРИРОВАНИЕ
     # =========================
-    if image:
+    if images and len(images) > 0:
+        image = images[0]
         msg = [
             {"role": "system", "content": "Ты почвовед. Структурируй данные почвы в JSON с полями: soil_type, color, structure, density, texture, organic_matter_estimate. Ответь только JSON."},
             {"role": "user", "content": f"Фото анализ: {vision_result}\nДанные: pH={ph}, влажность={moisture}%, азот={nitrogen}, фосфор={phosphorus}, калий={potassium}"}
