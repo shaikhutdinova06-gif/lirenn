@@ -804,9 +804,9 @@ function showPointDetails(point) {
 async function loadMyPoints(soilTypeFilter = '') {
     try {
         const userId = localStorage.getItem('user_id');
-        let url = `/api/my-points?user_id=${userId}`;
+        let url = `/api/points`;
         if (soilTypeFilter) {
-            url += `&soil_type=${encodeURIComponent(soilTypeFilter)}`;
+            url += `?soil_type=${encodeURIComponent(soilTypeFilter)}`;
         }
         console.log('Loading points from:', url);
         const res = await fetch(url);
