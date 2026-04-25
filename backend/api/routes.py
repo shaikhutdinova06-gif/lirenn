@@ -50,11 +50,18 @@ async def classify_image(request: Request):
     return {"classification": classification}
 
 @router.post("/block1")
-async def block1(request: Request, current_user: dict = Depends(get_current_user_from_token)):
+async def block1(request: Request):
     try:
         data = await request.json()
-        # Используем username из токена как user_id
-        data["user_id"] = current_user["username"]
+        # Если есть токен, используем username, иначе IP
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.replace("Bearer ", "")
+            user = get_current_user(token)
+            if user:
+                data["user_id"] = user["username"]
+        else:
+            data["user_id"] = get_client_ip(request)
         result = await process_block1(data)
         return result
     except Exception as e:
@@ -63,11 +70,21 @@ async def block1(request: Request, current_user: dict = Depends(get_current_user
 def points():
     return get_points()
 @router.get("/user-cabinet")
-async def user_cabinet(current_user: dict = Depends(get_current_user_from_token)):
+async def user_cabinet(request: Request):
     """
     Получить данные личного кабинета пользователя
     """
-    user_id = current_user["username"]
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.replace("Bearer ", "")
+        user = get_current_user(token)
+        if user:
+            user_id = user["username"]
+        else:
+            user_id = get_client_ip(request)
+    else:
+        user_id = get_client_ip(request)
+    
     user_data = get_user_data(user_id)
     user_points = get_user_points(user_id)
     

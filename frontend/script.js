@@ -15,11 +15,11 @@ async function loadPoints() {
     data.forEach(addPointToMap)
 }
 function addPointToMap(p) {
-    const popup = \
-        <b>Zc:</b> \
-        <img src=\
-\\ width=\150\/>
-    \
+    const popup = `
+        <b>pH:</b> ${p.ph || '—'}<br>
+        <b>Влажность:</b> ${p.moisture || '—'}%<br>
+        <b>Zc:</b> ${p.zc || '—'}
+    `;
     L.marker([p.lat, p.lng]).addTo(map).bindPopup(popup)
 }
 
@@ -1077,11 +1077,6 @@ async function loadNearbyPoints() {
     points.forEach(point => {
         addPointToMap(point);
     });
-}
-
-// Загрузка точек пользователя в кабинет (устаревшая функция, заменена на loadUserCabinet)
-async function loadMyPoints() {
-    loadUserCabinet();
 }
 
 // Удаление точки
