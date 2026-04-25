@@ -51,15 +51,20 @@ def register_user(username: str, password: str):
         "created_at": datetime.utcnow().isoformat()
     }
     save_users(users)
+    print(f"User {username} registered successfully")
     return {"status": "ok", "message": "User registered successfully"}
 
 def authenticate_user(username: str, password: str):
     users = get_users()
+    print(f"Authenticating user: {username}, total users: {len(users)}")
     user = users.get(username)
     if not user:
+        print(f"User {username} not found")
         return False
     if not verify_password(password, user["hashed_password"]):
+        print(f"Password verification failed for {username}")
         return False
+    print(f"Authentication successful for {username}")
     return user
 
 def get_current_user(token: str):
