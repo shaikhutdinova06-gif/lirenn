@@ -1,5 +1,12 @@
-let map = L.map('map').setView([55.75, 37.61], 10)
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
+let map = null
+let markers = []
+
+function initMap() {
+    if (map) return
+    map = L.map('map').setView([55.75, 37.61], 10)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
+}
+
 const user_id = localStorage.getItem('user_id') || crypto.randomUUID()
 localStorage.setItem('user_id', user_id)
 async function loadPoints() {
