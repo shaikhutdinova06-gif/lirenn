@@ -1,6 +1,7 @@
 import json
 import os
-FILE = "data/points.json"
+FILE = "/data/points.json"
+os.makedirs("/data", exist_ok=True)
 def get_points():
     if not os.path.exists(FILE):
         return []
