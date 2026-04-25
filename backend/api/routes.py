@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from backend.services.block1_logic import process_block1
-from backend.services.storage import get_user_points, get_points, get_user_annotations, get_user_data, initialize_test_location, delete_user_point
+from backend.services.storage import get_user_points, get_points, get_user_data, initialize_test_location, delete_user_point
 from backend.services.ai_model import deepseek_classify
 from backend.services.auth import register_user, authenticate_user, create_access_token, get_current_user
 from math import radians, cos, sin, sqrt, asin
@@ -111,14 +111,6 @@ async def user_cabinet(current_user: dict = Depends(get_current_user_from_token)
         "settings": user_data.get("settings", {})
     }
 
-@router.get("/user-annotations")
-async def user_annotations_endpoint(request: Request, user_id: str = None):
-    """
-    Получить пометки пользователя
-    """
-    if not user_id:
-        user_id = get_client_ip(request)
-    return get_user_annotations(user_id)
 
 @router.delete("/delete-point")
 async def delete_point(point_id: str, current_user: dict = Depends(get_current_user_from_token)):
