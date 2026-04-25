@@ -22,8 +22,50 @@
         <li><a href="#" class="nav-link" onclick="showSection('analysis')">Входной анализ</a></li>
         <li><a href="#" class="nav-link" onclick="showSection('map')">Общая карта</a></li>
         <li><a href="#" class="nav-link" onclick="showSection('cabinet')">Мой кабинет</a></li>
+        <li id="auth-link"><a href="#" class="nav-link" onclick="showAuthModal()">Войти</a></li>
     </ul>
 </nav>
+
+<!-- Auth Modal -->
+<div id="auth-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeAuthModal()">&times;</span>
+        <div id="auth-forms">
+            <!-- Login Form -->
+            <div id="login-form">
+                <h2>Вход</h2>
+                <div class="input-group">
+                    <label>Имя пользователя</label>
+                    <input type="text" id="login-username" placeholder="Введите имя пользователя">
+                </div>
+                <div class="input-group">
+                    <label>Пароль</label>
+                    <input type="password" id="login-password" placeholder="Введите пароль">
+                </div>
+                <button class="btn btn-primary" onclick="login()">Войти</button>
+                <p>Нет аккаунта? <a href="#" onclick="showRegisterForm()">Зарегистрироваться</a></p>
+            </div>
+            <!-- Register Form -->
+            <div id="register-form" style="display: none;">
+                <h2>Регистрация</h2>
+                <div class="input-group">
+                    <label>Имя пользователя</label>
+                    <input type="text" id="register-username" placeholder="Придумайте имя пользователя">
+                </div>
+                <div class="input-group">
+                    <label>Пароль</label>
+                    <input type="password" id="register-password" placeholder="Придумайте пароль">
+                </div>
+                <div class="input-group">
+                    <label>Подтвердите пароль</label>
+                    <input type="password" id="register-password-confirm" placeholder="Повторите пароль">
+                </div>
+                <button class="btn btn-primary" onclick="register()">Зарегистрироваться</button>
+                <p>Уже есть аккаунт? <a href="#" onclick="showLoginForm()">Войти</a></p>
+            </div>
+        </div>
+    </div>
+</div>
 
 <main class="main">
     <!-- Map Section (Default) -->

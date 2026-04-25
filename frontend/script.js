@@ -143,9 +143,14 @@ async function validateStep(step) {
             // Validate photos if present
             if (stepData.images && stepData.images.length > 0) {
                 try {
+                    const token = localStorage.getItem('auth_token');
+                    const headers = {'Content-Type': 'application/json'};
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
                     const response = await fetch('/api/block1', {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: headers,
                         body: JSON.stringify({
                             images: stepData.images,
                             validate_only: true
@@ -500,9 +505,14 @@ async function saveFinalPoint() {
     
     // Save to backend
     try {
+        const token = localStorage.getItem('auth_token');
+        const headers = {'Content-Type': 'application/json'};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
         const response = await fetch('/api/block1', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: headers,
             body: JSON.stringify(point)
         });
         
@@ -859,8 +869,14 @@ function createPopup(p) {
 
 async function loadUserCabinet() {
     try {
-        const userId = localStorage.getItem('user_id');
-        const res = await fetch(`/api/user-cabinet?user_id=${userId}`);
+        const token = localStorage.getItem('auth_token');
+        const headers = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        const res = await fetch(`/api/user-cabinet`, {
+            headers: headers
+        });
         const data = await res.json();
         
         const cabinetDiv = document.getElementById('my-points-list');
@@ -1029,8 +1045,14 @@ function displayAnalysisResult(result) {
 
 // Загрузка данных личного кабинета
 async function loadUserCabinet() {
-    // Не отправляем user_id - бэкенд использует IP
-    const res = await fetch("/api/user-cabinet");
+    const token = localStorage.getItem('auth_token');
+    const headers = {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    const res = await fetch("/api/user-cabinet", {
+        headers: headers
+    });
     const data = await res.json();
     
     const list = document.getElementById("my-points-list");
@@ -2539,9 +2561,14 @@ async function runBlock1() {
     return
   }
 
+  const token = localStorage.getItem('auth_token');
+  const headers = {"Content-Type": "application/json"};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   const res = await fetch("/api/block1", {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
+    headers: headers,
     body: JSON.stringify(data)
   })
   const result = await res.json()
@@ -2556,3 +2583,114 @@ async function runBlock1() {
   console.log(result)
   addPointToMap(result.saved_point)
 }
+
+// =========================
+// AUTH FUNCTIONS
+// =========================
+
+function showAuthModal() {
+    document.getElementById('auth-modal').style.display = 'flex';
+}
+
+function closeAuthModal() {
+    document.getElementById('auth-modal').style.display = 'none';
+}
+
+function showRegisterForm() {
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('register-form').style.display = 'block';
+}
+
+function showLoginForm() {
+    document.getElementById('login-form').style.display = 'block';
+    document.getElementById('register-form').style.display = 'none';
+}
+
+async function register() {
+    const username = document.getElementById('register-username').value;
+    const password = document.getElementById('register-password').value;
+    const passwordConfirm = document.getElementById('register-password-confirm').value;
+
+    if (!username || !password) {
+        alert('Заполните все поля');
+        return;
+    }
+
+    if (password !== passwordConfirm) {
+        alert('Пароли не совпадают');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username, password})
+        });
+        const data = await response.json();
+
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert('Регистрация успешна! Теперь войдите.');
+            showLoginForm();
+        }
+    } catch (error) {
+        alert('Ошибка при регистрации: ' + error.message);
+    }
+}
+
+async function login() {
+    const username = document.getElementById('login-username').value;
+    const password = document.getElementById('login-password').value;
+
+    if (!username || !password) {
+        alert('Заполните все поля');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username, password})
+        });
+        const data = await response.json();
+
+        if (data.access_token) {
+            localStorage.setItem('auth_token', data.access_token);
+            localStorage.setItem('username', data.username);
+            updateAuthUI();
+            closeAuthModal();
+            alert('Вы вошли как ' + data.username);
+        } else {
+            alert('Ошибка входа');
+        }
+    } catch (error) {
+        alert('Ошибка при входе: ' + error.message);
+    }
+}
+
+function logout() {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('username');
+    updateAuthUI();
+    alert('Вы вышли из системы');
+}
+
+function updateAuthUI() {
+    const token = localStorage.getItem('auth_token');
+    const username = localStorage.getItem('username');
+    const authLink = document.getElementById('auth-link');
+
+    if (token && username) {
+        authLink.innerHTML = `<a href="#" class="nav-link" onclick="logout()">Выйти (${username})</a>`;
+    } else {
+        authLink.innerHTML = `<a href="#" class="nav-link" onclick="showAuthModal()">Войти</a>`;
+    }
+}
+
+// Check auth on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateAuthUI();
+});
