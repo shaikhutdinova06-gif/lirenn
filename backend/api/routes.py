@@ -11,7 +11,7 @@ import traceback
 router = APIRouter()
 security = HTTPBearer()
 
-async def get_current_user_from_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def get_current_user_from_token(credentials: HTTPAuthorizationCredentials):
     """Получить текущего пользователя из токена"""
     token = credentials.credentials
     user = get_current_user(token)
