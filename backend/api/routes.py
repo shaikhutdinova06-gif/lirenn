@@ -132,36 +132,46 @@ def haversine(lat1, lon1, lat2, lon2):
 @router.post("/register")
 async def register(request: Request):
     """Регистрация нового пользователя"""
-    data = await request.json()
-    username = data.get("username")
-    password = data.get("password")
-    
-    if not username or not password:
-        raise HTTPException(status_code=400, detail="Username and password required")
-    
-    result = register_user(username, password)
-    if "error" in result:
-        raise HTTPException(status_code=400, detail=result["error"])
-    
-    return result
+    try:
+        data = await request.json()
+        username = data.get("username")
+        password = data.get("password")
+        
+        if not username or not password:
+            raise HTTPException(status_code=400, detail="Username and password required")
+        
+        result = register_user(username, password)
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Registration error: {str(e)}")
 
 @router.post("/login")
 async def login(request: Request):
     """Вход пользователя"""
-    data = await request.json()
-    username = data.get("username")
-    password = data.get("password")
-    
-    if not username or not password:
-        raise HTTPException(status_code=400, detail="Username and password required")
-    
-    user = authenticate_user(username, password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
-    
-    access_token = create_access_token(data={"sub": username})
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "username": username
-    }
+    try:
+        data = await request.json()
+        username = data.get("username")
+        password = data.get("password")
+        
+        if not username or not password:
+            raise HTTPException(status_code=400, detail="Username and password required")
+        
+        user = authenticate_user(username, password)
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+        
+        access_token = create_access_token(data={"sub": username})
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "username": username
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
