@@ -3,6 +3,8 @@ import requests
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 def classify_image(image):
     return "soil"  # заглушка (можно заменить на реальный вызов)
+async def deepseek_classify(image):
+    return "soil"  # заглушка для классификации
 def analyze_soil(data):
     try:
         response = requests.post(
