@@ -625,9 +625,13 @@ function filterPointsBySoilType() {
 // INITIALIZATION
 // =========================
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('DOM loaded');
     loadSoilTypes();
     await initUser();
     initMap();
+    console.log('Map initialized');
+    loadPoints();
+    console.log('Points loaded');
     currentStep = 1;
     updateStepUI();
     initializeTestLocation();
@@ -1472,13 +1476,16 @@ async function send(){
             method:"POST",
             body: form
         })
-    })
-    const data = await res.json()
-    if (data.point) {
-        addPointToMap(data.point)
-        localStorage.setItem('hasCompletedAnalysis', 'true')
-    } else {
-        alert('Ошибка')
+        const data = await res.json()
+        if (data.point) {
+            addPointToMap(data.point)
+            localStorage.setItem('hasCompletedAnalysis', 'true')
+        } else {
+            alert('Ошибка')
+        }
+    } catch (e) {
+        console.error(e)
+        alert('Ошибка анализа')
     }
 }
 

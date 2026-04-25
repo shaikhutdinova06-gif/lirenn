@@ -369,6 +369,11 @@ body::before {
     width: 100%;
 }
 
+#map {
+    height: 100%;
+    width: 100%;
+}
+
 .gis-layout {
     display: flex;
     height: calc(100vh - 140px);
