@@ -50,51 +50,10 @@ async def block1(request: Request, current_user: dict = Depends(get_current_user
         result = await process_block1(data)
         return result
     except Exception as e:
-        print("🔥 ERROR in /block1:", e)
-        traceback.print_exc()
-        return {
-            "error": "internal_error",
-            "message": str(e)
-        }
-
+        return {"error": str(e)}
 @router.get("/points")
-async def all_points():
+def points():
     return get_points()
-
-@router.get("/soil-types")
-async def get_soil_types():
-    """Получить список типов почв"""
-    try:
-        soil_types_path = os.path.join(os.path.dirname(__file__), "..", "data", "soil_types.json")
-        with open(soil_types_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception as e:
-        return {"soil_types": []}
-
-@router.get("/my-points")
-async def my_points(request: Request, user_id: str = None, soil_type: str = None):
-    """Получить точки пользователя (по IP или переданному user_id) с фильтрацией по типу почвы"""
-    if not user_id:
-        user_id = get_client_ip(request)
-    
-    points = get_user_points(user_id)
-    
-    if soil_type:
-        points = [p for p in points if p.get("soil_type") == soil_type or p.get("report", {}).get("general", {}).get("soil_type") == soil_type]
-    
-    return points
-
-@router.get("/nearby-points")
-async def nearby_points(lat: float, lng: float, radius_km: float = 5):
-    points = get_points()
-    nearby = []
-    for point in points:
-        if point.get("lat") and point.get("lng"):
-            distance = haversine(lat, lng, point["lat"], point["lng"])
-            if distance <= radius_km:
-                nearby.append(point)
-    return nearby
-
 @router.get("/user-cabinet")
 async def user_cabinet(current_user: dict = Depends(get_current_user_from_token)):
     """

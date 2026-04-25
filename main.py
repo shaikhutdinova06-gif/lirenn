@@ -1,6 +1,6 @@
 import sys
 sys.path.append('/app')
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -8,23 +8,19 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 import os
 from backend.api.routes import router
 app = FastAPI()
-print("🔥 STARTED")
-# =========================
-# SECURITY HEADERS (FIXED)
-# =========================
 @app.middleware("http")
-async def add_security_headers(request, call_next):
+async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     # ❗ CSP ПОПРАВЛЕН
     response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdn.plot.ly; "
-        "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com https://fonts.gstatic.com; "
-        "img-src 'self' data: https:; "
-        "connect-src 'self' https:;"
+        "default-src 'self' *; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' *; "
+        "style-src 'self' 'unsafe-inline' *; "
+        "img-src 'self' data: *; "
+        "connect-src 'self' *;"
     )
     # Force no cache for static files
     if request.url.path.startswith("/static"):
@@ -32,16 +28,10 @@ async def add_security_headers(request, call_next):
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
     return response
-# =========================
-# TRUSTED HOST (FIX)
-# =========================
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*"]  # временно так
+    allowed_hosts=["liren-androsova6565.amvera.io", "localhost", "*"]
 )
-# =========================
-# CORS
-# =========================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -49,41 +39,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# =========================
-# API
-# =========================
 app.include_router(router, prefix="/api")
-# =========================
-# FRONTEND PATH FIX
-# =========================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
-# =========================
-# STATIC (ВАЖНО)
-# =========================
-if os.path.exists(FRONTEND_DIR):
-    app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
-# =========================
-# ROOT (FIX)
-# =========================
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 def root():
-    index_file = os.path.join(FRONTEND_DIR, "index.html")
-    if os.path.exists(index_file):
-        with open(index_file, encoding="utf-8") as f:
-            return f.read()
-    return "<h1>Frontend not found</h1>"
-
-@app.get("/debug/files")
-def debug_files():
-    """Debug endpoint to check files in container"""
-    files = {}
-    for root, dirs, filenames in os.walk(FRONTEND_DIR):
-        for filename in filenames:
-            filepath = os.path.join(root, filename)
-            relpath = os.path.relpath(filepath, FRONTEND_DIR)
-            files[relpath] = {
-                "size": os.path.getsize(filepath),
-                "mtime": os.path.getmtime(filepath)
-            }
-    return files
+    with open("frontend/index.html", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
