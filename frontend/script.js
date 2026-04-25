@@ -2106,6 +2106,13 @@ async function login() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({username, password})
         });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            alert('Ошибка входа: ' + (errorData.detail || 'Неизвестная ошибка'));
+            return;
+        }
+        
         const data = await response.json();
 
         if (data.access_token) {
