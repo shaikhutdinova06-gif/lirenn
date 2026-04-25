@@ -586,3 +586,56 @@ body::before {
         font-size: 32px;
     }
 }
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 40px;
+    border-radius: 10px;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.close {
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #666;
+}
+
+.close:hover {
+    color: #000;
+}
+
+#auth-forms h2 {
+    color: #2E7D32;
+    margin-bottom: 20px;
+}
+
+#auth-forms a {
+    color: #66BB6A;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#auth-forms a:hover {
+    text-decoration: underline;
+}
