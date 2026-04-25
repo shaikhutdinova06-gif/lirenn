@@ -37,7 +37,7 @@ async def add_security_headers(request, call_next):
 # =========================
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*"]  # временно так
+    allowed_hosts=["liren-androsova6565.amvera.io", "localhost", "*"]
 )
 # =========================
 # CORS
