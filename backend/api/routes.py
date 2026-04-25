@@ -11,6 +11,14 @@ import traceback
 router = APIRouter()
 security = HTTPBearer()
 
+async def get_current_user_from_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Получить текущего пользователя из токена"""
+    token = credentials.credentials
+    user = get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return user
+
 # Инициализация тестового местоположения при запуске
 @router.on_event("startup")
 async def startup_event():
@@ -140,11 +148,3 @@ async def login(request: Request):
         "token_type": "bearer",
         "username": username
     }
-
-async def get_current_user_from_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Получить текущего пользователя из токена"""
-    token = credentials.credentials
-    user = get_current_user(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    return user
