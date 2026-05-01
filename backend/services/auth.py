@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import hashlib
+import secrets
 import json
 import os
 
@@ -9,7 +10,18 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Заменяем bcrypt на SHA-256 + salt
+def hash_password(password: str) -> str:
+    salt = secrets.token_hex(32)
+    pwd_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+    return f"{salt}${pwd_hash}"
+
+def verify_password(password: str, hashed_password: str) -> bool:
+    try:
+        salt, pwd_hash = hashed_password.split('$')
+        return pwd_hash == hashlib.sha256((password + salt).encode()).hexdigest()
+    except:
+        return False
 
 # Используем /data для Docker/Amvera, data для локальной разработки
 DATA_DIR = os.getenv("DATA_DIR", "/data")
@@ -90,7 +102,7 @@ def register_user(username: str, password: str):
     print(f"Creating user {username}")
     users[username] = {
         "username": username,
-        "hashed_password": get_password_hash(password),
+        "hashed_password": hash_password(password),
         "created_at": datetime.utcnow().isoformat()
     }
     print(f"User data created, saving to file...")
