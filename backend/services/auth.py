@@ -90,13 +90,23 @@ def register_user(username: str, password: str):
 def authenticate_user(username: str, password: str):
     users = get_users()
     print(f"Authenticating user: {username}, total users: {len(users)}")
+    print(f"Available users: {list(users.keys())}")
+    print(f"Users file path: {USERS_FILE}")
+    
     user = users.get(username)
     if not user:
         print(f"User {username} not found")
         return False
+    
+    print(f"User found: {username}")
+    print(f"Hashed password exists: {'hashed_password' in user}")
+    
     if not verify_password(password, user["hashed_password"]):
         print(f"Password verification failed for {username}")
+        print(f"Input password length: {len(password)}")
+        print(f"Stored hash: {user['hashed_password'][:50]}...")
         return False
+    
     print(f"Authentication successful for {username}")
     return user
 
