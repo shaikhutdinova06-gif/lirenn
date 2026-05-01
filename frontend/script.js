@@ -2128,11 +2128,41 @@ async function register() {
         if (data.error) {
             alert(data.error);
         } else {
-            alert('Регистрация успешна! Теперь войдите.');
-            showLoginForm();
+            // Автоматический вход после регистрации
+            await autoLogin(username, password);
         }
     } catch (error) {
         alert('Ошибка при регистрации: ' + error.message);
+    }
+}
+
+async function autoLogin(username, password) {
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username, password})
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            alert('Ошибка входа: ' + (errorData.detail || 'Неизвестная ошибка'));
+            showLoginForm();
+            return;
+        }
+        
+        const data = await response.json();
+
+        if (data.access_token) {
+            localStorage.setItem('auth_token', data.access_token);
+            localStorage.setItem('username', data.username);
+            updateAuthUI();
+            closeAuthModal();
+            alert('Вы успешно зарегистрированы и вошли как ' + data.username);
+        }
+    } catch (error) {
+        alert('Ошибка при автоматическом входе: ' + error.message);
+        showLoginForm();
     }
 }
 
