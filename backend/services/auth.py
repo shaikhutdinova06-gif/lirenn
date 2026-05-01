@@ -78,18 +78,30 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 def register_user(username: str, password: str):
+    print(f"Starting registration for user: {username}")
     users = get_users()
+    print(f"Current users count: {len(users)}")
+    print(f"Users file path: {USERS_FILE}")
+    
     if username in users:
+        print(f"User {username} already exists")
         return {"error": "User already exists"}
     
+    print(f"Creating user {username}")
     users[username] = {
         "username": username,
         "hashed_password": get_password_hash(password),
         "created_at": datetime.utcnow().isoformat()
     }
-    save_users(users)
-    print(f"User {username} registered successfully")
-    return {"status": "ok", "message": "User registered successfully"}
+    print(f"User data created, saving to file...")
+    
+    try:
+        save_users(users)
+        print(f"User {username} saved successfully")
+        return {"status": "ok", "message": "User registered successfully"}
+    except Exception as e:
+        print(f"Error saving user {username}: {e}")
+        return {"error": f"Failed to save user: {str(e)}"}
 
 def authenticate_user(username: str, password: str):
     users = get_users()
