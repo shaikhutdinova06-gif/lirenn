@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from backend.services.block1_logic import process_block1
-from backend.services.storage import get_user_points, get_points, get_user_data, initialize_test_location, delete_user_point
+from backend.services.storage import get_user_points, get_points, get_user_data, initialize_test_location, delete_user_point, get_all_points, get_point_history
 from backend.services.ai_model import deepseek_classify
 from backend.services.auth import register_user, authenticate_user, create_access_token, get_current_user
 from math import radians, cos, sin, sqrt, asin
@@ -53,38 +53,42 @@ async def classify_image(request: Request):
 async def block1(request: Request):
     try:
         data = await request.json()
-        # Если есть токен, используем username, иначе IP
+        # Требуем авторизацию
         auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.replace("Bearer ", "")
-            user = get_current_user(token)
-            if user:
-                data["user_id"] = user["username"]
-        else:
-            data["user_id"] = get_client_ip(request)
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Authorization required")
+        
+        token = auth_header.replace("Bearer ", "")
+        user = get_current_user(token)
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        data["user_id"] = user["username"]
         result = await process_block1(data)
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         return {"error": str(e)}
 @router.get("/points")
 def points():
-    return get_points()
+    return get_all_points()
 @router.get("/user-cabinet")
 async def user_cabinet(request: Request):
     """
     Получить данные личного кабинета пользователя
     """
+    # Требуем авторизацию
     auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        token = auth_header.replace("Bearer ", "")
-        user = get_current_user(token)
-        if user:
-            user_id = user["username"]
-        else:
-            user_id = get_client_ip(request)
-    else:
-        user_id = get_client_ip(request)
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization required")
     
+    token = auth_header.replace("Bearer ", "")
+    user = get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user_id = user["username"]
     user_data = get_user_data(user_id)
     user_points = get_user_points(user_id)
     
@@ -116,6 +120,10 @@ async def delete_point(point_id: str, current_user: dict = Depends(get_current_u
         return {"status": "ok", "message": "Точка удалена из личного кабинета"}
     else:
         raise HTTPException(status_code=500, detail="Ошибка при удалении точки")
+
+@router.get("/history")
+def history(lat: float, lng: float):
+    return get_point_history(lat, lng)
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371

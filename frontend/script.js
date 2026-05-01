@@ -3,24 +3,35 @@ let markers = []
 
 function initMap() {
     if (map) return
-    map = L.map('map').setView([55.75, 37.61], 10)
+    map = L.map('leaflet-map').setView([55.75, 37.61], 10)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
 }
 
 const user_id = localStorage.getItem('user_id') || crypto.randomUUID()
 localStorage.setItem('user_id', user_id)
 async function loadPoints() {
-    const res = await fetch('/api/points')
-    const data = await res.json()
-    data.forEach(addPointToMap)
+    const res = await fetch("/api/points");
+    const points = await res.json();
+    points.forEach(p => addPointToMap(p));
 }
 function addPointToMap(p) {
+    const marker = L.marker([p.lat, p.lng]).addTo(map);
+    const image = p.image 
+        ? `<img src="${p.image}" style="width:100%;max-height:120px;object-fit:cover;">` 
+        : "";
     const popup = `
-        <b>pH:</b> ${p.ph || '—'}<br>
-        <b>Влажность:</b> ${p.moisture || '—'}%<br>
-        <b>Zc:</b> ${p.zc || '—'}
+        ${image}
+        <b>pH:</b> ${p.ph || "-"}
+        <br>
+        <b>Влажность:</b> ${p.moisture || "-"}
+        <br>
+        <b>Confidence:</b> ${p.confidence}%
+        <br>
+        <b>Тип:</b> ${p.passport?.type || "-"}
+        <br>
+        <p>${p.notes || ""}</p>
     `;
-    L.marker([p.lat, p.lng]).addTo(map).bindPopup(popup)
+    marker.bindPopup(popup);
 }
 
 // =========================
@@ -442,6 +453,14 @@ function collectStepData() {
 async function saveFinalPoint() {
     const summaryDiv = document.getElementById('final-summary');
     
+    // Проверяем авторизацию
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        alert('Для сохранения точек необходимо войти в систему');
+        showAuthModal();
+        return;
+    }
+    
     // Build final point data
     const userId = localStorage.getItem('user_id');
     const point = collectStepData();
@@ -472,16 +491,25 @@ async function saveFinalPoint() {
     
     // Save to backend
     try {
-        const token = localStorage.getItem('auth_token');
         const headers = {'Content-Type': 'application/json'};
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
+        headers['Authorization'] = `Bearer ${token}`;
+        
         const response = await fetch('/api/block1', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(point)
         });
+        
+        if (response.status === 401) {
+            summaryDiv.innerHTML += `
+                <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
+                    <h4>❌ Требуется авторизация</h4>
+                    <p>Ваша сессия истекла. Пожалуйста, войдите снова.</p>
+                </div>
+            `;
+            showAuthModal();
+            return;
+        }
         
         const text = await response.text();
         console.log('Backend response text:', text);
@@ -841,13 +869,23 @@ function createPopup(p) {
 async function loadUserCabinet() {
     try {
         const token = localStorage.getItem('auth_token');
-        const headers = {};
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
+        if (!token) {
+            document.getElementById('my-points-list').innerHTML = '<p>Для просмотра личного кабинета необходимо войти в систему</p>';
+            showAuthModal();
+            return;
         }
+        
+        const headers = {'Authorization': `Bearer ${token}`};
         const res = await fetch(`/api/user-cabinet`, {
             headers: headers
         });
+        
+        if (res.status === 401) {
+            document.getElementById('my-points-list').innerHTML = '<p>Ваша сессия истекла. Пожалуйста, войдите снова.</p>';
+            showAuthModal();
+            return;
+        }
+        
         const data = await res.json();
         
         const cabinetDiv = document.getElementById('my-points-list');
@@ -872,7 +910,14 @@ async function loadUserCabinet() {
         }
     } catch (error) {
         console.error('Error loading cabinet:', error);
+        document.getElementById('my-points-list').innerHTML = '<p>Ошибка загрузки данных</p>';
     }
+}
+
+async function loadTimeline(lat, lng) {
+    const res = await fetch(`/api/history?lat=${lat}&lng=${lng}`);
+    const data = await res.json();
+    console.log("История точки:", data);
 }
 
 function formatStructuredReport(report) {
