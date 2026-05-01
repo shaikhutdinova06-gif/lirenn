@@ -2128,8 +2128,11 @@ async function register() {
         if (data.error) {
             alert(data.error);
         } else {
-            // Автоматический вход после регистрации
-            await autoLogin(username, password);
+            console.log('Registration successful:', data);
+            // Небольшая задержка чтобы пользователь точно сохранился
+            setTimeout(async () => {
+                await autoLogin(username, password);
+            }, 500);
         }
     } catch (error) {
         alert('Ошибка при регистрации: ' + error.message);
@@ -2138,6 +2141,7 @@ async function register() {
 
 async function autoLogin(username, password) {
     try {
+        console.log('Attempting auto login for:', username);
         const response = await fetch('/api/login', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -2146,12 +2150,14 @@ async function autoLogin(username, password) {
         
         if (!response.ok) {
             const errorData = await response.json();
+            console.error('Auto login failed:', errorData);
             alert('Ошибка входа: ' + (errorData.detail || 'Неизвестная ошибка'));
             showLoginForm();
             return;
         }
         
         const data = await response.json();
+        console.log('Auto login successful:', data);
 
         if (data.access_token) {
             localStorage.setItem('auth_token', data.access_token);
@@ -2161,6 +2167,7 @@ async function autoLogin(username, password) {
             alert('Вы успешно зарегистрированы и вошли как ' + data.username);
         }
     } catch (error) {
+        console.error('Auto login error:', error);
         alert('Ошибка при автоматическом входе: ' + error.message);
         showLoginForm();
     }
