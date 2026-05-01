@@ -11,7 +11,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-USERS_FILE = "data/users.json"
+# Используем /data для Docker/Amvera, data для локальной разработки
+USERS_FILE = os.getenv("DATA_DIR", "/data") + "/users.json"
 
 def get_users():
     if not os.path.exists(USERS_FILE):
@@ -34,7 +35,8 @@ def get_users():
         return {}
 
 def save_users(users):
-    os.makedirs("data", exist_ok=True)
+    data_dir = os.path.dirname(USERS_FILE)
+    os.makedirs(data_dir, exist_ok=True)
     # Атомарное сохранение через временный файл
     temp_file = USERS_FILE + ".tmp"
     try:
