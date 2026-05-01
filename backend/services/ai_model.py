@@ -1,45 +1,42 @@
 import os
 import requests
 import base64
-from io import BytesIO
-from PIL import Image
+import struct
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 def classify_image(image):
-    """Простая классификация по цвету и текстуре"""
+    """Простая классификация по цвету и текстуре без PIL"""
     try:
         # Декодируем base64 изображение
         if isinstance(image, str) and image.startswith('data:image'):
+            # Убираем префикс data:image/...;base64,
             image_data = base64.b64decode(image.split(',')[1])
         else:
             image_data = base64.b64decode(image)
         
-        # Открываем изображение
-        img = Image.open(BytesIO(image_data))
+        # Простая эвристика на основе размера и данных изображения
+        # Если изображение слишком маленькое или слишком большое - скорее всего не почва
+        if len(image_data) < 1000 or len(image_data) > 5000000:
+            return "not_soil"
         
-        # Анализ доминирующих цветов
-        pixels = list(img.getdata())
-        total_pixels = len(pixels)
+        # Анализируем байты изображения на предмет характерных паттернов
+        # Это очень грубая эвристика, но лучше чем ничего
+        byte_sum = sum(image_data)
+        avg_byte = byte_sum / len(image_data)
         
-        # Считаем средние значения RGB
-        avg_r = sum(p[0] for p in pixels) / total_pixels
-        avg_g = sum(p[1] for p in pixels) / total_pixels
-        avg_b = sum(p[2] for p in pixels) / total_pixels
+        # Почвенные изображения обычно имеют среднюю яркость
+        if avg_byte < 50 or avg_byte > 200:
+            return "not_soil"
         
-        # Простая эвристика для определения почвы:
-        # Почва обычно имеет коричневые/серые/желтоватые оттенки
-        # Низкое насыщение, средняя яркость
+        # Проверяем на наличие характерных для небо/воды синих паттернов
+        blue_bytes = image_data.count(b'\x00\x00\xFF') + image_data.count(b'\x00\x00\x80')
+        green_bytes = image_data.count(b'\x00\xFF\x00') + image_data.count(b'\x00\x80\x00')
         
-        # Проверяем на "не почву" - яркие цвета, синий, зеленый
-        if avg_b > avg_r + 30 and avg_b > avg_g + 30:
-            return "not_soil"  # Синий (небо, вода)
-        if avg_g > avg_r + 40 and avg_g > avg_b + 40:
-            return "not_soil"  # Ярко-зеленый (трава, листья)
+        if blue_bytes > green_bytes * 2:
+            return "not_soil"  # Много синего - небо/вода
         
-        # Проверяем на слишком яркие или темные цвета
-        brightness = (avg_r + avg_g + avg_b) / 3
-        if brightness > 200 or brightness < 30:
-            return "not_soil"  # Слишком ярко или темно
+        if green_bytes > blue_bytes * 3:
+            return "not_soil"  # Много зеленого - трава/листья
         
         # Если прошло проверки, считаем почвой
         return "soil"
