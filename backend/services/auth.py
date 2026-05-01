@@ -13,7 +13,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Используем /data для Docker/Amvera, data для локальной разработки
 DATA_DIR = os.getenv("DATA_DIR", "/data")
+# Принудительно исправляем путь для Amvera
+if os.path.exists("/app"):
+    DATA_DIR = "/data"
 USERS_FILE = DATA_DIR + "/users.json"
+print(f"Using USERS_FILE: {USERS_FILE}")
 
 def get_users():
     if not os.path.exists(USERS_FILE):
