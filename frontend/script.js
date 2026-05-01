@@ -67,15 +67,20 @@ function showSection(section) {
 // STEP NAVIGATION
 // =========================
 async function nextStep(step) {
+    console.log(`nextStep called with step: ${step}, currentStep: ${currentStep}`);
+    
     if (step > currentStep) {
         // Validate current step before proceeding
         const isValid = await validateStep(currentStep);
+        console.log(`Validation result for step ${currentStep}: ${isValid}`);
         if (!isValid) {
+            console.log('Validation failed, stopping navigation');
             return;
         }
         
         const oldStep = currentStep;
         currentStep = step;
+        console.log(`Moving from step ${oldStep} to step ${step}`);
         
         // Update layers
         updateLayers(oldStep, currentStep);
@@ -83,6 +88,7 @@ async function nextStep(step) {
     } else {
         const oldStep = currentStep;
         currentStep = step;
+        console.log(`Moving backwards from step ${oldStep} to step ${step}`);
         updateLayers(oldStep, currentStep);
         processStep(step);
     }
