@@ -118,29 +118,15 @@ function updateLayers(oldStep, newStep) {
 async function validateStep(step) {
     switch(step) {
         case 1:
-            // Validate photos if present
+            // Validate photos if present - simple validation without API call
             if (stepData.images && stepData.images.length > 0) {
                 try {
-                    const token = localStorage.getItem('auth_token');
-                    const headers = {'Content-Type': 'application/json'};
-                    if (token) {
-                        headers['Authorization'] = `Bearer ${token}`;
-                    }
-                    const response = await fetch('/api/block1', {
-                        method: 'POST',
-                        headers: headers,
-                        body: JSON.stringify({
-                            images: stepData.images,
-                            validate_only: true
-                        })
-                    });
-                    const result = await response.json();
-                    if (result.error) {
-                        alert(result.error);
+                    // Simple client-side validation
+                    if (stepData.images.length > 10) {
+                        alert('Слишком много фото. Максимум 10 фото.');
                         return false;
                     }
-                    // Сохраняем результат валидации для проверки типа почвы
-                    stepData.validationResult = result;
+                    console.log(`Validated ${stepData.images.length} photos`);
                 } catch (error) {
                     console.error('Validation error:', error);
                 }
