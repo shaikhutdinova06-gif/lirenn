@@ -2,9 +2,12 @@ import json
 import os
 import uuid
 from datetime import datetime
-DATA_FILE = "data/points.json"
+
+# Используем /data для Docker/Amvera, data для локальной разработки
+DATA_DIR = os.getenv("DATA_DIR", "/data")
+DATA_FILE = DATA_DIR + "/points.json"
 FILE = DATA_FILE
-os.makedirs("data", exist_ok=True)
+os.makedirs(DATA_DIR, exist_ok=True)
 def get_points():
     if not os.path.exists(FILE):
         return []
@@ -61,7 +64,7 @@ def save_point(point):
 def get_user_points(user_id):
     return [p for p in get_points() if p.get("user_id") == user_id]
 def get_user_data(user_id):
-    users_file = "data/user_data.json"
+    users_file = DATA_DIR + "/user_data.json"
     if not os.path.exists(users_file):
         return {"annotations": [], "settings": {}}
     try:
@@ -80,7 +83,7 @@ def get_user_data(user_id):
         return {"annotations": [], "settings": {}}
 
 def save_user_data(user_id, data):
-    users_file = "data/user_data.json"
+    users_file = DATA_DIR + "/user_data.json"
     if not os.path.exists(users_file):
         all_data = {}
     else:
@@ -91,7 +94,7 @@ def save_user_data(user_id, data):
             print(f"Error reading user data file: {e}")
             all_data = {}
     all_data[user_id] = data
-    os.makedirs("data", exist_ok=True)
+    os.makedirs(DATA_DIR, exist_ok=True)
     # Атомарное сохранение
     temp_file = users_file + ".tmp"
     try:
