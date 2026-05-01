@@ -7,22 +7,53 @@ import os
 
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-USERS_FILE = "/data/users.json"
+USERS_FILE = "data/users.json"
 
 def get_users():
     if not os.path.exists(USERS_FILE):
+        save_users({})
         return {}
-    with open(USERS_FILE, "r") as f:
-        return json.load(f)
+    try:
+        with open(USERS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"Error reading users file: {e}")
+        # Создаем резервную копию поврежденного файла
+        if os.path.exists(USERS_FILE):
+            backup_file = USERS_FILE + ".backup"
+            try:
+                os.rename(USERS_FILE, backup_file)
+                print(f"Corrupted file backed up to {backup_file}")
+            except:
+                pass
+        save_users({})
+        return {}
 
 def save_users(users):
-    os.makedirs("/data", exist_ok=True)
-    with open(USERS_FILE, "w") as f:
-        json.dump(users, f, indent=2)
+    os.makedirs("data", exist_ok=True)
+    # Атомарное сохранение через временный файл
+    temp_file = USERS_FILE + ".tmp"
+    try:
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(users, f, ensure_ascii=False, indent=2)
+        # Атомарное переименование
+        if os.path.exists(USERS_FILE):
+            os.replace(temp_file, USERS_FILE)
+        else:
+            os.rename(temp_file, USERS_FILE)
+    except Exception as e:
+        print(f"Error saving users file: {e}")
+        # Удаляем временный файл если что-то пошло не так
+        if os.path.exists(temp_file):
+            try:
+                os.remove(temp_file)
+            except:
+                pass
+        raise
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
