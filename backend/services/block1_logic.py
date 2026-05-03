@@ -15,40 +15,91 @@ def calculate_confidence(data):
     if data.get("lat") and data.get("lng"):
         score += 10
     return score
-def process_block1(data):
-    image = data.get("image")
-    # 1. Проверка фото
-    if image:
-        result = classify_image(image)
-        if result == "not_soil":
-            return {"error": "Это не почва"}
-    # 2. AI анализ
-    ai_result = analyze_soil(data)
-    # 3. Zc
-    zc = calculate_zc(data.get("pollutants", []))
-    # 4. Формирование точки
-    point = {
-        "id": str(uuid.uuid4()),
-        "lat": data.get("lat"),
-        "lng": data.get("lng"),
-        "ph": data.get("ph"),
-        "moisture": data.get("moisture"),
-        "notes": data.get("notes"),
-        "tags": data.get("tags"),
-        "color": data.get("color"),
-        "user_id": data.get("user_id"),
-        "image": image,
-        # 🔥 новое
-        "timestamp": datetime.utcnow().isoformat(),
-        "confidence": calculate_confidence(data),
-        "passport": {
-            "type": ai_result.get("type", "не определено"),
-            "description": ai_result.get("description", "")
-        },
-        "ai": ai_result,
-        "report": {
-            "zc": zc
+
+def zc_category(zc):
+    """Определение категории загрязнения по Zc"""
+    if zc < 16:
+        return "допустимое"
+    elif zc < 32:
+        return "умеренно опасное"
+    elif zc < 128:
+        return "опасное"
+    else:
+        return "чрезвычайно опасное"
+
+async def process_block1(data):
+    """
+    Обработка блока 1: анализ почвы с фото и AI
+    """
+    try:
+        image = data.get("image")
+        
+        # 1. Проверка фото
+        if image:
+            result = classify_image(image)
+            if result == "not_soil":
+                return {"error": "Загружено не фото почвы. Пожалуйста, сфотографируйте участок с почвой."}
+        
+        # 2. Подготовка данных для AI анализа
+        ai_data = {
+            "ph": data.get("ph"),
+            "moisture": data.get("moisture"),
+            "notes": data.get("notes"),
+            "has_image": bool(image)
         }
-    }
-    save_point(point)
-    return {"status": "ok", "point": point}
+        
+        # 3. AI анализ почвы как в лаборатории
+        ai_result = await analyze_soil(ai_data)
+        
+        # 4. Расчет Zc (коэффициент загрязнения)
+        components = data.get("components", data.get("pollutants", []))
+        zc = calculate_zc(components)
+        zc_cat = zc_category(zc)
+        
+        # 5. Формирование полной точки
+        point = {
+            "id": str(uuid.uuid4()),
+            "lat": data.get("lat"),
+            "lng": data.get("lng"),
+            "ph": data.get("ph"),
+            "moisture": data.get("moisture"),
+            "notes": data.get("notes"),
+            "tags": data.get("tags", []),
+            "color": data.get("color", "green"),
+            "user_id": data.get("user_id"),
+            "image": image,  # Сохраняем фото как base64
+            "timestamp": datetime.utcnow().isoformat(),
+            "confidence": calculate_confidence(data),
+            # AI анализ как в лаборатории
+            "ai_analysis": {
+                "soil_type": ai_result.get("soil_type", "не определено"),
+                "fertility_score": ai_result.get("fertility_score", 5),
+                "fertility_text": ai_result.get("fertility_text", ""),
+                "chemical_analysis": ai_result.get("chemical_analysis", ""),
+                "risks": ai_result.get("risks", []),
+                "recommendations": ai_result.get("recommendations", []),
+                "suitable_crops": ai_result.get("suitable_crops", []),
+                "summary": ai_result.get("summary", "")
+            },
+            # Экологический отчет
+            "ecological_report": {
+                "zc": zc,
+                "zc_category": zc_cat,
+                "components": components
+            },
+            # Полный ответ от AI
+            "raw_ai": ai_result
+        }
+        
+        # 6. Сохранение точки
+        save_point(point)
+        
+        return {
+            "status": "success", 
+            "point": point,
+            "message": "Точка успешно сохранена с AI анализом"
+        }
+        
+    except Exception as e:
+        print(f"[BLOCK1] Error: {e}")
+        return {"error": str(e)}
