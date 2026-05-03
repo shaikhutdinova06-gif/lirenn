@@ -1196,13 +1196,25 @@ async function loadSatellite(lat, lng) {
         if (window.debugLog) debugLog('Satellite response: ' + (data.success ? 'success' : 'error'));
         
         if (!data.success) {
+            const instructions = data.instructions ? data.instructions.map(i => `<li style="margin-bottom: 5px; font-size: 12px;">${i}</li>`).join('') : '';
+            const isSetupRequired = data.setup_required;
+            
             pointInfoDiv.innerHTML = `
-                <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px;">
-                    <h4 style="color: #F44336; margin-bottom: 10px;">❌ Ошибка спутника</h4>
-                    <p style="font-size: 13px; color: #666;">${data.error || 'Не удалось загрузить снимок'}</p>
-                    <p style="font-size: 11px; color: #999; margin-top: 10px;">
-                        💡 Убедитесь, что SENTINEL_CLIENT_ID и SENTINEL_CLIENT_SECRET настроены в .env
-                    </p>
+                <div style="padding: 20px; background: ${isSetupRequired ? 'rgba(255, 193, 7, 0.1)' : 'rgba(244, 67, 54, 0.1)'}; border-radius: 8px; border-left: 3px solid ${isSetupRequired ? '#FFC107' : '#F44336'};">
+                    <h4 style="color: ${isSetupRequired ? '#F57C00' : '#F44336'}; margin-bottom: 10px;">
+                        ${isSetupRequired ? '⚙️ Требуется настройка' : '❌ Ошибка спутника'}
+                    </h4>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 15px;">${data.error || 'Не удалось загрузить снимок'}</p>
+                    
+                    ${isSetupRequired ? `
+                        <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                            <p style="font-size: 12px; font-weight: 600; color: #333; margin-bottom: 10px;">📋 Инструкция по настройке Sentinel Hub:</p>
+                            <ol style="color: #666; padding-left: 20px; margin: 0;">${instructions}</ol>
+                        </div>
+                        <a href="https://apps.sentinel-hub.com/dashboard/" target="_blank" style="display: inline-block; padding: 8px 16px; background: #1976D2; color: white; text-decoration: none; border-radius: 4px; font-size: 12px;">
+                            🚀 Открыть Sentinel Hub Dashboard
+                        </a>
+                    ` : ''}
                 </div>
             `;
             return;

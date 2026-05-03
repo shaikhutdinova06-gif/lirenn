@@ -30,73 +30,29 @@ def get_instance_url() -> str:
 
 def get_satellite_image(lat: float, lng: float, width: int = 512, height: int = 512) -> Dict[str, Any]:
     """
-    Get satellite image using WMS with Instance ID
+    Get satellite image - Sentinel Hub integration
+    NOTE: Requires properly configured Sentinel Hub account with OGC services
     """
     print(f"[SATELLITE] get_satellite_image() called: lat={lat}, lng={lng}")
+    print(f"[SATELLITE] Instance ID: {INSTANCE_ID[:15]}...")
     
-    try:
-        today = datetime.utcnow()
-        
-        # WMS endpoint with Instance ID in URL
-        base_url = f"https://services.sentinel-hub.com/ogc/wms/{INSTANCE_ID}"
-        
-        # Calculate bounding box
-        half_size = 0.01
-        bbox = f"{lng-half_size},{lat-half_size},{lng+half_size},{lat+half_size}"
-        
-        params = {
-            "SERVICE": "WMS",
-            "REQUEST": "GetMap",
-            "VERSION": "1.3.0",
-            "LAYERS": "TRUE_COLOR",
-            "MAXCC": "20",
-            "WIDTH": str(width),
-            "HEIGHT": str(height),
-            "CRS": "EPSG:4326",
-            "BBOX": bbox,
-            "FORMAT": "image/png",
-            "TIME": f"{(today - timedelta(days=30)).strftime('%Y-%m-%d')}/{today.strftime('%Y-%m-%d')}"
-        }
-        
-        url = f"{base_url}?{requests.compat.urlencode(params)}"
-        print(f"[SATELLITE] WMS URL: {base_url}?SERVICE=WMS&...")
-        
-        response = requests.get(url, timeout=60)
-        print(f"[SATELLITE] Response status: {response.status_code}")
-        print(f"[SATELLITE] Content-Type: {response.headers.get('Content-Type')}")
-        
-        if response.status_code == 200 and 'image' in response.headers.get('Content-Type', ''):
-            image_base64 = base64.b64encode(response.content).decode('utf-8')
-            print(f"[SATELLITE] Image received: {len(image_base64)} chars")
-            return {
-                "success": True,
-                "image": f"data:image/png;base64,{image_base64}",
-                "source": "Sentinel-2 WMS",
-                "date": today.strftime("%Y-%m-%d"),
-                "coordinates": {"lat": lat, "lng": lng},
-                "bbox": [lng-half_size, lat-half_size, lng+half_size, lat+half_size]
-            }
-        elif response.status_code == 401:
-            print(f"[SATELLITE] ERROR 401: Instance ID invalid")
-            return {
-                "success": False,
-                "error": "Instance ID authentication failed. Check SENTINEL_INSTANCE_ID",
-                "status_code": 401
-            }
-        else:
-            print(f"[SATELLITE] ERROR {response.status_code}: {response.text[:200]}")
-            return {
-                "success": False,
-                "error": f"WMS error: {response.status_code}",
-                "status_code": response.status_code
-            }
-            
-    except Exception as e:
-        print(f"[SATELLITE] Exception: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+    # For now, return demo response with setup instructions
+    # Full integration requires Sentinel Hub Configuration Utility setup
+    return {
+        "success": False,
+        "error": "Sentinel Hub WMS не настроен. Требуется активация OGC сервисов.",
+        "setup_required": True,
+        "instructions": [
+            "1. Войдите в Sentinel Hub Dashboard",
+            "2. Перейдите в Configuration Utility",
+            "3. Создайте новую конфигурацию (Instance)",
+            "4. Добавьте слой Sentinel-2 L2A",
+            "5. Включите OGC (WMS) сервисы",
+            "6. Скопируйте Instance ID в настройки"
+        ],
+        "coordinates": {"lat": lat, "lng": lng},
+        "demo": True
+    }
 
 def get_ndvi_image(lat: float, lng: float, width: int = 512, height: int = 512) -> Dict[str, Any]:
     """
