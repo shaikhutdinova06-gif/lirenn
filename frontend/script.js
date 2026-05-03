@@ -506,6 +506,12 @@ async function saveFinalPoint() {
     if (window.debugLog) debugLog('saveFinalPoint() started');
     
     const summaryDiv = document.getElementById('final-summary');
+    if (!summaryDiv) {
+        if (window.debugLog) debugLog('ERROR: final-summary element not found', 'error');
+        alert('Ошибка: не найден элемент для отображения результата');
+        return;
+    }
+    if (window.debugLog) debugLog('summaryDiv found');
     
     // Проверяем авторизацию
     const token = localStorage.getItem('auth_token');
@@ -524,27 +530,36 @@ async function saveFinalPoint() {
     if (window.debugLog) debugLog('Point data collected: lat=' + point.lat + ', lng=' + point.lng);
     console.log('Saving point:', point);
     
-    // Определяем тип почвы для отображения
-    let soilTypeDisplay = point.soil_type || stepData.validationResult?.identified_soil_type || "Не определен";
-    
-    summaryDiv.innerHTML = `
-        <div style="padding: 20px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
-            <h4>📋 Итоговые данные:</h4>
-            <div style="padding: 10px; background: rgba(34, 197, 94, 0.1); border-radius: 6px; margin: 10px 0;">
-                <p style="margin: 0; font-weight: 600;">🌱 Тип почвы: ${soilTypeDisplay}</p>
+    try {
+        // Определяем тип почвы для отображения
+        let soilTypeDisplay = point.soil_type || (stepData.validationResult && stepData.validationResult.identified_soil_type) || "Не определен";
+        
+        if (window.debugLog) debugLog('Rendering summary...');
+        
+        summaryDiv.innerHTML = `
+            <div style="padding: 20px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
+                <h4>📋 Итоговые данные:</h4>
+                <div style="padding: 10px; background: rgba(34, 197, 94, 0.1); border-radius: 6px; margin: 10px 0;">
+                    <p style="margin: 0; font-weight: 600;">🌱 Тип почвы: ${soilTypeDisplay}</p>
+                </div>
+                <p><strong>Широта:</strong> ${point.lat}</p>
+                <p><strong>Долгота:</strong> ${point.lng}</p>
+                <p><strong>pH:</strong> ${point.ph || 'Не указано'}</p>
+                <p><strong>Влажность:</strong> ${point.moisture || 'Не указано'}%</p>
+                <p><strong>Фото:</strong> ${point.images ? point.images.length : 0} шт.</p>
+                <p><strong>Цвет:</strong> ${point.color || 'green'}</p>
+                <p><strong>Иконка:</strong> ${point.icon || 'sample'}</p>
+                <p><strong>Теги:</strong> ${point.tags ? point.tags.join(', ') : 'Нет'}</p>
+                <p><strong>Заметки:</strong> ${point.notes || 'Нет'}</p>
             </div>
-            <p><strong>Широта:</strong> ${point.lat}</p>
-            <p><strong>Долгота:</strong> ${point.lng}</p>
-            <p><strong>pH:</strong> ${point.ph || 'Не указано'}</p>
-            <p><strong>Влажность:</strong> ${point.moisture || 'Не указано'}%</p>
-            <p><strong>Фото:</strong> ${point.images.length} шт.</p>
-            <p><strong>Цвет:</strong> ${point.color}</p>
-            <p><strong>Иконка:</strong> ${point.icon}</p>
-            <p><strong>Теги:</strong> ${point.tags.join(', ') || 'Нет'}</p>
-            <p><strong>Заметки:</strong> ${point.notes || 'Нет'}</p>
-        </div>
-        <p style="margin-top: 10px;">Сохранение точки...</p>
-    `;
+            <p style="margin-top: 10px;">Сохранение точки...</p>
+        `;
+        
+        if (window.debugLog) debugLog('Summary rendered OK');
+    } catch (renderError) {
+        if (window.debugLog) debugLog('ERROR rendering summary: ' + renderError.message, 'error');
+        console.error('Render error:', renderError);
+    }
     
     // Save to backend
     try {
