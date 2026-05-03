@@ -946,7 +946,19 @@ function showPointDetails(point) {
     const pointInfoDiv = document.getElementById('point-info');
     const images = point.images || [];
     const firstImage = images.length > 0 ? images[0] : point.image;
-    const soilType = point.report?.general?.soil_type || point.soil_type || "Не определен";
+    
+    // Новый AI анализ (если есть) или старый формат
+    const ai = point.ai_analysis || {};
+    const soilType = ai.soil_type || point.report?.general?.soil_type || point.soil_type || "Не определен";
+    const fertility = ai.fertility_score || 5;
+    const fertilityText = ai.fertility_text || "Среднее";
+    const summary = ai.summary || "";
+    
+    // Zc из экологического отчета
+    const eco = point.ecological_report || {};
+    const zc = eco.zc || 0;
+    const zcCat = eco.zc_category || "не определено";
+    
     const date = point.timestamp ? new Date(point.timestamp).toLocaleString('ru-RU') : 'Дата не указана';
     
     // Генерируем галерею фото
@@ -1017,6 +1029,66 @@ function showPointDetails(point) {
                         <div style="font-size: 16px; font-weight: 700; color: #F44336;">${point.report?.chemistry?.potassium || point.potassium || '—'}</div>
                     </div>
                 </div>
+            </div>
+            
+            <!-- AI Анализ -->
+            <div style="margin: 15px 0; padding: 15px; background: linear-gradient(135deg, rgba(25, 118, 210, 0.1) 0%, rgba(33, 150, 243, 0.1) 100%); border-radius: 10px; border-left: 4px solid #1976D2;">
+                <div style="font-size: 12px; color: #1976D2; font-weight: 600; margin-bottom: 10px; text-transform: uppercase;">🤖 AI Анализ почвы</div>
+                
+                <!-- Плодородие -->
+                <div style="margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                        <span style="font-size: 11px; color: #666;">Плодородие:</span>
+                        <span style="font-size: 14px; font-weight: 600; color: ${fertility >= 7 ? '#4CAF50' : fertility >= 5 ? '#FFC107' : '#F44336'};">${fertility}/10 - ${fertilityText}</span>
+                    </div>
+                    <div style="width: 100%; height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden;">
+                        <div style="width: ${fertility * 10}%; height: 100%; background: ${fertility >= 7 ? '#4CAF50' : fertility >= 5 ? '#FFC107' : '#F44336'}; border-radius: 3px;"></div>
+                    </div>
+                </div>
+                
+                <!-- Zc -->
+                <div style="padding: 8px; background: rgba(255,255,255,0.5); border-radius: 6px; margin-bottom: 10px;">
+                    <span style="font-size: 11px; color: #666;">Zc (загрязнение):</span>
+                    <span style="font-size: 13px; font-weight: 600; color: ${zc < 16 ? '#4CAF50' : zc < 32 ? '#FFC107' : '#F44336'};">${zc} (${zcCat})</span>
+                </div>
+                
+                <!-- Рекомендации -->
+                ${ai.recommendations?.length > 0 ? `
+                    <div style="margin-top: 10px;">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 5px;">✅ Рекомендации:</div>
+                        <ul style="margin: 0; padding-left: 16px; font-size: 12px; color: #333;">
+                            ${ai.recommendations.slice(0, 3).map(r => `<li>${r}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+                
+                <!-- Риски -->
+                ${ai.risks?.length > 0 ? `
+                    <div style="margin-top: 10px;">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 5px;">⚠️ Риски:</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                            ${ai.risks.slice(0, 3).map(r => `<span style="padding: 3px 8px; background: rgba(244, 67, 54, 0.1); border-radius: 10px; font-size: 11px; color: #F44336;">${r}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Подходящие культуры -->
+                ${ai.suitable_crops?.length > 0 ? `
+                    <div style="margin-top: 10px;">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 5px;">🌾 Рекомендуемые культуры:</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                            ${ai.suitable_crops.slice(0, 5).map(c => `<span style="padding: 3px 8px; background: rgba(76, 175, 80, 0.2); border-radius: 10px; font-size: 11px; color: #2E7D32;">${c}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Сводка -->
+                ${summary ? `
+                    <div style="margin-top: 10px; padding: 8px; background: rgba(255,255,255,0.7); border-radius: 6px;">
+                        <div style="font-size: 11px; color: #666;">📝 Сводка:</div>
+                        <div style="font-size: 12px; color: #333; line-height: 1.4;">${summary}</div>
+                    </div>
+                ` : ''}
             </div>
             
             ${point.notes ? `
