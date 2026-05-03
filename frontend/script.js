@@ -721,6 +721,31 @@ function clearSoilSearch() {
     });
 }
 
+function updateStepUI() {
+    // Show current step panel
+    document.querySelectorAll('.step-panel').forEach(panel => {
+        panel.style.display = 'none';
+    });
+    
+    const currentPanel = document.querySelector(`[data-step="${currentStep}"]`);
+    if (currentPanel) {
+        currentPanel.style.display = 'block';
+    }
+    
+    // Update sidebar step indicators
+    document.querySelectorAll('.sidebar .step-indicator').forEach(indicator => {
+        indicator.classList.remove('active', 'completed');
+        const step = parseInt(indicator.dataset.step);
+        if (step === currentStep) {
+            indicator.classList.add('active');
+        } else if (step < currentStep) {
+            indicator.classList.add('completed');
+        }
+    });
+    
+    console.log(`Updated UI for step ${currentStep}`);
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('DOM loaded');
     loadSoilTypes();
