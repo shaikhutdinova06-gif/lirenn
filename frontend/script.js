@@ -530,9 +530,20 @@ async function saveFinalPoint() {
     if (window.debugLog) debugLog('Point data collected: lat=' + point.lat + ', lng=' + point.lng);
     console.log('Saving point:', point);
     
+    if (window.debugLog) debugLog('stepData exists: ' + (typeof stepData !== 'undefined'));
+    if (window.debugLog) debugLog('stepData.validationResult: ' + (stepData && stepData.validationResult ? 'exists' : 'missing'));
+    
     try {
+        if (window.debugLog) debugLog('Entering try block...');
+        
         // Определяем тип почвы для отображения
-        let soilTypeDisplay = point.soil_type || (stepData.validationResult && stepData.validationResult.identified_soil_type) || "Не определен";
+        let soilTypeDisplay = "Не определен";
+        try {
+            soilTypeDisplay = point.soil_type || (stepData && stepData.validationResult && stepData.validationResult.identified_soil_type) || "Не определен";
+            if (window.debugLog) debugLog('Soil type determined: ' + soilTypeDisplay);
+        } catch (soilError) {
+            if (window.debugLog) debugLog('ERROR getting soil type: ' + soilError.message, 'error');
+        }
         
         if (window.debugLog) debugLog('Rendering summary...');
         
