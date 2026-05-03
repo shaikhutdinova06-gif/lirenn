@@ -27,6 +27,9 @@ async function loadPoints() {
         const points = await res.json();
         console.log(`Loaded ${points.length} points from backend`);
         
+        // Сохраняем точки для использования в popup
+        window.lastLoadedPoints = points;
+        
         // Удаляем старые маркеры
         if (markers) {
             markers.forEach(marker => map.removeLayer(marker));
@@ -41,25 +44,6 @@ async function loadPoints() {
     } catch (error) {
         console.error('Error loading points:', error);
     }
-}
-function addPointToMap(p) {
-    const marker = L.marker([p.lat, p.lng]).addTo(map);
-    const image = p.image 
-        ? `<img src="${p.image}" style="width:100%;max-height:120px;object-fit:cover;">` 
-        : "";
-    const popup = `
-        ${image}
-        <b>pH:</b> ${p.ph || "-"}
-        <br>
-        <b>Влажность:</b> ${p.moisture || "-"}
-        <br>
-        <b>Confidence:</b> ${p.confidence}%
-        <br>
-        <b>Тип:</b> ${p.passport?.type || "-"}
-        <br>
-        <p>${p.notes || ""}</p>
-    `;
-    marker.bindPopup(popup);
 }
 
 // =========================
@@ -962,25 +946,143 @@ function showPointDetails(point) {
     const pointInfoDiv = document.getElementById('point-info');
     const images = point.images || [];
     const firstImage = images.length > 0 ? images[0] : point.image;
-    const soilType = point.report?.general?.soil_type || "Не определен";
+    const soilType = point.report?.general?.soil_type || point.soil_type || "Не определен";
+    const date = point.timestamp ? new Date(point.timestamp).toLocaleString('ru-RU') : 'Дата не указана';
+    
+    // Генерируем галерею фото
+    let photoGallery = '';
+    if (images.length > 0) {
+        photoGallery = `
+            <div style="margin-bottom: 15px;">
+                <div style="position: relative;">
+                    <img id="main-photo-${point.id}" src="${firstImage}" style="width:100%; height:150px; object-fit: cover; border-radius:8px; cursor: pointer;" onclick="openPhotoModal('${firstImage}')">
+                    ${images.length > 1 ? `<div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px;">📷 1 / ${images.length}</div>` : ''}
+                </div>
+                ${images.length > 1 ? `
+                    <div style="display: flex; gap: 5px; margin-top: 8px; overflow-x: auto;">
+                        ${images.map((img, idx) => `
+                            <img src="${img}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; cursor: pointer; border: ${idx === 0 ? '2px solid #2E7D32' : '2px solid transparent'};" onclick="changeMainPhoto('${point.id}', '${img}', ${idx}, ${images.length})">
+                        `).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
     
     pointInfoDiv.innerHTML = `
-        ${firstImage ? `<img src="${firstImage}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
-        ${images.length > 1 ? `<small style="color:#666;">${images.length} фото</small>` : ""}
-        <h4 style="color:#2E7D32;">${point.type === 'professional' ? '🎓 ПРОФЕССИОНАЛЬНАЯ' : '🔬 ЛЮБИТЕЛЬСКАЯ'} ТОЧКА</h4>
-        
-        <div style="padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px; margin: 15px 0;">
-            <h5 style="color: #22c55e; margin: 0 0 8px 0;">🌱 Тип почвы</h5>
-            <p style="margin: 0; font-size: 16px; font-weight: 600;">${soilType}</p>
+        <div style="font-family: Arial, sans-serif;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0;">
+                <span style="font-size: 28px;">${point.type === 'professional' ? '🎓' : '🔬'}</span>
+                <div>
+                    <div style="font-size: 12px; color: #666; text-transform: uppercase;">${point.type === 'professional' ? 'Профессиональная точка' : 'Любительская точка'}</div>
+                    <div style="font-size: 11px; color: #999;">${date}</div>
+                </div>
+            </div>
+            
+            ${photoGallery}
+            
+            <div style="padding: 15px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(76, 175, 80, 0.1) 100%); border-radius: 10px; margin: 15px 0; border-left: 4px solid #22c55e;">
+                <div style="font-size: 12px; color: #666; margin-bottom: 5px; text-transform: uppercase;">🌱 Тип почвы</div>
+                <div style="font-size: 18px; font-weight: 700; color: #2E7D32;">${soilType}</div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">
+                <div style="padding: 10px; background: #f5f5f5; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 11px; color: #666;">Широта</div>
+                    <div style="font-size: 14px; font-weight: 600;">${point.lat?.toFixed(6) || '—'}</div>
+                </div>
+                <div style="padding: 10px; background: #f5f5f5; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 11px; color: #666;">Долгота</div>
+                    <div style="font-size: 14px; font-weight: 600;">${point.lng?.toFixed(6) || '—'}</div>
+                </div>
+            </div>
+            
+            <div style="margin: 15px 0;">
+                <h5 style="color: #2E7D32; margin: 0 0 10px 0; font-size: 14px;">📊 Химический анализ</h5>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                    <div style="padding: 8px; background: rgba(33, 150, 243, 0.1); border-radius: 6px; text-align: center;">
+                        <div style="font-size: 10px; color: #666;">pH</div>
+                        <div style="font-size: 16px; font-weight: 700; color: #2196F3;">${point.report?.chemistry?.ph || point.ph || '—'}</div>
+                    </div>
+                    <div style="padding: 8px; background: rgba(76, 175, 80, 0.1); border-radius: 6px; text-align: center;">
+                        <div style="font-size: 10px; color: #666;">N</div>
+                        <div style="font-size: 16px; font-weight: 700; color: #4CAF50;">${point.report?.chemistry?.nitrogen || point.nitrogen || '—'}</div>
+                    </div>
+                    <div style="padding: 8px; background: rgba(255, 193, 7, 0.1); border-radius: 6px; text-align: center;">
+                        <div style="font-size: 10px; color: #666;">P</div>
+                        <div style="font-size: 16px; font-weight: 700; color: #FFC107;">${point.report?.chemistry?.phosphorus || point.phosphorus || '—'}</div>
+                    </div>
+                    <div style="padding: 8px; background: rgba(244, 67, 54, 0.1); border-radius: 6px; text-align: center;">
+                        <div style="font-size: 10px; color: #666;">K</div>
+                        <div style="font-size: 16px; font-weight: 700; color: #F44336;">${point.report?.chemistry?.potassium || point.potassium || '—'}</div>
+                    </div>
+                </div>
+            </div>
+            
+            ${point.notes ? `
+                <div style="margin: 15px 0; padding: 12px; background: #fff3e0; border-radius: 8px; border-left: 3px solid #FF9800;">
+                    <div style="font-size: 11px; color: #E65100; margin-bottom: 5px;">📝 Заметки</div>
+                    <div style="font-size: 13px; color: #333; line-height: 1.4;">${point.notes}</div>
+                </div>
+            ` : ''}
+            
+            ${point.tags && point.tags.length > 0 ? `
+                <div style="margin: 15px 0;">
+                    <div style="font-size: 11px; color: #666; margin-bottom: 5px;">🏷️ Теги</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                        ${point.tags.map(tag => `<span style="padding: 4px 10px; background: #e0e0e0; border-radius: 15px; font-size: 11px;">${tag}</span>`).join('')}
+                    </div>
+                </div>
+            ` : ''}
+            
+            <div style="display: flex; gap: 8px; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="map.setView([${point.lat}, ${point.lng}], 15)" style="flex: 1;">
+                    📍 Центрировать
+                </button>
+                <button class="btn btn-secondary" onclick="showSection('cabinet')" style="flex: 1;">
+                    👤 В кабинет
+                </button>
+            </div>
         </div>
-        
-        <p><strong>Координаты:</strong> ${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}</p>
-        <hr style="margin:10px 0; border-color:#A5D6A7;">
-        ${formatStructuredReport(point.report)}
-        ${point.notes ? `<p><strong>Заметки:</strong> ${point.notes}</p>` : ''}
-        ${point.tags && point.tags.length > 0 ? `<p><strong>Теги:</strong> ${point.tags.join(', ')}</p>` : ''}
-        <button class="btn btn-primary" onclick="map.setView([${point.lat}, ${point.lng}], 13)">📍 Центрировать</button>
     `;
+}
+
+// Функция для смены главного фото в галерее
+function changeMainPhoto(pointId, imgSrc, idx, total) {
+    const mainPhoto = document.getElementById(`main-photo-${pointId}`);
+    if (mainPhoto) {
+        mainPhoto.src = imgSrc;
+        // Обновляем счетчик
+        const counter = mainPhoto.parentElement.querySelector('div');
+        if (counter) {
+            counter.textContent = `📷 ${idx + 1} / ${total}`;
+        }
+    }
+}
+
+// Функция для открытия фото в модальном окне
+function openPhotoModal(imgSrc) {
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;';
+    modal.innerHTML = `<img src="${imgSrc}" style="max-width: 90%; max-height: 90%; object-fit: contain;" onclick="event.stopPropagation()">`;
+    modal.onclick = () => modal.remove();
+    document.body.appendChild(modal);
+}
+
+// Функция для открытия деталей из popup
+function showPointDetailsFromPopup(pointId) {
+    // Находим точку в загруженных маркерах
+    if (window.lastLoadedPoints) {
+        const point = window.lastLoadedPoints.find(p => p.id === pointId);
+        if (point) {
+            showPointDetails(point);
+            // Показываем боковую панель на карте
+            const detailsPanel = document.querySelector('.details-panel');
+            if (detailsPanel) {
+                detailsPanel.style.display = 'block';
+            }
+        }
+    }
 }
 
 async function loadMyPoints(soilTypeFilter = '') {
@@ -994,6 +1096,9 @@ async function loadMyPoints(soilTypeFilter = '') {
         const res = await fetch(url);
         const points = await res.json();
         console.log('Loaded points:', points);
+        
+        // Сохраняем точки для использования в popup
+        window.lastLoadedPoints = points;
         
         // Удаляем старые маркеры
         if (markers) {
@@ -1013,27 +1118,44 @@ function createPopup(p) {
     const report = p.report;
     const images = p.images || [];
     const firstImage = images.length > 0 ? images[0] : p.image;
-    const soilType = report?.general?.soil_type || "Не определен";
+    const soilType = report?.general?.soil_type || p.soil_type || "Не определен";
+    const pointId = p.id || 'unknown';
     
     return `
-        <div style="max-width:300px">
-            ${firstImage ? `<img src="${firstImage}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
-            <b>${p.type === 'professional' ? '🎓 ПРОФ' : '🔬 ЛЮБ'}</b>
-            ${images.length > 1 ? `<br><small>${images.length} фото</small>` : ""}
-            <br><br>
-            <div style="padding: 8px; background: rgba(34, 197, 94, 0.1); border-radius: 6px; margin-bottom: 10px;">
-                <b style="color: #22c55e; font-size: 14px;">🌱 Тип почвы:</b><br>
-                <span style="font-size: 13px; font-weight: 600;">${soilType}</span>
+        <div style="max-width:280px; font-family: Arial, sans-serif;">
+            ${firstImage ? `
+                <div style="position: relative; margin-bottom: 10px;">
+                    <img src="${firstImage}" style="width:100%; height:120px; object-fit: cover; border-radius:8px;">
+                    ${images.length > 1 ? `<div style="position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.7); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">📷 ${images.length}</div>` : ""}
+                </div>
+            ` : `
+                <div style="width:100%; height:80px; background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%); border-radius:8px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                    <span style="font-size: 40px;">🌱</span>
+                </div>
+            `}
+            
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span style="font-size: 20px;">${p.type === 'professional' ? '🎓' : '🔬'}</span>
+                <b style="font-size: 14px;">${p.type === 'professional' ? 'ПРОФЕССИОНАЛЬНАЯ' : 'ЛЮБИТЕЛЬСКАЯ'}</b>
             </div>
-            <b>pH:</b> ${report?.chemistry?.ph || p.ph || "—"}
-            <br>
-            <b>N:</b> ${report?.chemistry?.nitrogen || p.nitrogen || "—"}
-            <br>
-            <b>P:</b> ${report?.chemistry?.phosphorus || p.phosphorus || "—"}
-            <br>
-            <b>K:</b> ${report?.chemistry?.potassium || p.potassium || "—"}
-            <br>
-            ${p.notes ? `<i>${p.notes}</i>` : ""}
+            
+            <div style="padding: 10px; background: rgba(34, 197, 94, 0.1); border-radius: 8px; margin-bottom: 10px; border-left: 3px solid #22c55e;">
+                <div style="font-size: 12px; color: #666; margin-bottom: 2px;">🌱 Тип почвы</div>
+                <div style="font-size: 14px; font-weight: 600; color: #2E7D32;">${soilType}</div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 12px; margin-bottom: 10px;">
+                <div><b>pH:</b> ${report?.chemistry?.ph || p.ph || "—"}</div>
+                <div><b>N:</b> ${report?.chemistry?.nitrogen || p.nitrogen || "—"}</div>
+                <div><b>P:</b> ${report?.chemistry?.phosphorus || p.phosphorus || "—"}</div>
+                <div><b>K:</b> ${report?.chemistry?.potassium || p.potassium || "—"}</div>
+            </div>
+            
+            ${p.notes ? `<div style="font-size: 11px; color: #666; font-style: italic; margin-bottom: 10px; padding: 5px; background: #f5f5f5; border-radius: 4px;">💬 ${p.notes.substring(0, 60)}${p.notes.length > 60 ? '...' : ''}</div>` : ""}
+            
+            <button onclick="showPointDetailsFromPopup('${pointId}')" style="width: 100%; padding: 8px; background: #2E7D32; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">
+                📋 Подробнее
+            </button>
         </div>
     `;
 }
