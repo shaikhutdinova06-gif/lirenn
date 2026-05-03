@@ -2,6 +2,8 @@ import os
 import requests
 import base64
 import struct
+import json
+
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 def classify_image(image):
@@ -159,7 +161,6 @@ async def analyze_soil(data):
         content = result["choices"][0]["message"]["content"]
         
         # Extract JSON from response
-        import json
         try:
             # Try to parse JSON directly
             analysis = json.loads(content)

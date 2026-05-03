@@ -80,7 +80,6 @@ def get_satellite_image(lat: float, lng: float, width: int = 512, height: int = 
         # NASA GIBS Web Map Tile Service (WMTS)
         # Using Landsat-8 for better resolution (30m vs 250m MODIS)
         
-        today = datetime.utcnow()
         # Landsat has 16-day repeat cycle - use static date for "best" layer
         # NASA GIBS "best" layer automatically serves most recent available imagery
         date_str = "2024-01-01"  # Static date for best available imagery
