@@ -82,6 +82,13 @@
                     <option value="">Все типы почвы</option>
                 </select>
                 <button class="btn btn-primary" onclick="filterPointsBySoilType()" style="margin-top: 10px; width: 100%;">🔍 Найти на карте</button>
+                
+                <hr style="margin: 15px 0; border-color: #A5D6A7;">
+                
+                <h4>Поиск по названию почвы</h4>
+                <input type="text" id="soil-search-input" class="input-field" placeholder="Введите название почвы..." style="width: 100%;">
+                <button class="btn btn-primary" onclick="searchPointsBySoilName()" style="margin-top: 10px; width: 100%;">🔍 Поиск</button>
+                <button class="btn btn-secondary" onclick="clearSoilSearch()" style="margin-top: 5px; width: 100%;">🔄 Сбросить поиск</button>
             </aside>
             <div class="map-area">
                 <div id="leaflet-map"></div>

@@ -652,20 +652,75 @@ async function loadSoilTypes() {
 
 function filterPointsBySoilType() {
     const selectedType = document.getElementById('soil-type-filter').value;
+    console.log('Filtering by soil type:', selectedType);
     
-    // Remove all markers
-    if (markers) {
-        markers.forEach(marker => map.removeLayer(marker));
-        markers = [];
-    }
-    
-    // Load points with filter
-    loadMyPoints(selectedType);
+    // Очищаем старые маркеры
+    markers.forEach(marker => {
+        if (marker._soilType !== selectedType) {
+            marker.setOpacity(0.3);
+        } else {
+            marker.setOpacity(1);
+        }
+    });
 }
 
-// =========================
-// INITIALIZATION
-// =========================
+function searchPointsBySoilName() {
+    const searchTerm = document.getElementById('soil-search-input').value.toLowerCase().trim();
+    console.log('Searching by soil name:', searchTerm);
+    
+    if (!searchTerm) {
+        alert('Введите название почвы для поиска');
+        return;
+    }
+    
+    let foundCount = 0;
+    markers.forEach(marker => {
+        const soilType = (marker._soilType || '').toLowerCase();
+        if (soilType.includes(searchTerm)) {
+            marker.setOpacity(1);
+            marker.setIcon(L.icon({
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEM1LjU5NyAwIDAgNS41OTcgMCAxMi41QzAgMjEuMDA0IDguOTk2IDQwIDEyLjUgNDBDMTUuNTA0IDQwIDI1IDIxLjAwNCAyNSAxMi41QzI1IDUuNTk3IDE5LjQwMyAwIDEyLjUgMFoiIGZpbGw9IiNGRjU3MjIiLz4KPGNpcmNsZSBjeD0iMTIuNSIgY3k9IjEyLjUiIHI9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            }));
+            foundCount++;
+        } else {
+            marker.setOpacity(0.2);
+        }
+    });
+    
+    // Показываем результат поиска
+    if (foundCount > 0) {
+        // Центрируем карту на первой найденной точке
+        const firstFound = markers.find(m => m.getOpacity() === 1);
+        if (firstFound) {
+            map.setView(firstFound.getLatLng(), 10);
+        }
+        alert(`Найдено точек: ${foundCount}`);
+    } else {
+        alert('Точки с таким типом почвы не найдены');
+    }
+}
+
+function clearSoilSearch() {
+    document.getElementById('soil-search-input').value = '';
+    document.getElementById('soil-type-filter').value = '';
+    
+    // Восстанавливаем все маркеры
+    markers.forEach(marker => {
+        marker.setOpacity(1);
+        marker.setIcon(L.icon({
+            iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEM1LjU5NyAwIDAgNS41OTcgMCAxMi41QzAgMjEuMDA0IDguOTk2IDQwIDEyLjUgNDBDMTUuNTA0IDQwIDI1IDIxLjAwNCAyNSAxMi41QzI1IDUuNTk3IDE5LjQwMyAwIDEyLjUgMFoiIGZpbGw9IiMyRTdEMzIiLz4KPGNpcmNsZSBjeD0iMTIuNSIgY3k9IjEyLjUiIHI9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        }));
+    });
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('DOM loaded');
     loadSoilTypes();
