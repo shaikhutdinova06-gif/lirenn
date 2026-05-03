@@ -99,6 +99,13 @@ function showSection(section) {
     if (section === "cabinet") {
         loadUserCabinet();
     }
+    
+    if (section === "analysis") {
+        // Reset to step 1 and show it
+        currentStep = 1;
+        updateStepUI();
+        if (window.debugLog) debugLog('Analysis section opened, showing step 1');
+    }
 }
 
 // =========================
