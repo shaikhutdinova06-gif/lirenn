@@ -217,8 +217,19 @@ body::before {
     font-family: 'Poppins', sans-serif;
     font-weight: 600;
     font-size: 36px;
-    color: #2E7D32;
     margin-bottom: 20px;
+    color: #2E7D32;
+}
+
+.section {
+    display: none;
+    width: 100%;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.section#analysis {
+    background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
 }
 
 .features-grid {
