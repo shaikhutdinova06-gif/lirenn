@@ -18,10 +18,12 @@ def get_access_token() -> str:
     Get OAuth access token from Sentinel Hub
     """
     print(f"[SATELLITE] Getting OAuth token...")
-    print(f"[SATELLITE] CLIENT_ID: {CLIENT_ID[:10]}...")
+    print(f"[SATELLITE] CLIENT_ID length: {len(CLIENT_ID)}")
+    print(f"[SATELLITE] CLIENT_ID: {CLIENT_ID}")
+    print(f"[SATELLITE] CLIENT_SECRET length: {len(CLIENT_SECRET)}")
     
     if not CLIENT_ID or not CLIENT_SECRET:
-        raise ValueError("SENTINEL_CLIENT_ID and SENTINEL_CLIENT_SECRET must be set in environment")
+        raise ValueError("SENTINEL_CLIENT_ID and SENTINEL_CLIENT_SECRET must be set")
     
     url = "https://services.sentinel-hub.com/oauth/token"
     data = {
@@ -30,15 +32,22 @@ def get_access_token() -> str:
         "client_secret": CLIENT_SECRET,
     }
     
+    print(f"[SATELLITE] Sending OAuth request to: {url}")
+    print(f"[SATELLITE] Request data: { {'grant_type': 'client_credentials', 'client_id': CLIENT_ID, 'client_secret': '***'} }")
+    
     try:
         res = requests.post(url, data=data, timeout=30)
+        print(f"[SATELLITE] OAuth response status: {res.status_code}")
+        print(f"[SATELLITE] OAuth response text: {res.text[:200]}")
         res.raise_for_status()
         token = res.json()["access_token"]
         print(f"[SATELLITE] OAuth token obtained: {token[:20]}...")
         return token
     except requests.exceptions.RequestException as e:
+        print(f"[SATELLITE] OAuth error: {e}")
         raise ConnectionError(f"Failed to get Sentinel Hub token: {str(e)}")
-    except KeyError:
+    except KeyError as e:
+        print(f"[SATELLITE] JSON parse error: {e}")
         raise ValueError("Invalid response from Sentinel Hub auth service")
 
 def get_auth_headers() -> dict:
