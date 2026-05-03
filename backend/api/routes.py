@@ -403,6 +403,16 @@ async def login(request: Request):
 # SATELLITE IMAGERY ENDPOINTS
 # =========================
 
+@router.get("/satellite-test")
+def satellite_test():
+    """Test endpoint to verify satellite route is working"""
+    import os
+    return {
+        "status": "ok",
+        "message": "Satellite endpoint is accessible",
+        "env_vars": [k for k in os.environ.keys() if 'SENTINEL' in k]
+    }
+
 @router.get("/satellite")
 def satellite(lat: float, lng: float, width: int = 512, height: int = 512):
     """
@@ -414,20 +424,15 @@ def satellite(lat: float, lng: float, width: int = 512, height: int = 512):
     import os
     instance_id = os.getenv("SENTINEL_INSTANCE_ID")
     client_id = os.getenv("SENTINEL_CLIENT_ID")
-    client_secret = os.getenv("SENTINEL_CLIENT_SECRET")
     
     print(f"[API /satellite] SENTINEL_INSTANCE_ID: {'SET' if instance_id else 'NOT SET'}")
     print(f"[API /satellite] SENTINEL_CLIENT_ID: {'SET' if client_id else 'NOT SET'}")
-    print(f"[API /satellite] SENTINEL_CLIENT_SECRET: {'SET' if client_secret else 'NOT SET'}")
     
-    # Print all env vars starting with SENTINEL for debugging
-    sentinel_vars = {k: v[:10] + '...' for k, v in os.environ.items() if 'SENTINEL' in k}
-    print(f"[API /satellite] All SENTINEL env vars: {sentinel_vars}")
-    
-    # Print all env var names (without values for security)
-    all_vars = [k for k in os.environ.keys()]
-    print(f"[API /satellite] Total env vars: {len(all_vars)}")
-    print(f"[API /satellite] Available env var names: {all_vars}")
+    # Fallback to hardcoded key if env not set
+    if not instance_id and not client_id:
+        print(f"[API /satellite] No env vars set, using hardcoded key")
+        os.environ["SENTINEL_INSTANCE_ID"] = "PLAK1e9d4e8d569b4660af940ff20a9865cb"
+        print(f"[API /satellite] Set env var temporarily")
     
     try:
         result = get_satellite_image(lat, lng, width, height)
