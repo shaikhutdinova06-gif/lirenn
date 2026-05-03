@@ -1253,8 +1253,10 @@ async function loadSatellite(lat, lng) {
                 </div>
                 
                 <div style="padding: 12px; background: rgba(25, 118, 210, 0.1); border-radius: 8px; margin-bottom: 15px;">
-                    <div style="font-size: 12px; color: #1976D2; font-weight: 500;">📡 Данные Sentinel-2</div>
-                    <div style="font-size: 11px; color: #666; margin-top: 5px;">RGB натуральные цвета • Облачность < 20%</div>
+                    <div style="font-size: 12px; color: #1976D2; font-weight: 500;">🚀 ${data.source || 'Спутниковые данные'}</div>
+                    <div style="font-size: 11px; color: #666; margin-top: 5px;">
+                        ${data.coverage || 'Глобальное покрытие'} • Ежедневные снимки
+                    </div>
                 </div>
                 
                 <div style="display: flex; gap: 8px;">
