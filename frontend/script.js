@@ -503,20 +503,25 @@ function collectStepData() {
 // SAVE FINAL POINT
 // =========================
 async function saveFinalPoint() {
+    if (window.debugLog) debugLog('saveFinalPoint() started');
+    
     const summaryDiv = document.getElementById('final-summary');
     
     // Проверяем авторизацию
     const token = localStorage.getItem('auth_token');
     if (!token) {
+        if (window.debugLog) debugLog('ERROR: No auth token', 'error');
         alert('Для сохранения точек необходимо войти в систему');
         showAuthModal();
         return;
     }
+    if (window.debugLog) debugLog('Auth token found');
     
     // Build final point data
     const userId = localStorage.getItem('user_id');
     const point = collectStepData();
     
+    if (window.debugLog) debugLog('Point data collected: lat=' + point.lat + ', lng=' + point.lng);
     console.log('Saving point:', point);
     
     // Определяем тип почвы для отображения
@@ -543,6 +548,8 @@ async function saveFinalPoint() {
     
     // Save to backend
     try {
+        if (window.debugLog) debugLog('Sending request to /api/block1...');
+        
         const headers = {'Content-Type': 'application/json'};
         headers['Authorization'] = `Bearer ${token}`;
         
@@ -552,7 +559,10 @@ async function saveFinalPoint() {
             body: JSON.stringify(point)
         });
         
+        if (window.debugLog) debugLog('Response received, status: ' + response.status);
+        
         if (response.status === 401) {
+            if (window.debugLog) debugLog('ERROR: 401 Unauthorized', 'error');
             summaryDiv.innerHTML += `
                 <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
                     <h4>❌ Требуется авторизация</h4>
@@ -564,6 +574,7 @@ async function saveFinalPoint() {
         }
         
         const text = await response.text();
+        if (window.debugLog) debugLog('Response text: ' + text.substring(0, 100));
         console.log('Backend response text:', text);
         
         let result;
@@ -576,6 +587,7 @@ async function saveFinalPoint() {
         console.log('Backend response:', result);
         
         if (result.status === 'ok') {
+            if (window.debugLog) debugLog('Point saved successfully!', 'info');
             // Mark user as having completed analysis
             localStorage.setItem('hasCompletedAnalysis', 'true');
             
@@ -597,6 +609,7 @@ async function saveFinalPoint() {
                 console.log('Switched to map section');
             }, 1000);
         } else {
+            if (window.debugLog) debugLog('ERROR: Save failed - ' + (result.error || 'Unknown error'), 'error');
             summaryDiv.innerHTML += `
                 <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
                     <h4>❌ Ошибка при сохранении</h4>
@@ -605,6 +618,7 @@ async function saveFinalPoint() {
             `;
         }
     } catch (error) {
+        if (window.debugLog) debugLog('ERROR: Exception during save - ' + error.message, 'error');
         console.error('Save error:', error);
         summaryDiv.innerHTML += `
             <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
