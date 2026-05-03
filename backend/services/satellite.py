@@ -30,99 +30,134 @@ def get_instance_url() -> str:
 
 def get_satellite_image(lat: float, lng: float, width: int = 512, height: int = 512) -> Dict[str, Any]:
     """
-    Get satellite image - Sentinel Hub integration
-    NOTE: Requires properly configured Sentinel Hub account with OGC services
+    Get satellite image from NASA GIBS (Global Imagery Browse Services)
+    Free, no API key required, covers entire Earth including Russia
     """
     print(f"[SATELLITE] get_satellite_image() called: lat={lat}, lng={lng}")
-    print(f"[SATELLITE] Instance ID: {INSTANCE_ID[:15]}...")
     
-    # For now, return demo response with setup instructions
-    # Full integration requires Sentinel Hub Configuration Utility setup
-    return {
-        "success": False,
-        "error": "Sentinel Hub WMS не настроен. Требуется активация OGC сервисов.",
-        "setup_required": True,
-        "instructions": [
-            "1. Войдите в Sentinel Hub Dashboard",
-            "2. Перейдите в Configuration Utility",
-            "3. Создайте новую конфигурацию (Instance)",
-            "4. Добавьте слой Sentinel-2 L2A",
-            "5. Включите OGC (WMS) сервисы",
-            "6. Скопируйте Instance ID в настройки"
-        ],
-        "coordinates": {"lat": lat, "lng": lng},
-        "demo": True
-    }
+    try:
+        # NASA GIBS Web Map Tile Service (WMTS)
+        # Using MODIS Terra True Color imagery (daily, global coverage)
+        
+        today = datetime.utcnow()
+        date_str = today.strftime("%Y-%m-%d")
+        
+        # NASA GIBS WMS endpoint (free, no auth required)
+        base_url = "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi"
+        
+        # Calculate bounding box
+        half_size = 0.05  # ~5km
+        bbox = f"{lng-half_size},{lat-half_size},{lng+half_size},{lat+half_size}"
+        
+        params = {
+            "SERVICE": "WMS",
+            "REQUEST": "GetMap",
+            "VERSION": "1.3.0",
+            "LAYERS": "MODIS_Terra_CorrectedReflectance_TrueColor",
+            "STYLES": "",
+            "FORMAT": "image/png",
+            "TRANSPARENT": "true",
+            "WIDTH": str(width),
+            "HEIGHT": str(height),
+            "CRS": "EPSG:4326",
+            "BBOX": bbox,
+            "TIME": date_str
+        }
+        
+        url = f"{base_url}?{requests.compat.urlencode(params)}"
+        print(f"[SATELLITE] NASA GIBS URL: {base_url}?SERVICE=WMS&...")
+        
+        response = requests.get(url, timeout=60)
+        print(f"[SATELLITE] Response status: {response.status_code}")
+        print(f"[SATELLITE] Content-Type: {response.headers.get('Content-Type')}")
+        
+        if response.status_code == 200 and 'image' in response.headers.get('Content-Type', ''):
+            image_base64 = base64.b64encode(response.content).decode('utf-8')
+            print(f"[SATELLITE] NASA image received: {len(image_base64)} chars")
+            return {
+                "success": True,
+                "image": f"data:image/png;base64,{image_base64}",
+                "source": "NASA MODIS Terra",
+                "date": date_str,
+                "coordinates": {"lat": lat, "lng": lng},
+                "bbox": [lng-half_size, lat-half_size, lng+half_size, lat+half_size],
+                "coverage": "Global (including Russia)"
+            }
+        else:
+            print(f"[SATELLITE] NASA error {response.status_code}: {response.text[:200]}")
+            # Fallback to error with instructions
+            return {
+                "success": False,
+                "error": f"NASA GIBS error: {response.status_code}. Возможно нет данных для этой даты.",
+                "fallback": True
+            }
+            
+    except Exception as e:
+        print(f"[SATELLITE] Exception: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 def get_ndvi_image(lat: float, lng: float, width: int = 512, height: int = 512) -> Dict[str, Any]:
     """
-    Get NDVI image for vegetation analysis
+    Get NDVI image from NASA GIBS (MODIS vegetation index)
     """
     print(f"[SATELLITE] get_ndvi_image() called: lat={lat}, lng={lng}")
     
     try:
-        headers = get_auth_headers()
         today = datetime.utcnow()
-        past = today - timedelta(days=7)
+        date_str = today.strftime("%Y-%m-%d")
         
-        url = "https://services.sentinel-hub.com/api/v1/process"
-        bbox = [lng - 0.01, lat - 0.01, lng + 0.01, lat + 0.01]
+        # NASA GIBS NDVI layer
+        base_url = "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi"
         
-        body = {
-            "input": {
-                "bounds": {
-                    "bbox": bbox,
-                    "properties": {"crs": "http://www.opengis.net/def/crs/EPSG/0/4326"}
-                },
-                "data": [{
-                    "type": "sentinel-2-l2a",
-                    "dataFilter": {
-                        "timeRange": {
-                            "from": past.isoformat() + "Z",
-                            "to": today.isoformat() + "Z"
-                        },
-                        "maxCloudCoverage": 20
-                    }
-                }]
-            },
-            "output": {
-                "width": width,
-                "height": height,
-                "responses": [{
-                    "identifier": "default",
-                    "format": {"type": "image/png"}
-                }]
-            },
-            "evalscript": """
-            let ndvi = (B08 - B04) / (B08 + B04);
-            if (ndvi < 0) return [0.5, 0, 0];
-            else if (ndvi < 0.2) return [1, 0.5, 0];
-            else if (ndvi < 0.4) return [1, 0.8, 0];
-            else if (ndvi < 0.6) return [0.4, 0.8, 0.4];
-            else return [0, 0.4, 0];
-            """
+        half_size = 0.05
+        bbox = f"{lng-half_size},{lat-half_size},{lng+half_size},{lat+half_size}"
+        
+        params = {
+            "SERVICE": "WMS",
+            "REQUEST": "GetMap",
+            "VERSION": "1.3.0",
+            "LAYERS": "MODIS_Terra_NDVI_8Day",
+            "STYLES": "",
+            "FORMAT": "image/png",
+            "TRANSPARENT": "true",
+            "WIDTH": str(width),
+            "HEIGHT": str(height),
+            "CRS": "EPSG:4326",
+            "BBOX": bbox,
+            "TIME": date_str
         }
         
-        response = requests.post(url, headers=headers, json=body, timeout=60)
+        url = f"{base_url}?{requests.compat.urlencode(params)}"
+        print(f"[SATELLITE] NASA NDVI URL: {base_url}?SERVICE=WMS&...")
         
-        if response.status_code == 200:
+        response = requests.get(url, timeout=60)
+        print(f"[SATELLITE] NDVI Response status: {response.status_code}")
+        
+        if response.status_code == 200 and 'image' in response.headers.get('Content-Type', ''):
             image_base64 = base64.b64encode(response.content).decode('utf-8')
+            print(f"[SATELLITE] NASA NDVI image received: {len(image_base64)} chars")
             return {
                 "success": True,
                 "image": f"data:image/png;base64,{image_base64}",
-                "source": "Sentinel-2 NDVI",
-                "date": today.strftime("%Y-%m-%d"),
+                "source": "NASA MODIS NDVI",
+                "date": date_str,
                 "coordinates": {"lat": lat, "lng": lng},
-                "bbox": bbox
+                "bbox": [lng-half_size, lat-half_size, lng+half_size, lat+half_size],
+                "coverage": "Global (including Russia)"
             }
         else:
+            print(f"[SATELLITE] NASA NDVI error {response.status_code}")
             return {
                 "success": False,
-                "error": f"API error: {response.status_code}",
-                "status_code": response.status_code
+                "error": f"NASA NDVI error: {response.status_code}",
+                "fallback": True
             }
             
     except Exception as e:
+        print(f"[SATELLITE] NDVI Exception: {e}")
         return {
             "success": False,
             "error": str(e)
