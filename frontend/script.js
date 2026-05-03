@@ -1153,11 +1153,213 @@ function createPopup(p) {
             
             ${p.notes ? `<div style="font-size: 11px; color: #666; font-style: italic; margin-bottom: 10px; padding: 5px; background: #f5f5f5; border-radius: 4px;">💬 ${p.notes.substring(0, 60)}${p.notes.length > 60 ? '...' : ''}</div>` : ""}
             
+            <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                <button onclick="loadSatellite(${p.lat}, ${p.lng})" style="flex: 1; padding: 8px; background: #1976D2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                    🛰️ Спутник
+                </button>
+                <button onclick="loadNDVI(${p.lat}, ${p.lng})" style="flex: 1; padding: 8px; background: #388E3C; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                    🌿 NDVI
+                </button>
+            </div>
+            
             <button onclick="showPointDetailsFromPopup('${pointId}')" style="width: 100%; padding: 8px; background: #2E7D32; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">
                 📋 Подробнее
             </button>
         </div>
     `;
+}
+
+// =========================
+// SATELLITE IMAGERY FUNCTIONS
+// =========================
+
+let currentSatelliteLayer = null;
+
+async function loadSatellite(lat, lng) {
+    if (window.debugLog) debugLog('Loading satellite image for: ' + lat + ', ' + lng);
+    
+    const pointInfoDiv = document.getElementById('point-info');
+    pointInfoDiv.innerHTML = `
+        <div style="padding: 20px; text-align: center;">
+            <div style="font-size: 40px; margin-bottom: 10px;">🛰️</div>
+            <p>Загрузка спутникового снимка...</p>
+            <div style="width: 50px; height: 4px; background: #e0e0e0; margin: 10px auto; border-radius: 2px; overflow: hidden;">
+                <div style="width: 30%; height: 100%; background: #1976D2; animation: loading 1s infinite;"></div>
+            </div>
+        </div>
+    `;
+    
+    try {
+        const res = await fetch(`/api/satellite?lat=${lat}&lng=${lng}&width=800&height=600`);
+        const data = await res.json();
+        
+        if (window.debugLog) debugLog('Satellite response: ' + (data.success ? 'success' : 'error'));
+        
+        if (!data.success) {
+            pointInfoDiv.innerHTML = `
+                <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px;">
+                    <h4 style="color: #F44336; margin-bottom: 10px;">❌ Ошибка спутника</h4>
+                    <p style="font-size: 13px; color: #666;">${data.error || 'Не удалось загрузить снимок'}</p>
+                    <p style="font-size: 11px; color: #999; margin-top: 10px;">
+                        💡 Убедитесь, что SENTINEL_CLIENT_ID и SENTINEL_CLIENT_SECRET настроены в .env
+                    </p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Remove previous satellite layer if exists
+        if (currentSatelliteLayer) {
+            map.removeLayer(currentSatelliteLayer);
+        }
+        
+        // Add satellite image as overlay on map
+        const bounds = [[data.bbox[1], data.bbox[0]], [data.bbox[3], data.bbox[2]]];
+        currentSatelliteLayer = L.imageOverlay(data.image, bounds, {opacity: 0.8}).addTo(map);
+        
+        pointInfoDiv.innerHTML = `
+            <div style="font-family: Arial, sans-serif;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0;">
+                    <span style="font-size: 32px;">🛰️</span>
+                    <div>
+                        <div style="font-size: 14px; font-weight: 600;">Спутниковый снимок</div>
+                        <div style="font-size: 11px; color: #666;">${data.source} • ${data.date}</div>
+                    </div>
+                </div>
+                
+                <img src="${data.image}" style="width: 100%; border-radius: 8px; margin-bottom: 15px; cursor: pointer;" onclick="openPhotoModal('${data.image}')">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div style="padding: 10px; background: #f5f5f5; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 11px; color: #666;">Широта</div>
+                        <div style="font-size: 13px; font-weight: 600;">${lat.toFixed(6)}</div>
+                    </div>
+                    <div style="padding: 10px; background: #f5f5f5; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 11px; color: #666;">Долгота</div>
+                        <div style="font-size: 13px; font-weight: 600;">${lng.toFixed(6)}</div>
+                    </div>
+                </div>
+                
+                <div style="padding: 12px; background: rgba(25, 118, 210, 0.1); border-radius: 8px; margin-bottom: 15px;">
+                    <div style="font-size: 12px; color: #1976D2; font-weight: 500;">📡 Данные Sentinel-2</div>
+                    <div style="font-size: 11px; color: #666; margin-top: 5px;">RGB натуральные цвета • Облачность < 20%</div>
+                </div>
+                
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="map.setView([${lat}, ${lng}], 15)" style="flex: 1; padding: 10px; background: #1976D2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                        📍 Центрировать
+                    </button>
+                    <button onclick="removeSatelliteLayer()" style="flex: 1; padding: 10px; background: #757575; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                        🗑️ Скрыть
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Center map on satellite image
+        map.fitBounds(bounds, {padding: [50, 50]});
+        
+    } catch (error) {
+        if (window.debugLog) debugLog('ERROR loading satellite: ' + error.message, 'error');
+        pointInfoDiv.innerHTML = `
+            <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px;">
+                <h4 style="color: #F44336; margin-bottom: 10px;">❌ Ошибка загрузки</h4>
+                <p style="font-size: 13px; color: #666;">${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+async function loadNDVI(lat, lng) {
+    if (window.debugLog) debugLog('Loading NDVI image for: ' + lat + ', ' + lng);
+    
+    const pointInfoDiv = document.getElementById('point-info');
+    pointInfoDiv.innerHTML = `
+        <div style="padding: 20px; text-align: center;">
+            <div style="font-size: 40px; margin-bottom: 10px;">🌿</div>
+            <p>Загрузка NDVI (индекс растительности)...</p>
+            <div style="width: 50px; height: 4px; background: #e0e0e0; margin: 10px auto; border-radius: 2px; overflow: hidden;">
+                <div style="width: 30%; height: 100%; background: #4CAF50; animation: loading 1s infinite;"></div>
+            </div>
+        </div>
+    `;
+    
+    try {
+        const res = await fetch(`/api/satellite/ndvi?lat=${lat}&lng=${lng}&width=800&height=600`);
+        const data = await res.json();
+        
+        if (window.debugLog) debugLog('NDVI response: ' + (data.success ? 'success' : 'error'));
+        
+        if (!data.success) {
+            pointInfoDiv.innerHTML = `
+                <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px;">
+                    <h4 style="color: #F44336; margin-bottom: 10px;">❌ Ошибка NDVI</h4>
+                    <p style="font-size: 13px; color: #666;">${data.error || 'Не удалось загрузить NDVI'}</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Remove previous satellite layer if exists
+        if (currentSatelliteLayer) {
+            map.removeLayer(currentSatelliteLayer);
+        }
+        
+        const bounds = [[lat - 0.01, lng - 0.01], [lat + 0.01, lng + 0.01]];
+        currentSatelliteLayer = L.imageOverlay(data.image, bounds, {opacity: 0.85}).addTo(map);
+        
+        pointInfoDiv.innerHTML = `
+            <div style="font-family: Arial, sans-serif;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0;">
+                    <span style="font-size: 32px;">🌿</span>
+                    <div>
+                        <div style="font-size: 14px; font-weight: 600;">NDVI - Индекс растительности</div>
+                        <div style="font-size: 11px; color: #666;">${data.source} • ${data.date}</div>
+                    </div>
+                </div>
+                
+                <img src="${data.image}" style="width: 100%; border-radius: 8px; margin-bottom: 15px; cursor: pointer;" onclick="openPhotoModal('${data.image}')">
+                
+                <div style="padding: 12px; background: rgba(56, 142, 60, 0.1); border-radius: 8px; margin-bottom: 15px;">
+                    <div style="font-size: 12px; color: #388E3C; font-weight: 500; margin-bottom: 8px;">📊 Легенда NDVI</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 11px;">
+                        <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 12px; height: 12px; background: #b71c1c; border-radius: 2px;"></div> Голая почва/город</div>
+                        <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 12px; height: 12px; background: #f57f17; border-radius: 2px;"></div> Разреженная растительность</div>
+                        <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 12px; height: 12px; background: #fdd835; border-radius: 2px;"></div> Умеренная растительность</div>
+                        <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 12px; height: 12px; background: #66bb6a; border-radius: 2px;"></div> Здоровая растительность</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="map.setView([${lat}, ${lng}], 15)" style="flex: 1; padding: 10px; background: #388E3C; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                        📍 Центрировать
+                    </button>
+                    <button onclick="removeSatelliteLayer()" style="flex: 1; padding: 10px; background: #757575; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                        🗑️ Скрыть
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        map.fitBounds(bounds, {padding: [50, 50]});
+        
+    } catch (error) {
+        if (window.debugLog) debugLog('ERROR loading NDVI: ' + error.message, 'error');
+        pointInfoDiv.innerHTML = `
+            <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px;">
+                <h4 style="color: #F44336; margin-bottom: 10px;">❌ Ошибка загрузки</h4>
+                <p style="font-size: 13px; color: #666;">${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+function removeSatelliteLayer() {
+    if (currentSatelliteLayer) {
+        map.removeLayer(currentSatelliteLayer);
+        currentSatelliteLayer = null;
+        if (window.debugLog) debugLog('Satellite layer removed');
+    }
 }
 
 async function loadUserCabinet() {

@@ -4,6 +4,12 @@
     box-sizing: border-box;
 }
 
+/* Loading animation for satellite */
+@keyframes loading {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(300%); }
+}
+
 body {
     font-family: 'Poppins', sans-serif;
     background: linear-gradient(to bottom, #E8F5E9 0%, #C8E6C9 50%, #A5D6A7 100%);

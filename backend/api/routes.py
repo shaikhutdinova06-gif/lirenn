@@ -4,6 +4,7 @@ from backend.services.block1_logic import process_block1
 from backend.services.storage import get_user_points, get_points, get_user_data, initialize_test_location, delete_user_point, get_all_points, get_point_history
 from backend.services.ai_model import deepseek_classify
 from backend.services.auth import register_user, authenticate_user, create_access_token, get_current_user
+from backend.services.satellite import get_satellite_image, get_ndvi_image
 from math import radians, cos, sin, sqrt, asin
 import json
 import os
@@ -397,3 +398,51 @@ async def login(request: Request):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
+
+# =========================
+# SATELLITE IMAGERY ENDPOINTS
+# =========================
+
+@router.get("/satellite")
+def satellite(lat: float, lng: float, width: int = 512, height: int = 512):
+    """
+    Get real satellite image from Sentinel-2 for given coordinates
+    
+    Parameters:
+        lat: Latitude
+        lng: Longitude
+        width: Image width in pixels (default: 512)
+        height: Image height in pixels (default: 512)
+    
+    Returns:
+        JSON with base64-encoded satellite image and metadata
+    """
+    try:
+        result = get_satellite_image(lat, lng, width, height)
+        return result
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to get satellite image: {str(e)}"
+        }
+
+@router.get("/satellite/ndvi")
+def satellite_ndvi(lat: float, lng: float, width: int = 512, height: int = 512):
+    """
+    Get NDVI (vegetation health) satellite image
+    
+    NDVI shows vegetation health:
+    - Red: barren/urban areas
+    - Orange: sparse vegetation
+    - Yellow: moderate vegetation
+    - Light green: healthy vegetation
+    - Dark green: very healthy vegetation
+    """
+    try:
+        result = get_ndvi_image(lat, lng, width, height)
+        return result
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to get NDVI image: {str(e)}"
+        }
