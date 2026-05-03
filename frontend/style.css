@@ -153,18 +153,17 @@ body::before {
 }
 
 .step-panel {
-    position: absolute;
-    top: 0;
-    left: 0;
+    position: relative;
     width: 100%;
-    opacity: 0;
-    transform: translateX(100%);
+    opacity: 1;
+    transform: translateX(0);
     transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none;
+    pointer-events: auto;
     background: white;
     border-radius: 10px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     padding: 40px;
+    display: none;
 }
 
 .step-panel.active {
