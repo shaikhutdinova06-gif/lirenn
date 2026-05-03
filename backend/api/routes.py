@@ -414,8 +414,20 @@ def satellite(lat: float, lng: float, width: int = 512, height: int = 512):
     import os
     instance_id = os.getenv("SENTINEL_INSTANCE_ID")
     client_id = os.getenv("SENTINEL_CLIENT_ID")
-    print(f"[API /satellite] SENTINEL_INSTANCE_ID set: {bool(instance_id)}")
-    print(f"[API /satellite] SENTINEL_CLIENT_ID set: {bool(client_id)}")
+    client_secret = os.getenv("SENTINEL_CLIENT_SECRET")
+    
+    print(f"[API /satellite] SENTINEL_INSTANCE_ID: {'SET' if instance_id else 'NOT SET'}")
+    print(f"[API /satellite] SENTINEL_CLIENT_ID: {'SET' if client_id else 'NOT SET'}")
+    print(f"[API /satellite] SENTINEL_CLIENT_SECRET: {'SET' if client_secret else 'NOT SET'}")
+    
+    # Print all env vars starting with SENTINEL for debugging
+    sentinel_vars = {k: v[:10] + '...' for k, v in os.environ.items() if 'SENTINEL' in k}
+    print(f"[API /satellite] All SENTINEL env vars: {sentinel_vars}")
+    
+    # Print all env var names (without values for security)
+    all_vars = [k for k in os.environ.keys()]
+    print(f"[API /satellite] Total env vars: {len(all_vars)}")
+    print(f"[API /satellite] Available env var names: {all_vars}")
     
     try:
         result = get_satellite_image(lat, lng, width, height)
