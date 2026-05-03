@@ -368,10 +368,15 @@ async def register(request: Request):
 @router.post("/login")
 async def login(request: Request):
     """Вход пользователя"""
+    print(f"Login endpoint called with method: {request.method}")
+    print(f"Request headers: {dict(request.headers)}")
+    
     try:
         data = await request.json()
         username = data.get("username")
         password = data.get("password")
+        
+        print(f"Login attempt for user: {username}")
         
         if not username or not password:
             raise HTTPException(status_code=400, detail="Username and password required")
@@ -381,11 +386,13 @@ async def login(request: Request):
             raise HTTPException(status_code=401, detail="Invalid username or password")
         
         access_token = create_access_token(data={"sub": username})
-        return {
+        result = {
             "access_token": access_token,
             "token_type": "bearer",
             "username": username
         }
+        print(f"Login successful for user: {username}")
+        return result
     except HTTPException:
         raise
     except Exception as e:
