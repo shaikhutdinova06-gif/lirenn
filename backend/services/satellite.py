@@ -1,6 +1,7 @@
 """
 Satellite imagery service using Sentinel Hub API
 Provides real satellite images from Sentinel-2
+Uses Instance ID authentication (simpler than OAuth)
 """
 import requests
 import os
@@ -8,32 +9,25 @@ from datetime import datetime, timedelta
 import base64
 from typing import Dict, Any
 
-# Load credentials from environment
-CLIENT_ID = os.getenv("SENTINEL_CLIENT_ID")
-CLIENT_SECRET = os.getenv("SENTINEL_CLIENT_SECRET")
+# Load API credentials from environment
+INSTANCE_ID = os.getenv("SENTINEL_INSTANCE_ID") or os.getenv("SENTINEL_CLIENT_ID")
+CLIENT_SECRET = os.getenv("SENTINEL_CLIENT_SECRET")  # Fallback for compatibility
 
-def get_access_token() -> str:
+def get_auth_headers() -> dict:
     """
-    Get OAuth access token from Sentinel Hub
+    Get authentication headers for Sentinel Hub
+    Uses Instance ID authentication
     """
-    if not CLIENT_ID or not CLIENT_SECRET:
-        raise ValueError("SENTINEL_CLIENT_ID and SENTINEL_CLIENT_SECRET must be set in environment")
+    # Prefer Instance ID, fallback to Client ID for backward compatibility
+    auth_key = INSTANCE_ID or CLIENT_SECRET
     
-    url = "https://services.sentinel-hub.com/oauth/token"
-    data = {
-        "grant_type": "client_credentials",
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
+    if not auth_key:
+        raise ValueError("SENTINEL_INSTANCE_ID must be set in environment. Get it from Sentinel Hub Dashboard > User Settings")
+    
+    return {
+        "Authorization": f"Bearer {auth_key}",
+        "Content-Type": "application/json"
     }
-    
-    try:
-        res = requests.post(url, data=data, timeout=30)
-        res.raise_for_status()
-        return res.json()["access_token"]
-    except requests.exceptions.RequestException as e:
-        raise ConnectionError(f"Failed to get Sentinel Hub token: {str(e)}")
-    except KeyError:
-        raise ValueError("Invalid response from Sentinel Hub auth service")
 
 def get_satellite_image(lat: float, lng: float, width: int = 512, height: int = 512) -> Dict[str, Any]:
     """
@@ -49,17 +43,13 @@ def get_satellite_image(lat: float, lng: float, width: int = 512, height: int = 
         Dictionary with base64 image, source info, and date
     """
     try:
-        token = get_access_token()
+        headers = get_auth_headers()
         
         # Last 7 days for fresh imagery
         today = datetime.utcnow()
         past = today - timedelta(days=7)
         
         url = "https://services.sentinel-hub.com/api/v1/process"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
         
         # Bounding box around coordinates (roughly 1km x 1km)
         bbox = [lng - 0.01, lat - 0.01, lng + 0.01, lat + 0.01]
@@ -155,16 +145,12 @@ def get_ndvi_image(lat: float, lng: float, width: int = 512, height: int = 512) 
     Useful for vegetation health analysis
     """
     try:
-        token = get_access_token()
+        headers = get_auth_headers()
         
         today = datetime.utcnow()
         past = today - timedelta(days=7)
         
         url = "https://services.sentinel-hub.com/api/v1/process"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
         
         bbox = [lng - 0.01, lat - 0.01, lng + 0.01, lat + 0.01]
         
