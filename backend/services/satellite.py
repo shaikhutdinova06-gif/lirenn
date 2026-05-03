@@ -40,8 +40,9 @@ def get_satellite_image(lat: float, lng: float, width: int = 512, height: int = 
         # Using Landsat-8 for better resolution (30m vs 250m MODIS)
         
         today = datetime.utcnow()
-        # Landsat has 16-day repeat cycle, use recent date
-        date_str = today.strftime("%Y-%m-%d")
+        # Landsat has 16-day repeat cycle - use static date for "best" layer
+        # NASA GIBS "best" layer automatically serves most recent available imagery
+        date_str = "2024-01-01"  # Static date for best available imagery
         
         # NASA GIBS WMS endpoint (free, no auth required)
         base_url = "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi"
@@ -61,8 +62,8 @@ def get_satellite_image(lat: float, lng: float, width: int = 512, height: int = 
             "WIDTH": str(width),
             "HEIGHT": str(height),
             "CRS": "EPSG:4326",
-            "BBOX": bbox,
-            "TIME": date_str
+            "BBOX": bbox
+            # TIME parameter removed - "best" layer serves most recent available
         }
         
         url = f"{base_url}?{requests.compat.urlencode(params)}"
@@ -109,7 +110,6 @@ def get_ndvi_image(lat: float, lng: float, width: int = 512, height: int = 512) 
     
     try:
         today = datetime.utcnow()
-        date_str = today.strftime("%Y-%m-%d")
         
         # NASA GIBS NDVI layer
         base_url = "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi"
@@ -128,8 +128,8 @@ def get_ndvi_image(lat: float, lng: float, width: int = 512, height: int = 512) 
             "WIDTH": str(width),
             "HEIGHT": str(height),
             "CRS": "EPSG:4326",
-            "BBOX": bbox,
-            "TIME": date_str
+            "BBOX": bbox
+            # TIME removed - best layer serves most recent available
         }
         
         url = f"{base_url}?{requests.compat.urlencode(params)}"
