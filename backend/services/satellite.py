@@ -37,23 +37,24 @@ def get_satellite_image(lat: float, lng: float, width: int = 512, height: int = 
     
     try:
         # NASA GIBS Web Map Tile Service (WMTS)
-        # Using MODIS Terra True Color imagery (daily, global coverage)
+        # Using Landsat-8 for better resolution (30m vs 250m MODIS)
         
         today = datetime.utcnow()
+        # Landsat has 16-day repeat cycle, use recent date
         date_str = today.strftime("%Y-%m-%d")
         
         # NASA GIBS WMS endpoint (free, no auth required)
         base_url = "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi"
         
-        # Calculate bounding box
-        half_size = 0.05  # ~5km
+        # Calculate bounding box - smaller area for higher resolution
+        half_size = 0.02  # ~2km for better detail
         bbox = f"{lng-half_size},{lat-half_size},{lng+half_size},{lat+half_size}"
         
         params = {
             "SERVICE": "WMS",
             "REQUEST": "GetMap",
             "VERSION": "1.3.0",
-            "LAYERS": "MODIS_Terra_CorrectedReflectance_TrueColor",
+            "LAYERS": "Landsat_WELD_CorrectedReflectance_TrueColor_Global",
             "STYLES": "",
             "FORMAT": "image/png",
             "TRANSPARENT": "true",
@@ -77,7 +78,8 @@ def get_satellite_image(lat: float, lng: float, width: int = 512, height: int = 
             return {
                 "success": True,
                 "image": f"data:image/png;base64,{image_base64}",
-                "source": "NASA MODIS Terra",
+                "source": "NASA Landsat-8 (30м)",
+                "resolution": "30m per pixel",
                 "date": date_str,
                 "coordinates": {"lat": lat, "lng": lng},
                 "bbox": [lng-half_size, lat-half_size, lng+half_size, lat+half_size],
