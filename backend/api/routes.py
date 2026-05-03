@@ -407,20 +407,24 @@ async def login(request: Request):
 def satellite(lat: float, lng: float, width: int = 512, height: int = 512):
     """
     Get real satellite image from Sentinel-2 for given coordinates
-    
-    Parameters:
-        lat: Latitude
-        lng: Longitude
-        width: Image width in pixels (default: 512)
-        height: Image height in pixels (default: 512)
-    
-    Returns:
-        JSON with base64-encoded satellite image and metadata
     """
+    print(f"[API /satellite] Request received: lat={lat}, lng={lng}")
+    
+    # Check if env var is set
+    import os
+    instance_id = os.getenv("SENTINEL_INSTANCE_ID")
+    client_id = os.getenv("SENTINEL_CLIENT_ID")
+    print(f"[API /satellite] SENTINEL_INSTANCE_ID set: {bool(instance_id)}")
+    print(f"[API /satellite] SENTINEL_CLIENT_ID set: {bool(client_id)}")
+    
     try:
         result = get_satellite_image(lat, lng, width, height)
+        print(f"[API /satellite] Result success: {result.get('success')}")
+        if not result.get('success'):
+            print(f"[API /satellite] Error: {result.get('error')}")
         return result
     except Exception as e:
+        print(f"[API /satellite] Exception: {e}")
         return {
             "success": False,
             "error": f"Failed to get satellite image: {str(e)}"
