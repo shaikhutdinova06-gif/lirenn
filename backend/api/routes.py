@@ -271,7 +271,7 @@ async def block1(request: Request):
             raise HTTPException(status_code=401, detail="Invalid token")
         
         data["user_id"] = user["username"]
-        result = await process_block1(data)
+        result = process_block1(data)  # process_block1 is not async, don't use await
         return result
     except HTTPException:
         raise
