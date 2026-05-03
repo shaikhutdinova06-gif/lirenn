@@ -1,5 +1,16 @@
 let map = null
 let markers = []
+let currentStep = 1
+let stepData = {
+    images: [],
+    ph: null,
+    nitrogen: null,
+    phosphorus: null,
+    potassium: null,
+    lat: null,
+    lng: null,
+    notes: null
+}
 
 function initMap() {
     if (map) return
