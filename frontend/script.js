@@ -11,11 +11,41 @@ let stepData = {
     lng: null,
     notes: null
 }
+let baseLayers = {}
+let overlayLayers = {}
 
 function initMap() {
     if (map) return
     map = L.map('leaflet-map').setView([55.75, 37.61], 10)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
+    
+    // Базовый слой - OpenStreetMap
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(map)
+    
+    // Спутниковый слой - NASA GIBS MODIS
+    const satelliteLayer = L.tileLayer(
+        'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/' +
+        'MODIS_Terra_CorrectedReflectance_TrueColor/default/{time}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg',
+        {
+            attribution: 'NASA GIBS',
+            maxZoom: 9,
+            time: new Date().toISOString().split('T')[0]
+        }
+    )
+    
+    // Слои для переключателя
+    baseLayers = {
+        "🗺️ Карта (OSM)": osmLayer,
+        "🛰️ Спутник (NASA)": satelliteLayer
+    }
+    
+    // Добавляем переключатель слоёв
+    L.control.layers(baseLayers, null, {
+        position: 'topright',
+        collapsed: true
+    }).addTo(map)
 }
 
 const user_id = localStorage.getItem('user_id') || crypto.randomUUID()
