@@ -21,9 +21,26 @@ function initMap() {
 const user_id = localStorage.getItem('user_id') || crypto.randomUUID()
 localStorage.setItem('user_id', user_id)
 async function loadPoints() {
-    const res = await fetch("/api/points");
-    const points = await res.json();
-    points.forEach(p => addPointToMap(p));
+    try {
+        console.log('Loading all points for general map...');
+        const res = await fetch("/api/points");
+        const points = await res.json();
+        console.log(`Loaded ${points.length} points from backend`);
+        
+        // Удаляем старые маркеры
+        if (markers) {
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+        }
+        
+        points.forEach(p => {
+            addPointToMap(p);
+        });
+        
+        console.log(`Added ${points.length} points to map`);
+    } catch (error) {
+        console.error('Error loading points:', error);
+    }
 }
 function addPointToMap(p) {
     const marker = L.marker([p.lat, p.lng]).addTo(map);
@@ -541,6 +558,8 @@ async function saveFinalPoint() {
             // Mark user as having completed analysis
             localStorage.setItem('hasCompletedAnalysis', 'true');
             
+            console.log('Point saved successfully, reloading all points...');
+            
             summaryDiv.innerHTML += `
                 <div style="padding: 20px; background: rgba(76, 175, 80, 0.2); border-radius: 8px; margin-top: 15px;">
                     <h4>✅ Точка успешно сохранена!</h4>
@@ -548,10 +567,13 @@ async function saveFinalPoint() {
                 </div>
             `;
             
-            // Перезагрузить точки и перейти на карту
-            loadMyPoints();
+            // Перезагрузить все точки (общую карту) и перейти на карту
+            loadPoints(); // Загружаем все точки для общей карты
+            loadMyPoints(); // Загружаем точки пользователя для личного кабинета
+            
             setTimeout(() => {
                 showSection('map');
+                console.log('Switched to map section');
             }, 1000);
         } else {
             summaryDiv.innerHTML += `
