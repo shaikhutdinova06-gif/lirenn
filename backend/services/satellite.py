@@ -9,8 +9,8 @@ from datetime import datetime, timedelta
 import base64
 from typing import Dict, Any
 
-# Load API credentials from environment
-INSTANCE_ID = os.getenv("SENTINEL_INSTANCE_ID") or os.getenv("SENTINEL_CLIENT_ID")
+# Load API credentials from environment (or use hardcoded for testing)
+INSTANCE_ID = os.getenv("SENTINEL_INSTANCE_ID") or os.getenv("SENTINEL_CLIENT_ID") or "PLAK1e9d4e8d569b4660af940ff20a9865cb"
 CLIENT_SECRET = os.getenv("SENTINEL_CLIENT_SECRET")  # Fallback for compatibility
 
 def get_auth_headers() -> dict:
