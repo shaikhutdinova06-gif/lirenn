@@ -2299,25 +2299,36 @@ async function login() {
     }
 
     try {
-        console.log('Attempting login to /api/login...');
+        // Показать индикатор загрузки
+        const loginBtn = document.querySelector('#login-form button');
+        const originalText = loginBtn.textContent;
+        loginBtn.textContent = 'Вход...';
+        loginBtn.disabled = true;
+        
         const response = await fetch('/api/login', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({username, password})
         });
         
-        console.log('Login response status:', response.status);
-        console.log('Login response headers:', response.headers);
-        
         const responseText = await response.text();
-        console.log('Login response text:', responseText);
+        
+        // Восстановить кнопку
+        loginBtn.textContent = originalText;
+        loginBtn.disabled = false;
         
         if (!response.ok) {
             let errorData;
             try {
                 errorData = JSON.parse(responseText);
             } catch {
-                errorData = {detail: responseText};
+                // Если ответ начинается с <!DOCTYPE, это HTML страница
+                if (responseText.trim().startsWith('<!DOCTYPE')) {
+                    alert('Ошибка входа: Сервер вернул HTML страницу вместо JSON. Возможно, неверный URL.');
+                } else {
+                    alert('Ошибка входа: ' + responseText);
+                }
+                return;
             }
             alert('Ошибка входа: ' + (errorData.detail || 'Неизвестная ошибка'));
             return;
@@ -2341,7 +2352,8 @@ async function login() {
             alert('Ошибка входа');
         }
     } catch (error) {
-        alert('Ошибка при входе: ' + error.message);
+        console.error('Login error:', error);
+        alert('Ошибка входа: ' + error.message);
     }
 }
 
