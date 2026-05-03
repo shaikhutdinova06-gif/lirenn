@@ -98,9 +98,17 @@ def get_satellite_image(lat: float, lng: float, width: int = 512, height: int = 
         }
         
         print(f"[SATELLITE] Sending request to Sentinel Hub...")
+        print(f"[SATELLITE] URL: {url}")
+        print(f"[SATELLITE] Headers: { {k: v[:20] + '...' if k == 'Authorization' else v for k, v in headers.items()} }")
+        print(f"[SATELLITE] Body bbox: {body['input']['bounds']['bbox']}")
+        
         response = requests.post(url, headers=headers, json=body, timeout=60)
+        
         print(f"[SATELLITE] Response status: {response.status_code}")
+        print(f"[SATELLITE] Response headers: {dict(response.headers)}")
         print(f"[SATELLITE] Response content length: {len(response.content)} bytes")
+        if response.status_code != 200:
+            print(f"[SATELLITE] Response text: {response.text[:500]}")
         
         if response.status_code == 200:
             print(f"[SATELLITE] Success! Encoding image to base64...")
