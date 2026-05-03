@@ -2299,19 +2299,37 @@ async function login() {
     }
 
     try {
+        console.log('Attempting login to /api/login...');
         const response = await fetch('/api/login', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({username, password})
         });
         
+        console.log('Login response status:', response.status);
+        console.log('Login response headers:', response.headers);
+        
+        const responseText = await response.text();
+        console.log('Login response text:', responseText);
+        
         if (!response.ok) {
-            const errorData = await response.json();
+            let errorData;
+            try {
+                errorData = JSON.parse(responseText);
+            } catch {
+                errorData = {detail: responseText};
+            }
             alert('Ошибка входа: ' + (errorData.detail || 'Неизвестная ошибка'));
             return;
         }
         
-        const data = await response.json();
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch {
+            alert('Ошибка входа: Неверный формат ответа сервера');
+            return;
+        }
 
         if (data.access_token) {
             localStorage.setItem('auth_token', data.access_token);
