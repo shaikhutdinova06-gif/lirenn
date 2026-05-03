@@ -66,13 +66,23 @@ function addPointToMap(p) {
 // SECTION NAVIGATION
 // =========================
 function showSection(section) {
+    if (window.debugLog) debugLog('Showing section: ' + section);
+    
     // Hide all sections
     document.getElementById("analysis").style.display = "none";
     document.getElementById("map").style.display = "none";
     document.getElementById("cabinet").style.display = "none";
     
     // Show selected section
-    document.getElementById(section).style.display = "block";
+    const targetSection = document.getElementById(section);
+    if (targetSection) {
+        targetSection.style.display = "block";
+        if (window.debugLog) debugLog('Section ' + section + ' displayed');
+    } else {
+        if (window.debugLog) debugLog('ERROR: Section ' + section + ' not found', 'error');
+        alert('Ошибка: секция ' + section + ' не найдена');
+        return;
+    }
     
     if (section === "map") {
         setTimeout(() => {
@@ -95,37 +105,41 @@ function showSection(section) {
 // STEP NAVIGATION
 // =========================
 async function nextStep(step) {
-    console.log(`nextStep called with step: ${step}, currentStep: ${currentStep}`);
+    if (window.debugLog) debugLog('nextStep called: from ' + currentStep + ' to ' + step);
     
     if (step > currentStep) {
         // Validate current step before proceeding
         const isValid = await validateStep(currentStep);
-        console.log(`Validation result for step ${currentStep}: ${isValid}`);
+        if (window.debugLog) debugLog('Validation result: ' + isValid);
         if (!isValid) {
-            console.log('Validation failed, stopping navigation');
+            if (window.debugLog) debugLog('Validation failed, stopping', 'warn');
             return;
         }
         
         const oldStep = currentStep;
         currentStep = step;
-        console.log(`Moving from step ${oldStep} to step ${step}`);
+        if (window.debugLog) debugLog('Moving to step ' + step);
         
         // Update layers
         updateLayers(oldStep, currentStep);
         processStep(step);
+        updateStepUI();
     } else {
         const oldStep = currentStep;
         currentStep = step;
-        console.log(`Moving backwards from step ${oldStep} to step ${step}`);
+        if (window.debugLog) debugLog('Moving backwards to step ' + step);
         updateLayers(oldStep, currentStep);
         processStep(step);
+        updateStepUI();
     }
 }
 
 function prevStep(step) {
+    if (window.debugLog) debugLog('prevStep called: from ' + currentStep + ' to ' + step);
     const oldStep = currentStep;
     currentStep = step;
     updateLayers(oldStep, currentStep);
+    updateStepUI();
 }
 
 function updateLayers(oldStep, newStep) {
@@ -744,28 +758,23 @@ function clearSoilSearch() {
 }
 
 function updateStepUI() {
+    if (window.debugLog) debugLog('updateStepUI called for step ' + currentStep);
+    
     // Show current step panel
-    document.querySelectorAll('.step-panel').forEach(panel => {
+    const allPanels = document.querySelectorAll('.step-panel');
+    if (window.debugLog) debugLog('Found ' + allPanels.length + ' step panels');
+    
+    allPanels.forEach(panel => {
         panel.style.display = 'none';
     });
     
-    const currentPanel = document.querySelector(`[data-step="${currentStep}"]`);
+    const currentPanel = document.querySelector(`.step-panel[data-step="${currentStep}"]`);
     if (currentPanel) {
         currentPanel.style.display = 'block';
+        if (window.debugLog) debugLog('Showing panel for step ' + currentStep);
+    } else {
+        if (window.debugLog) debugLog('ERROR: Panel for step ' + currentStep + ' not found', 'error');
     }
-    
-    // Update sidebar step indicators
-    document.querySelectorAll('.sidebar .step-indicator').forEach(indicator => {
-        indicator.classList.remove('active', 'completed');
-        const step = parseInt(indicator.dataset.step);
-        if (step === currentStep) {
-            indicator.classList.add('active');
-        } else if (step < currentStep) {
-            indicator.classList.add('completed');
-        }
-    });
-    
-    console.log(`Updated UI for step ${currentStep}`);
 }
 
 document.addEventListener('DOMContentLoaded', async function() {

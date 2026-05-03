@@ -1,0 +1,16 @@
+<div id="debug-panel" style="position: fixed; bottom: 10px; right: 10px; background: rgba(255,0,0,0.9); color: white; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; max-width: 300px; max-height: 200px; overflow: auto; z-index: 10000;">
+  <h4 style="margin: 0 0 5px 0;">Debug Panel</h4>
+  <div id="debug-messages"></div>
+</div>
+
+<script>
+window.debugLog = function(msg) {
+  const div = document.getElementById('debug-messages');
+  if (div) {
+    div.innerHTML += '<div style="border-bottom: 1px solid rgba(255,255,255,0.3); padding: 2px 0;">' + msg + '</div>';
+  }
+};
+window.onerror = function(msg, url, line) {
+  debugLog('ERROR: ' + msg + ' (line ' + line + ')');
+};
+</script>
