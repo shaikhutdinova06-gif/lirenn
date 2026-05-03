@@ -150,7 +150,17 @@ async function validateStep(step) {
             }
             return true;
         case 3:
-            // Chemistry is optional
+            // Collect chemistry data if present
+            const ph = document.getElementById('step3-ph')?.value;
+            const nitrogen = document.getElementById('step3-nitrogen')?.value;
+            const phosphorus = document.getElementById('step3-phosphorus')?.value;
+            const potassium = document.getElementById('step3-potassium')?.value;
+            
+            if (ph) stepData.ph = parseFloat(ph);
+            if (nitrogen) stepData.nitrogen = parseFloat(nitrogen);
+            if (phosphorus) stepData.phosphorus = parseFloat(phosphorus);
+            if (potassium) stepData.potassium = parseFloat(potassium);
+            
             return true;
         case 4:
             // Geolocation required
@@ -432,6 +442,7 @@ async function processStep9() {
 // =========================
 function collectStepData() {
     const selectedSoilType = document.getElementById('step9-soil-type').value;
+    const notes = document.getElementById('step8-notes')?.value || '';
     
     return {
         images: stepData.images,
@@ -445,7 +456,7 @@ function collectStepData() {
         color: stepData.color,
         icon: stepData.icon,
         tags: stepData.tags,
-        notes: stepData.notes,
+        notes: notes,
         soil_type: selectedSoilType || stepData.validationResult?.identified_soil_type || ""
     };
 }
@@ -621,7 +632,7 @@ async function loadSoilTypes() {
         allSoilTypes = data.soil_types || [];
         
         const select = document.getElementById('soil-type-filter');
-        select.innerHTML = '<option value="">Все типы</option>';
+        select.innerHTML = '<option value="">Все типы почвы</option>';
         
         allSoilTypes.forEach(category => {
             const optgroup = document.createElement('optgroup');
