@@ -1424,6 +1424,10 @@ async function loadNDVI(lat, lng) {
         const bounds = [[lat - 0.01, lng - 0.01], [lat + 0.01, lng + 0.01]];
         currentSatelliteLayer = L.imageOverlay(data.image, bounds, {opacity: 0.85}).addTo(map);
         
+        // Определяем качество данных
+        const isHighRes = data.resolution === '10m';
+        const isFallback = data.fallback;
+        
         pointInfoDiv.innerHTML = `
             <div style="font-family: Arial, sans-serif;">
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0;">
@@ -1431,6 +1435,19 @@ async function loadNDVI(lat, lng) {
                     <div>
                         <div style="font-size: 14px; font-weight: 600;">NDVI - Индекс растительности</div>
                         <div style="font-size: 11px; color: #666;">${data.source} • ${data.date}</div>
+                    </div>
+                </div>
+                
+                <!-- Индикатор качества -->
+                <div style="padding: 10px; background: ${isHighRes ? 'rgba(76, 175, 80, 0.15)' : 'rgba(255, 193, 7, 0.15)'}; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid ${isHighRes ? '#4CAF50' : '#FFC107'};">
+                    <div style="font-size: 12px; color: #333; font-weight: 500;">
+                        ${isHighRes ? '✨ Высокое разрешение (10м)' : '📡 Стандартное разрешение (250м)'}
+                        ${isFallback ? ' - Fallback режим' : ''}
+                    </div>
+                    <div style="font-size: 11px; color: #666; margin-top: 4px;">
+                        ${isHighRes 
+                            ? 'Детальная визуализация растительности от Sentinel-2' 
+                            : 'Глобальное покрытие от MODIS (NASA)'}
                     </div>
                 </div>
                 
