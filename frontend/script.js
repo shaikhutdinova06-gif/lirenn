@@ -2377,6 +2377,31 @@ function updateAuthUI() {
 }
 
 // Check auth on page load
+// System validation on load
 document.addEventListener('DOMContentLoaded', function() {
     updateAuthUI();
+    
+    // Check critical functions exist
+    const criticalFunctions = [
+        'showSection', 'nextStep', 'prevStep', 'validateStep', 'processStep',
+        'login', 'register', 'logout', 'loadPoints', 'loadMyPoints',
+        'saveFinalPoint', 'filterPointsBySoilType', 'searchPointsBySoilName'
+    ];
+    
+    criticalFunctions.forEach(funcName => {
+        if (typeof window[funcName] !== 'function') {
+            console.error(`Critical function missing: ${funcName}`);
+        }
+    });
+    
+    // Check critical elements exist
+    const criticalElements = [
+        'analysis', 'map', 'cabinet', 'auth-modal', 'login-form', 'register-form'
+    ];
+    
+    criticalElements.forEach(elementId => {
+        if (!document.getElementById(elementId)) {
+            console.error(`Critical element missing: ${elementId}`);
+        }
+    });
 });
