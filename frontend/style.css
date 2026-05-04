@@ -447,7 +447,8 @@ body {
 
 .gis-layout {
     display: flex;
-    height: 600px;
+    height: calc(100vh - 120px);
+    min-height: 500px;
     gap: 10px;
     position: relative;
     z-index: 1;
@@ -629,7 +630,8 @@ body {
     }
     
     #leaflet-map {
-        height: 400px;
+        height: calc(100vh - 200px);
+        min-height: 400px;
     }
     
     .hero-content h1 {
@@ -700,7 +702,8 @@ body {
     }
     
     #leaflet-map {
-        height: 350px;
+        height: calc(100vh - 250px);
+        min-height: 350px;
     }
     
     .hero-content h1 {
