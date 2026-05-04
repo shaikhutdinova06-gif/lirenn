@@ -575,10 +575,13 @@ function collectStepData() {
 async function saveFinalPoint() {
     if (window.debugLog) debugLog('saveFinalPoint() started');
     
+    showLoading('Сохранение точки...', 'Анализ и сохранение данных');
+    
     const summaryDiv = document.getElementById('final-summary');
     if (!summaryDiv) {
         if (window.debugLog) debugLog('ERROR: final-summary element not found', 'error');
-        alert('Ошибка: не найден элемент для отображения результата');
+        hideLoading();
+        showErrorToast('Ошибка: не найден элемент для отображения результата');
         return;
     }
     if (window.debugLog) debugLog('summaryDiv found');
@@ -588,7 +591,8 @@ async function saveFinalPoint() {
     
     // Проверка наличия фото
     if (!point.image && (!stepData || !stepData.images || stepData.images.length === 0)) {
-        alert('❌ Необходимо загрузить фото почвы для анализа');
+        hideLoading();
+        showErrorToast('❌ Необходимо загрузить фото почвы для анализа');
         showSection('analysis');
         nextStep(1);
         return;
@@ -596,7 +600,8 @@ async function saveFinalPoint() {
     
     // Проверка обязательных значений
     if (!point.ph || point.ph === '') {
-        alert('❌ Необходимо указать pH почвы для анализа');
+        hideLoading();
+        showErrorToast('❌ Необходимо указать pH почвы для анализа');
         showSection('analysis');
         nextStep(3);
         return;
@@ -604,7 +609,8 @@ async function saveFinalPoint() {
     
     // Проверка координат
     if (!point.lat || !point.lng) {
-        alert('❌ Необходимо указать координаты точки');
+        hideLoading();
+        showErrorToast('❌ Необходимо указать координаты точки');
         showSection('analysis');
         nextStep(4);
         return;
@@ -613,7 +619,8 @@ async function saveFinalPoint() {
     // Проверка типа почвы (если ИИ не смог определить, пользователь должен выбрать)
     const confirmedType = getConfirmedSoilType();
     if (!confirmedType) {
-        alert('❌ Необходимо подтвердить или выбрать тип почвы');
+        hideLoading();
+        showErrorToast('❌ Необходимо подтвердить или выбрать тип почвы');
         showSection('analysis');
         nextStep(9);
         return;
@@ -623,7 +630,8 @@ async function saveFinalPoint() {
     const token = localStorage.getItem('auth_token');
     if (!token) {
         if (window.debugLog) debugLog('ERROR: No auth token', 'error');
-        alert('Для сохранения точек необходимо войти в систему');
+        hideLoading();
+        showErrorToast('Для сохранения точек необходимо войти в систему');
         showAuthModal();
         return;
     }
@@ -651,6 +659,7 @@ async function saveFinalPoint() {
         }
         
         if (window.debugLog) debugLog('Rendering summary...');
+        updateProgress(25);
         
         summaryDiv.innerHTML = `
             <div style="padding: 20px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
@@ -673,11 +682,20 @@ async function saveFinalPoint() {
     } catch (renderError) {
         if (window.debugLog) debugLog('ERROR rendering summary: ' + renderError.message, 'error');
         console.error('Render error:', renderError);
+        hideLoading();
+        summaryDiv.innerHTML = `
+            <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
+                <h4>❌ Ошибка отображения</h4>
+                <p>${renderError.message}</p>
+            </div>
+        `;
+        return;
     }
     
     // Save to backend
     try {
         if (window.debugLog) debugLog('Sending request to /api/block1...');
+        updateProgress(50);
         
         const headers = {'Content-Type': 'application/json'};
         headers['Authorization'] = `Bearer ${token}`;
@@ -692,12 +710,14 @@ async function saveFinalPoint() {
         
         if (response.status === 401) {
             if (window.debugLog) debugLog('ERROR: 401 Unauthorized', 'error');
+            hideLoading();
             summaryDiv.innerHTML += `
                 <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
                     <h4>❌ Требуется авторизация</h4>
                     <p>Ваша сессия истекла. Пожалуйста, войдите снова.</p>
                 </div>
             `;
+            showErrorToast('Ваша сессия истекла. Пожалуйста, войдите снова.');
             showAuthModal();
             return;
         }
@@ -721,6 +741,7 @@ async function saveFinalPoint() {
             localStorage.setItem('hasCompletedAnalysis', 'true');
             
             console.log('Point saved successfully, reloading all points...');
+            updateProgress(75);
             
             summaryDiv.innerHTML += `
                 <div style="padding: 20px; background: rgba(76, 175, 80, 0.2); border-radius: 8px; margin-top: 15px;">
@@ -730,15 +751,21 @@ async function saveFinalPoint() {
             `;
             
             // Перезагрузить все точки (общую карту) и перейти на карту
-            loadPoints(); // Загружаем все точки для общей карты
-            loadUserCabinet(); // Загружаем точки пользователя для личного кабинета
+            await loadPoints(); // Загружаем все точки для общей карты
+            await loadUserCabinet(); // Загружаем точки пользователя для личного кабинета
+            
+            updateProgress(100);
+            showSuccessToast('Точка успешно сохранена!');
             
             setTimeout(() => {
+                hideLoading();
                 showSection('map');
                 console.log('Switched to map section');
             }, 1000);
         } else {
             if (window.debugLog) debugLog('ERROR: Save failed - ' + (result.error || 'Unknown error'), 'error');
+            hideLoading();
+            showErrorToast('Ошибка при сохранении: ' + (result.error || 'Попробуйте снова'));
             summaryDiv.innerHTML += `
                 <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
                     <h4>❌ Ошибка при сохранении</h4>
@@ -747,8 +774,10 @@ async function saveFinalPoint() {
             `;
         }
     } catch (error) {
-        if (window.debugLog) debugLog('ERROR: Exception during save - ' + error.message, 'error');
+        if (window.debugLog) debugLog('ERROR: Save failed with exception: ' + error.message, 'error');
         console.error('Save error:', error);
+        hideLoading();
+        handleAsyncError(error, 'сохранении точки');
         summaryDiv.innerHTML += `
             <div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;">
                 <h4>❌ Ошибка при сохранении</h4>
@@ -3481,3 +3510,232 @@ function showPointPhotos(imagesJson) {
 function openFeedbackLink() {
     window.open('https://vk.com/topic-238378507_60860089', '_blank');
 }
+
+// Loading indicator functions
+function showLoading(text = "Анализ данных...", subtext = "Пожалуйста, подождите") {
+    const overlay = document.getElementById('loading-overlay');
+    const loadingText = document.querySelector('.loading-text');
+    const loadingSubtext = document.querySelector('.loading-subtext');
+    
+    loadingText.textContent = text;
+    loadingSubtext.textContent = subtext;
+    overlay.style.display = 'flex';
+    
+    // Reset progress bar
+    updateProgress(0);
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loading-overlay');
+    overlay.style.display = 'none';
+}
+
+function updateProgress(percent) {
+    const progressBar = document.getElementById('progress-bar');
+    progressBar.style.width = percent + '%';
+}
+
+// Toast notification functions
+function showToast(message, type = 'info', duration = 3000) {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = message;
+    
+    document.getElementById('toast-container').appendChild(toast);
+    
+    // Show toast
+    setTimeout(() => {
+        toast.style.display = 'block';
+    }, 100);
+    
+    // Hide toast after duration
+    setTimeout(() => {
+        toast.style.display = 'none';
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, duration);
+}
+
+function showSuccessToast(message) {
+    showToast(message, 'success');
+}
+
+function showErrorToast(message) {
+    showToast(message, 'error', 5000);
+}
+
+function showInfoToast(message) {
+    showToast(message, 'info');
+}
+
+// Enhanced error handling
+function handleAsyncError(error, context = '') {
+    console.error(`Error in ${context}:`, error);
+    showErrorToast(`Ошибка: ${error.message || 'Произошла непредвиденная ошибка'}`);
+    hideLoading();
+}
+
+// Progress tracking for multi-step operations
+class ProgressTracker {
+    constructor(totalSteps) {
+        this.totalSteps = totalSteps;
+        this.currentStep = 0;
+    }
+    
+    update(step, message) {
+        this.currentStep = step;
+        const percent = Math.round((step / this.totalSteps) * 100);
+        updateProgress(percent);
+        
+        if (message) {
+            const loadingText = document.querySelector('.loading-text');
+            if (loadingText) {
+                loadingText.textContent = message;
+            }
+        }
+    }
+    
+    complete() {
+        updateProgress(100);
+        setTimeout(hideLoading, 500);
+    }
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(event) {
+    // Only handle shortcuts when not typing in input fields
+    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+        return;
+    }
+    
+    // Ctrl/Cmd + combinations
+    if (event.ctrlKey || event.metaKey) {
+        switch(event.key) {
+            case 's':
+                event.preventDefault();
+                // Save current step if on analysis
+                if (currentSection === 'analysis' && currentStep > 0) {
+                    const nextBtn = document.querySelector('.btn-primary');
+                    if (nextBtn) nextBtn.click();
+                }
+                break;
+            case 'Enter':
+                event.preventDefault();
+                // Submit current form
+                const submitBtn = document.querySelector('.btn-success');
+                if (submitBtn) submitBtn.click();
+                break;
+            case 'Escape':
+                event.preventDefault();
+                // Close modals
+                closeAllModals();
+                break;
+        }
+        return;
+    }
+    
+    // Single key shortcuts
+    switch(event.key) {
+        case '1':
+            showSection('analysis');
+            showInfoToast('Переключено на анализ');
+            break;
+        case '2':
+            showSection('map');
+            showInfoToast('Переключено на карту');
+            break;
+        case '3':
+            showSection('cabinet');
+            showInfoToast('Переключено на личный кабинет');
+            break;
+        case 'Escape':
+            // Close loading overlay
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay && loadingOverlay.style.display === 'flex') {
+                hideLoading();
+            }
+            closeAllModals();
+            break;
+        case 'ArrowLeft':
+            // Previous step in analysis
+            if (currentSection === 'analysis' && currentStep > 1) {
+                prevStep(currentStep - 1);
+            }
+            break;
+        case 'ArrowRight':
+            // Next step in analysis
+            if (currentSection === 'analysis' && currentStep < 9) {
+                nextStep(currentStep + 1);
+            }
+            break;
+    }
+});
+
+function closeAllModals() {
+    // Close all modal dialogs
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (modal.style.display === 'flex') {
+            modal.style.display = 'none';
+        }
+    });
+    
+    // Close any custom modals (like photo gallery)
+    const customModals = document.querySelectorAll('[style*="position: fixed"]');
+    customModals.forEach(modal => {
+        if (modal.style.display === 'flex') {
+            modal.remove();
+        }
+    });
+}
+
+// Add help tooltip for keyboard shortcuts
+function showKeyboardHelp() {
+    const helpText = `
+        <h4>🎹 Горячие клавиши:</h4>
+        <ul style="text-align: left; font-size: 14px;">
+            <li><strong>1</strong> - Анализ</li>
+            <li><strong>2</strong> - Карта</li>
+            <li><strong>3</strong> - Личный кабинет</li>
+            <li><strong>←/→</strong> - Предыдущий/Следующий шаг</li>
+            <li><strong>Ctrl+S</strong> - Сохранить шаг</li>
+            <li><strong>Ctrl+Enter</strong> - Отправить форму</li>
+            <li><strong>Escape</strong> - Закрыть модальное окно</li>
+        </ul>
+    `;
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+    `;
+    
+    modal.innerHTML = `
+        <div style="background: white; padding: 30px; border-radius: 16px; max-width: 500px; position: relative;">
+            <button onclick="this.parentElement.parentElement.remove()" style="position: absolute; right: 10px; top: 10px; background: #f44336; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;">×</button>
+            ${helpText}
+            <button onclick="this.parentElement.parentElement.remove()" style="margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer;">Понятно</button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Add keyboard help button to navigation
+document.addEventListener('DOMContentLoaded', function() {
+    const navMenu = document.querySelector('.nav-menu');
+    if (navMenu) {
+        const helpLi = document.createElement('li');
+        helpLi.innerHTML = '<a href="#" class="nav-link" onclick="showKeyboardHelp()">⌨️</a>';
+        navMenu.appendChild(helpLi);
+    }
+});
