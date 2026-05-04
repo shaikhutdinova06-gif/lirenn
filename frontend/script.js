@@ -3378,29 +3378,27 @@ function confirmSoilType(isCorrect) {
 
 function loadSoilTypeOptions() {
     const select = document.getElementById('step9-soil-type');
-    const soilTypes = [
-        {ru: 'чернозем', wrb: 'Chernozem'},
-        {ru: 'подзол', wrb: 'Podzol'},
-        {ru: 'серая лесная', wrb: 'Greyzemic'},
-        {ru: 'каштановая', wrb: 'Kastanozem'},
-        {ru: 'солонец', wrb: 'Solonetz'},
-        {ru: 'болотная', wrb: 'Histosol'},
-        {ru: 'дерново-подзолистая', wrb: 'Albeluvisol'},
-        {ru: 'аллювиальная', wrb: 'Fluvisol'},
-        {ru: 'песчаная', wrb: 'Arenosol'},
-        {ru: 'глинистая', wrb: 'Vertisol'}
-    ];
     
     // Сохраняем первую опцию
     const firstOption = select.innerHTML;
     
-    // Добавляем опции
-    soilTypes.forEach(type => {
-        const option = document.createElement('option');
-        option.value = type.ru;
-        option.textContent = `${type.ru} (${type.wrb})`;
-        select.appendChild(option);
+    // Добавляем опции из нового списка почв
+    allSoilTypes.forEach(category => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = category.category;
+        
+        category.types.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            optgroup.appendChild(option);
+        });
+        
+        select.appendChild(optgroup);
     });
+    
+    // Восстанавливаем первую опцию
+    select.innerHTML = firstOption + select.innerHTML.substring(firstOption.length);
 }
 
 function displayAISoilType(soilTypeResult) {
@@ -3423,6 +3421,7 @@ function displayAISoilType(soilTypeResult) {
 }
 
 function getConfirmedSoilType() {
+    // Если пользователь подтвердил ИИ определение
     if (confirmedSoilType) {
         return confirmedSoilType;
     }
@@ -3430,29 +3429,20 @@ function getConfirmedSoilType() {
     // Если пользователь выбрал вручную
     const manualSelection = document.getElementById('step9-soil-type').value;
     if (manualSelection) {
-        // Ищем WRB классификацию
-        const soilTypes = {
-            'чернозем': 'Chernozem',
-            'подзол': 'Podzol',
-            'серая лесная': 'Greyzemic',
-            'каштановая': 'Kastanozem',
-            'солонец': 'Solonetz',
-            'болотная': 'Histosol',
-            'дерново-подзолистая': 'Albeluvisol',
-            'аллювиальная': 'Fluvisol',
-            'песчаная': 'Arenosol',
-            'глинистая': 'Vertisol'
-        };
-        
         return {
             soil_ru: manualSelection,
-            soil_wrb: soilTypes[manualSelection] || '-',
+            soil_wrb: '-', // WRB классификация не используется в новом списке
             confidence: 100, // Ручной выбор = 100% уверенность
             reason: 'Выбрано пользователем вручную'
         };
     }
     
-    return null;
+    return {
+        soil_ru: 'не определено',
+        soil_wrb: '-',
+        confidence: 0,
+        reason: 'Тип почвы не выбран'
+    };
 }
 
 function showPointPhotos(imagesJson) {
