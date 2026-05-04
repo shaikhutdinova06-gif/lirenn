@@ -580,3 +580,53 @@ def get_dynamics(point_id: str, request: Request):
         },
         "count": len(measurements)
     }
+
+@router.post("/point/{point_id}/analyze-dynamics")
+async def analyze_dynamics(point_id: str, request: Request):
+    """ИИ анализ динамики почвы"""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization required")
+    
+    token = auth_header.replace("Bearer ", "")
+    user = get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    try:
+        from backend.services.ai_model import analyze_soil_dynamics
+        from backend.services.storage import get_points
+        
+        # Получаем точку и измерения
+        points = get_points()
+        point = None
+        for p in points:
+            if p.get("id") == point_id and p.get("user_id") == user["username"]:
+                point = p
+                break
+        
+        if not point:
+            raise HTTPException(status_code=404, detail="Point not found")
+        
+        measurements = point.get("measurements", [])
+        if len(measurements) < 2:
+            return {
+                "analysis": {
+                    "summary": "Недостаточно данных для анализа динамики (нужно минимум 2 измерения)",
+                    "trends": [],
+                    "recommendations": ["Продолжайте регулярные измерения для отслеживания изменений"]
+                }
+            }
+        
+        # ИИ анализ динамики
+        analysis_result = await analyze_soil_dynamics(point, measurements)
+        
+        return {
+            "analysis": analysis_result,
+            "measurements_count": len(measurements),
+            "last_updated": point.get("last_updated")
+        }
+        
+    except Exception as e:
+        print(f"[API] Dynamics analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

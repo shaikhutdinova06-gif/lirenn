@@ -86,6 +86,108 @@ pH: {data.get('ph', 'не указано')}
             "reason": f"Ошибка: {str(e)}"
         }
 
+async def analyze_soil_dynamics(point, measurements):
+    """ИИ анализ динамики почвы"""
+    if not API_KEY:
+        return {
+            "summary": "ИИ анализ недоступен - не настроен API ключ",
+            "trends": [],
+            "recommendations": ["Настройте API ключ для ИИ анализа"]
+        }
+    
+    # Подготовка данных для анализа
+    measurements_data = []
+    for m in measurements:
+        measurements_data.append({
+            "date": m.get("timestamp", "")[:10],
+            "ph": m.get("ph"),
+            "moisture": m.get("moisture"),
+            "nitrogen": m.get("nitrogen"),
+            "phosphorus": m.get("phosphorus"),
+            "potassium": m.get("potassium"),
+            "notes": m.get("notes", "")
+        })
+    
+    # Информация о точке
+    soil_type = point.get("soil_type", {}).get("soil_ru", "не определено")
+    region = point.get("region", "неизвестно")
+    
+    prompt = f"""
+Ты — профессиональный почвовед-агроном.
+Проанализируй динамику показателей почвы за период.
+
+Информация о точке:
+Тип почвы: {soil_type}
+Регион: {region}
+
+История измерений:
+{json.dumps(measurements_data, indent=2, ensure_ascii=False)}
+
+Анализируй тренды и дай рекомендации. Верни строго JSON:
+{{
+  "summary": "общий вывод о состоянии почвы и изменениях",
+  "trends": [
+    {{
+      "parameter": "pH",
+      "trend": "увеличивается/уменьшается/стабилен",
+      "change": "описание изменения",
+      "significance": "значительное/незначительное"
+    }}
+  ],
+  "recommendations": [
+    "конкретные рекомендации по улучшению почвы на основе динамики"
+  ],
+  "alerts": [
+    "тревожные сигналы если есть"
+  ]
+}}
+"""
+    
+    try:
+        response = requests.post(
+            "https://api.deepseek.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            json={
+                "model": "deepseek-chat",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 500,
+                "temperature": 0.3
+            },
+            timeout=15
+        )
+        
+        if response.status_code != 200:
+            return {
+                "summary": f"Ошибка API: {response.status_code}",
+                "trends": [],
+                "recommendations": ["Попробуйте повторить анализ позже"]
+            }
+        
+        text = response.json()["choices"][0]["message"]["content"]
+        
+        # Пытаемся распарсить JSON
+        try:
+            result = json.loads(text)
+            # Валидация полей
+            if not all(k in result for k in ["summary", "trends", "recommendations"]):
+                raise ValueError("Missing required fields")
+            return result
+        except (json.JSONDecodeError, ValueError):
+            # Если JSON не распарсился, возвращаем fallback
+            return {
+                "summary": "ИИ анализ завершен, но возникли проблемы с форматированием",
+                "trends": [{"parameter": "Анализ", "trend": "недоступен", "change": text[:100], "significance": "неизвестно"}],
+                "recommendations": ["Повторите анализ позже или обратитесь к специалисту"]
+            }
+            
+    except Exception as e:
+        print(f"[AI] Dynamics analysis error: {e}")
+        return {
+            "summary": f"Ошибка анализа: {str(e)}",
+            "trends": [],
+            "recommendations": ["Попробуйте повторить анализ позже"]
+        }
+
 def classify_image(image):
     """Простая классификация по цвету и текстуре без PIL"""
     try:
