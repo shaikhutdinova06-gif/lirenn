@@ -650,7 +650,7 @@ async function saveFinalPoint() {
             
             // Перезагрузить все точки (общую карту) и перейти на карту
             loadPoints(); // Загружаем все точки для общей карты
-            loadMyPoints(); // Загружаем точки пользователя для личного кабинета
+            loadUserCabinet(); // Загружаем точки пользователя для личного кабинета
             
             setTimeout(() => {
                 showSection('map');
@@ -1706,6 +1706,10 @@ async function loadUserCabinet() {
                     <button onclick="map.setView([${point.lat}, ${point.lng}], 15); showSection('map');" 
                         style="flex:1; padding:8px; background:#1976D2; color:white; border:none; border-radius:6px; cursor:pointer;">
                         📍 На карте
+                    </button>
+                    <button onclick="openDynamicsModal('${point.id}', 'Точка #${point.id.slice(0, 8)}')" 
+                        style="flex:1; padding:8px; background:#388E3C; color:white; border:none; border-radius:6px; cursor:pointer;">
+                        📊 Динамика
                     </button>
                     ${!point.is_test ? `<button onclick="deletePoint('${point.id}')" 
                         style="padding:8px 16px; background:#ef4444; color:white; border:none; border-radius:6px; cursor:pointer;">
@@ -2901,3 +2905,284 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// =========================
+// SOIL DYNAMICS FUNCTIONS
+// =========================
+
+let currentDynamicsPointId = null;
+let dynamicsChart = null;
+
+function openDynamicsModal(pointId, pointTitle) {
+    currentDynamicsPointId = pointId;
+    document.getElementById('dynamics-point-info').textContent = `Точка: ${pointTitle || pointId}`;
+    document.getElementById('dynamics-modal').style.display = 'flex';
+    loadDynamicsData(pointId);
+}
+
+function closeDynamicsModal() {
+    document.getElementById('dynamics-modal').style.display = 'none';
+    currentDynamicsPointId = null;
+    if (dynamicsChart) {
+        dynamicsChart.destroy();
+        dynamicsChart = null;
+    }
+}
+
+async function loadDynamicsData(pointId) {
+    try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            alert('Требуется авторизация');
+            return;
+        }
+        
+        // Загружаем данные для графика
+        const res = await fetch(`/api/point/${pointId}/dynamics`, {
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+        
+        const data = await res.json();
+        
+        // Отображаем график
+        renderDynamicsChart(data);
+        
+        // Загружаем таблицу измерений
+        loadMeasurementsTable(pointId);
+        
+    } catch (error) {
+        console.error('Error loading dynamics:', error);
+        alert('Ошибка загрузки данных динамики');
+    }
+}
+
+function renderDynamicsChart(data) {
+    const ctx = document.getElementById('dynamics-chart').getContext('2d');
+    
+    if (dynamicsChart) {
+        dynamicsChart.destroy();
+    }
+    
+    const datasets = [];
+    const ds = data.datasets;
+    
+    // Добавляем линии для каждого параметра
+    if (ds.ph && ds.ph.data.some(v => v !== null)) {
+        datasets.push({
+            label: ds.ph.label,
+            data: ds.ph.data,
+            borderColor: ds.ph.color,
+            backgroundColor: ds.ph.color + '20',
+            tension: 0.4,
+            fill: false
+        });
+    }
+    if (ds.moisture && ds.moisture.data.some(v => v !== null)) {
+        datasets.push({
+            label: ds.moisture.label,
+            data: ds.moisture.data,
+            borderColor: ds.moisture.color,
+            backgroundColor: ds.moisture.color + '20',
+            tension: 0.4,
+            fill: false,
+            yAxisID: 'y1'
+        });
+    }
+    if (ds.nitrogen && ds.nitrogen.data.some(v => v !== null)) {
+        datasets.push({
+            label: ds.nitrogen.label,
+            data: ds.nitrogen.data,
+            borderColor: ds.nitrogen.color,
+            backgroundColor: ds.nitrogen.color + '20',
+            tension: 0.4,
+            fill: false,
+            yAxisID: 'y2'
+        });
+    }
+    if (ds.phosphorus && ds.phosphorus.data.some(v => v !== null)) {
+        datasets.push({
+            label: ds.phosphorus.label,
+            data: ds.phosphorus.data,
+            borderColor: ds.phosphorus.color,
+            backgroundColor: ds.phosphorus.color + '20',
+            tension: 0.4,
+            fill: false,
+            yAxisID: 'y2'
+        });
+    }
+    if (ds.potassium && ds.potassium.data.some(v => v !== null)) {
+        datasets.push({
+            label: ds.potassium.label,
+            data: ds.potassium.data,
+            borderColor: ds.potassium.color,
+            backgroundColor: ds.potassium.color + '20',
+            tension: 0.4,
+            fill: false,
+            yAxisID: 'y2'
+        });
+    }
+    
+    dynamicsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.dates,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Дата'
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'pH'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: '% / Влажность'
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                },
+                y2: {
+                    type: 'linear',
+                    display: false,
+                    position: 'right'
+                }
+            }
+        }
+    });
+}
+
+async function loadMeasurementsTable(pointId) {
+    try {
+        const token = localStorage.getItem('auth_token');
+        const res = await fetch(`/api/point/${pointId}/measurements`, {
+            headers: {'Authorization': `Bearer ${token}`}
+        });
+        
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
+        const data = await res.json();
+        const tbody = document.getElementById('measurements-tbody');
+        
+        if (data.measurements.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: #999;">Нет данных. Добавьте первое измерение.</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = data.measurements.map(m => {
+            const date = new Date(m.timestamp).toLocaleDateString('ru-RU');
+            return `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px;">${date}</td>
+                    <td style="padding: 10px; text-align: center; color: #2196F3; font-weight: 500;">${m.ph !== null && m.ph !== undefined ? m.ph.toFixed(1) : '-'}</td>
+                    <td style="padding: 10px; text-align: center; color: #4CAF50; font-weight: 500;">${m.moisture !== null && m.moisture !== undefined ? m.moisture.toFixed(1) : '-'}</td>
+                    <td style="padding: 10px; text-align: center; color: #9C27B0; font-weight: 500;">${m.nitrogen !== null && m.nitrogen !== undefined ? m.nitrogen.toFixed(1) : '-'}</td>
+                    <td style="padding: 10px; text-align: center; color: #FFC107; font-weight: 500;">${m.phosphorus !== null && m.phosphorus !== undefined ? m.phosphorus.toFixed(1) : '-'}</td>
+                    <td style="padding: 10px; text-align: center; color: #F44336; font-weight: 500;">${m.potassium !== null && m.potassium !== undefined ? m.potassium.toFixed(1) : '-'}</td>
+                    <td style="padding: 10px; color: #666; font-size: 12px;">${m.notes || ''}</td>
+                </tr>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('Error loading measurements:', error);
+        document.getElementById('measurements-tbody').innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: #999;">Ошибка загрузки данных</td></tr>';
+    }
+}
+
+function showAddMeasurementForm() {
+    document.getElementById('add-measurement-form').style.display = 'block';
+}
+
+function hideAddMeasurementForm() {
+    document.getElementById('add-measurement-form').style.display = 'none';
+    // Clear inputs
+    document.getElementById('new-ph').value = '';
+    document.getElementById('new-moisture').value = '';
+    document.getElementById('new-nitrogen').value = '';
+    document.getElementById('new-phosphorus').value = '';
+    document.getElementById('new-potassium').value = '';
+    document.getElementById('new-notes').value = '';
+}
+
+async function submitNewMeasurement() {
+    if (!currentDynamicsPointId) return;
+    
+    const data = {
+        ph: parseFloat(document.getElementById('new-ph').value) || null,
+        moisture: parseFloat(document.getElementById('new-moisture').value) || null,
+        nitrogen: parseFloat(document.getElementById('new-nitrogen').value) || null,
+        phosphorus: parseFloat(document.getElementById('new-phosphorus').value) || null,
+        potassium: parseFloat(document.getElementById('new-potassium').value) || null,
+        notes: document.getElementById('new-notes').value || ''
+    };
+    
+    // Проверяем что хотя бы одно значение заполнено
+    if (!data.ph && !data.moisture && !data.nitrogen && !data.phosphorus && !data.potassium) {
+        alert('Заполните хотя бы одно поле');
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('auth_token');
+        const res = await fetch(`/api/point/${currentDynamicsPointId}/measurements`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Ошибка сохранения');
+        }
+        
+        const result = await res.json();
+        alert('Измерение добавлено!');
+        hideAddMeasurementForm();
+        
+        // Перезагружаем данные
+        loadDynamicsData(currentDynamicsPointId);
+        
+    } catch (error) {
+        console.error('Error adding measurement:', error);
+        alert('Ошибка: ' + error.message);
+    }
+}

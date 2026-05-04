@@ -467,3 +467,116 @@ def satellite_ndvi(lat: float, lng: float, width: int = 512, height: int = 512):
             "success": False,
             "error": f"Failed to get NDVI image: {str(e)}"
         }
+
+# =========================
+# SOIL MEASUREMENTS ENDPOINTS (DYNAMICS)
+# =========================
+
+@router.get("/point/{point_id}/measurements")
+def get_measurements(point_id: str, request: Request):
+    """
+    Получить историю измерений точки (pH, влажность, N, P, K)
+    """
+    # Проверяем авторизацию
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization required")
+    
+    token = auth_header.replace("Bearer ", "")
+    user = get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    from backend.services.storage import get_point_measurements
+    measurements = get_point_measurements(point_id, user["username"])
+    
+    return {
+        "point_id": point_id,
+        "measurements": measurements,
+        "count": len(measurements)
+    }
+
+@router.post("/point/{point_id}/measurements")
+async def add_measurement(point_id: str, request: Request):
+    """
+    Добавить новое измерение к точке
+    Body: {ph, moisture, nitrogen, phosphorus, potassium, notes}
+    """
+    # Проверяем авторизацию
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization required")
+    
+    token = auth_header.replace("Bearer ", "")
+    user = get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Получаем данные измерения
+    data = await request.json()
+    
+    from backend.services.storage import add_measurement_to_point
+    result = add_measurement_to_point(point_id, data, user["username"])
+    
+    if "error" in result:
+        raise HTTPException(status_code=404 if "not found" in result["error"] else 403, detail=result["error"])
+    
+    return result
+
+@router.get("/point/{point_id}/dynamics")
+def get_dynamics(point_id: str, request: Request):
+    """
+    Получить данные для графика динамики почвы
+    """
+    # Проверяем авторизацию
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization required")
+    
+    token = auth_header.replace("Bearer ", "")
+    user = get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    from backend.services.storage import get_point_measurements
+    measurements = get_point_measurements(point_id, user["username"])
+    
+    # Форматируем данные для графика
+    dates = []
+    ph_values = []
+    moisture_values = []
+    nitrogen_values = []
+    phosphorus_values = []
+    potassium_values = []
+    
+    for m in measurements:
+        # Форматируем дату
+        ts = m.get("timestamp", "")
+        if ts:
+            try:
+                from datetime import datetime
+                dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                dates.append(dt.strftime("%d.%m.%Y"))
+            except:
+                dates.append(ts[:10])
+        else:
+            dates.append("")
+        
+        ph_values.append(m.get("ph"))
+        moisture_values.append(m.get("moisture"))
+        nitrogen_values.append(m.get("nitrogen"))
+        phosphorus_values.append(m.get("phosphorus"))
+        potassium_values.append(m.get("potassium"))
+    
+    return {
+        "point_id": point_id,
+        "dates": dates,
+        "datasets": {
+            "ph": {"label": "pH", "data": ph_values, "color": "#2196F3"},
+            "moisture": {"label": "Влажность (%)", "data": moisture_values, "color": "#4CAF50"},
+            "nitrogen": {"label": "Азот (N)", "data": nitrogen_values, "color": "#9C27B0"},
+            "phosphorus": {"label": "Фосфор (P)", "data": phosphorus_values, "color": "#FFC107"},
+            "potassium": {"label": "Калий (K)", "data": potassium_values, "color": "#F44336"}
+        },
+        "count": len(measurements)
+    }
