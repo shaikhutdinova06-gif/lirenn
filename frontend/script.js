@@ -567,7 +567,9 @@ function collectStepData() {
         lng: stepData.lng,
         tags: stepData.tags,
         notes: notes,
-        soil_type: selectedSoilType || stepData.validationResult?.identified_soil_type || ""
+        soil_type: selectedSoilType || stepData.validationResult?.identified_soil_type || "",
+        images: stepData.images || [], // Добавляем изображения
+        image: stepData.images && stepData.images.length > 0 ? stepData.images[0] : null // Первое изображение для совместимости
     };
 }
 
