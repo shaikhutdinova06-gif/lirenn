@@ -22,16 +22,19 @@ function initMap() {
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19
-    }).addTo(map)
+    })
     
-    // Спутниковый слой - NASA GIBS MODIS
+    // Спутниковый слой - NASA GIBS MODIS (WMTS)
+    const today = new Date().toISOString().split('T')[0]
     const satelliteLayer = L.tileLayer(
         'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/' +
-        'MODIS_Terra_CorrectedReflectance_TrueColor/default/{time}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg',
+        'MODIS_Terra_CorrectedReflectance_TrueColor/default/' + today + 
+        '/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg',
         {
-            attribution: 'NASA GIBS',
-            maxZoom: 9,
-            time: new Date().toISOString().split('T')[0]
+            attribution: 'NASA GIBS | MODIS Terra',
+            maxZoom: 19,
+            minZoom: 1,
+            opacity: 1
         }
     )
     
@@ -41,11 +44,16 @@ function initMap() {
         "🛰️ Спутник (NASA)": satelliteLayer
     }
     
+    // Добавляем OSM по умолчанию
+    osmLayer.addTo(map)
+    
     // Добавляем переключатель слоёв
     L.control.layers(baseLayers, null, {
         position: 'topright',
         collapsed: true
     }).addTo(map)
+    
+    console.log('[MAP] Initialized with OSM and NASA layers')
 }
 
 const user_id = localStorage.getItem('user_id') || crypto.randomUUID()
@@ -626,7 +634,7 @@ async function saveFinalPoint() {
         
         console.log('Backend response:', result);
         
-        if (result.status === 'ok') {
+        if (result.status === 'success' || result.status === 'ok') {
             if (window.debugLog) debugLog('Point saved successfully!', 'info');
             // Mark user as having completed analysis
             localStorage.setItem('hasCompletedAnalysis', 'true');
@@ -1495,54 +1503,6 @@ function removeSatelliteLayer() {
     }
 }
 
-async function loadUserCabinet() {
-    try {
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            document.getElementById('my-points-list').innerHTML = '<p>Для просмотра личного кабинета необходимо войти в систему</p>';
-            showAuthModal();
-            return;
-        }
-        
-        const headers = {'Authorization': `Bearer ${token}`};
-        const res = await fetch(`/api/user-cabinet`, {
-            headers: headers
-        });
-        
-        if (res.status === 401) {
-            document.getElementById('my-points-list').innerHTML = '<p>Ваша сессия истекла. Пожалуйста, войдите снова.</p>';
-            showAuthModal();
-            return;
-        }
-        
-        const data = await res.json();
-        
-        const cabinetDiv = document.getElementById('my-points-list');
-        if (data.points && data.points.length > 0) {
-            cabinetDiv.innerHTML = data.points.map(point => {
-                const images = point.images || [];
-                const firstImage = images.length > 0 ? images[0] : point.image;
-                
-                return `
-                <div class="cabinet-point" style="border:1px solid #A5D6A7; padding:15px; margin-bottom:15px; border-radius:10px; background:white;">
-                    ${firstImage ? `<img src="${firstImage}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : ""}
-                    ${images.length > 1 ? `<small style="color:#666;">${images.length} фото</small>` : ""}
-                    <h4 style="color:#2E7D32; margin-bottom:10px;">${point.type === 'professional' ? '🎓 ПРОФЕССИОНАЛЬНАЯ' : '🔬 ЛЮБИТЕЛЬСКАЯ'} ТОЧКА #${point.id.slice(0, 8)}</h4>
-                    <p><strong>Координаты:</strong> ${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}</p>
-                    ${formatStructuredReport(point.report)}
-                    ${point.notes ? `<p><strong>Заметки:</strong> ${point.notes}</p>` : ''}
-                    ${point.tags && point.tags.length > 0 ? `<p><strong>Теги:</strong> ${point.tags.join(', ')}</p>` : ''}
-                </div>
-            `}).join('');
-        } else {
-            cabinetDiv.innerHTML = '<p>У вас пока нет сохранённых точек</p>';
-        }
-    } catch (error) {
-        console.error('Error loading cabinet:', error);
-        document.getElementById('my-points-list').innerHTML = '<p>Ошибка загрузки данных</p>';
-    }
-}
-
 async function loadTimeline(lat, lng) {
     const res = await fetch(`/api/history?lat=${lat}&lng=${lng}`);
     const data = await res.json();
@@ -1690,58 +1650,75 @@ function displayAnalysisResult(result) {
 
 // Загрузка данных личного кабинета
 async function loadUserCabinet() {
-    const token = localStorage.getItem('auth_token');
-    const headers = {};
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-    const res = await fetch("/api/user-cabinet", {
-        headers: headers
-    });
-    const data = await res.json();
-    
-    const list = document.getElementById("my-points-list");
-    list.innerHTML = "";
-    
-    if (data.points.length === 0) {
-        list.innerHTML = "<p>У вас пока нет точек</p>";
-        return;
-    }
-    
-    // Отображаем точки
-    data.points.forEach(point => {
-        const div = document.createElement("div");
-        div.className = "cabinet-point";
-        div.innerHTML = `
-            <h4>Точка #${point.id.slice(0, 8)}</h4>
-            <p>Координаты: ${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}</p>
-            <p>pH: ${point.ph || "-"} | Влажность: ${point.moisture || "-"}%</p>
-            ${point.tags ? `<p>Теги: ${point.tags.join(", ")}</p>` : ""}
-            ${point.notes ? `<p>${point.notes}</p>` : ""}
-            ${point.is_test ? '<span style="color: #eab308;">🧪 Тестовая точка</span>' : ''}
-            ${!point.is_test ? `<button class="btn-delete" onclick="deletePoint('${point.id}')" style="margin-top: 10px; padding: 8px 16px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer;">🗑️ Удалить</button>` : ''}
-        `;
-        list.appendChild(div);
-    });
-    
-    // Отображаем пометки
-    if (data.annotations && data.annotations.length > 0) {
-        const annotationsDiv = document.createElement("div");
-        annotationsDiv.style.cssText = "margin-top: 20px; padding: 15px; background: rgba(20, 184, 166, 0.1); border-radius: 8px;";
-        annotationsDiv.innerHTML = `
-            <h4 style="color: #14b8a6;">🏷️ Мои пометки (${data.annotations.length})</h4>
-        `;
-        data.annotations.forEach(annotation => {
-            const annDiv = document.createElement("div");
-            annDiv.style.cssText = "padding: 10px; margin-top: 10px; background: rgba(255, 255, 255, 0.5); border-radius: 4px;";
-            annDiv.innerHTML = `
-                <p><strong>ID:</strong> ${annotation.id.slice(0, 8)}</p>
-                ${annotation.notes ? `<p>${annotation.notes}</p>` : ""}
-                ${annotation.tags?.length ? `<p>Теги: ${annotation.tags.join(", ")}</p>` : ""}
+    try {
+        const token = localStorage.getItem('auth_token');
+        const list = document.getElementById("my-points-list");
+        
+        if (!token) {
+            list.innerHTML = '<p>Для просмотра личного кабинета необходимо <a href="#" onclick="showAuthModal(); return false;">войти в систему</a></p>';
+            return;
+        }
+        
+        const headers = {'Authorization': `Bearer ${token}`};
+        const res = await fetch("/api/user-cabinet", {headers});
+        
+        if (res.status === 401) {
+            list.innerHTML = '<p>Ваша сессия истекла. <a href="#" onclick="showAuthModal(); return false;">Войдите снова</a></p>';
+            return;
+        }
+        
+        const data = await res.json();
+        list.innerHTML = "";
+        
+        if (!data.points || data.points.length === 0) {
+            list.innerHTML = "<p>У вас пока нет точек</p>";
+            return;
+        }
+        
+        // Отображаем точки с фото и AI анализом
+        data.points.forEach(point => {
+            const images = point.images || [];
+            const firstImage = images.length > 0 ? images[0] : point.image;
+            const ai = point.ai_analysis || {};
+            const fertility = ai.fertility_score || 5;
+            
+            const div = document.createElement("div");
+            div.className = "cabinet-point";
+            div.style.cssText = "border:1px solid #A5D6A7; padding:15px; margin-bottom:15px; border-radius:10px; background:white;";
+            
+            div.innerHTML = `
+                ${firstImage ? `<img src="${firstImage}" style="width:100%; border-radius:8px; margin-bottom:10px; max-height:200px; object-fit:cover;">` : ""}
+                <h4 style="color:#2E7D32; margin-bottom:10px;">${point.type === 'professional' ? '🎓' : '🔬'} ТОЧКА #${point.id.slice(0, 8)}</h4>
+                <p><strong>Координаты:</strong> ${point.lat?.toFixed(4)}, ${point.lng?.toFixed(4)}</p>
+                <p><strong>pH:</strong> ${point.ph || "-"} | <strong>Влажность:</strong> ${point.moisture || "-"}%</p>
+                
+                ${ai.soil_type ? `
+                    <div style="padding:10px; background:rgba(76,175,80,0.1); border-radius:6px; margin:10px 0;">
+                        <p style="margin:0;"><strong>Тип почвы:</strong> ${ai.soil_type}</p>
+                        <p style="margin:5px 0 0 0; font-size:12px;">Плодородие: ${fertility}/10</p>
+                    </div>
+                ` : ""}
+                
+                ${point.tags?.length ? `<p><strong>Теги:</strong> ${point.tags.join(", ")}</p>` : ""}
+                ${point.notes ? `<p><strong>Заметки:</strong> ${point.notes}</p>` : ""}
+                
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                    <button onclick="map.setView([${point.lat}, ${point.lng}], 15); showSection('map');" 
+                        style="flex:1; padding:8px; background:#1976D2; color:white; border:none; border-radius:6px; cursor:pointer;">
+                        📍 На карте
+                    </button>
+                    ${!point.is_test ? `<button onclick="deletePoint('${point.id}')" 
+                        style="padding:8px 16px; background:#ef4444; color:white; border:none; border-radius:6px; cursor:pointer;">
+                        🗑️
+                    </button>` : ''}
+                </div>
             `;
-            annotationsDiv.appendChild(annDiv);
+            list.appendChild(div);
         });
-        list.appendChild(annotationsDiv);
+        
+    } catch (error) {
+        console.error('Error loading cabinet:', error);
+        document.getElementById("my-points-list").innerHTML = '<p>Ошибка загрузки данных. <a href="#" onclick="loadUserCabinet(); return false;">Попробовать снова</a></p>';
     }
 }
 
@@ -2702,11 +2679,17 @@ async function runBlock1() {
     return
   }
   if (result.status === "error") {
-    alert(result.errors.join("\n"))
+    alert(result.errors?.join("\n") || "Ошибка сохранения")
     return
   }
   console.log(result)
-  addPointToMap(result.saved_point)
+  // Backend returns result.point, not result.saved_point
+  const savedPoint = result.point || result.saved_point
+  if (savedPoint) {
+    addPointToMap(savedPoint)
+  } else {
+    console.error("No point in response:", result)
+  }
 }
 
 // =========================
