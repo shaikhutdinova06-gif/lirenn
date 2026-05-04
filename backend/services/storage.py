@@ -102,6 +102,65 @@ def save_point(point):
         raise
 def get_user_points(user_id):
     return [p for p in get_points() if p.get("user_id") == user_id]
+
+def add_measurement_to_point(point_id, measurement_data, user_id):
+    """
+    Добавить новое измерение к существующей точке
+    measurement_data: {ph, moisture, nitrogen, phosphorus, potassium, notes}
+    """
+    points = get_points()
+    
+    for point in points:
+        if point.get("id") == point_id and point.get("user_id") == user_id:
+            # Инициализируем историю измерений если её нет
+            if "measurements" not in point:
+                point["measurements"] = []
+            
+            # Добавляем новое измерение с датой
+            measurement = {
+                "id": str(uuid.uuid4()),
+                "timestamp": datetime.utcnow().isoformat(),
+                "ph": measurement_data.get("ph"),
+                "moisture": measurement_data.get("moisture"),
+                "nitrogen": measurement_data.get("nitrogen"),
+                "phosphorus": measurement_data.get("phosphorus"),
+                "potassium": measurement_data.get("potassium"),
+                "notes": measurement_data.get("notes", ""),
+                "added_by": user_id
+            }
+            
+            point["measurements"].append(measurement)
+            point["last_updated"] = datetime.utcnow().isoformat()
+            
+            # Сохраняем обновленные точки
+            os.makedirs(DATA_DIR, exist_ok=True)
+            temp_file = FILE + ".tmp"
+            with open(temp_file, "w", encoding="utf-8") as f:
+                json.dump(points, f, ensure_ascii=False, indent=2)
+            if os.path.exists(FILE):
+                os.replace(temp_file, FILE)
+            else:
+                os.rename(temp_file, FILE)
+            
+            return {"success": True, "measurement": measurement, "total": len(point["measurements"])}
+    
+    return {"error": "Point not found or access denied"}
+
+def get_point_measurements(point_id, user_id):
+    """Получить историю измерений точки"""
+    points = get_points()
+    
+    for point in points:
+        if point.get("id") == point_id:
+            # Проверяем права доступа
+            if point.get("user_id") == user_id:
+                measurements = point.get("measurements", [])
+                # Сортируем по дате
+                measurements.sort(key=lambda x: x.get("timestamp", ""))
+                return measurements
+    
+    return []
+
 def get_user_data(user_id):
     users_file = DATA_DIR + "/user_data.json"
     if not os.path.exists(users_file):
