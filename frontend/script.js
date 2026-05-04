@@ -704,6 +704,9 @@ async function saveFinalPoint() {
         const headers = {'Content-Type': 'application/json'};
         headers['Authorization'] = `Bearer ${token}`;
         
+        if (window.debugLog) debugLog('Sending point data: ' + JSON.stringify(point, null, 2));
+        console.log('Sending point data:', point);
+        
         const response = await fetch('/api/block1', {
             method: 'POST',
             headers: headers,
@@ -711,6 +714,7 @@ async function saveFinalPoint() {
         });
         
         if (window.debugLog) debugLog('Response received, status: ' + response.status);
+        console.log('Response status:', response.status);
         
         if (response.status === 401) {
             if (window.debugLog) debugLog('ERROR: 401 Unauthorized', 'error');
