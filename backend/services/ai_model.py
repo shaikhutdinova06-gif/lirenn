@@ -187,6 +187,10 @@ def get_fallback_analysis(data):
     """Fallback analysis when AI is unavailable"""
     ph = data.get('ph', 6.5)
     
+    # Handle None pH values
+    if ph is None:
+        ph = 6.5  # Default to neutral
+    
     # Determine soil type based on pH
     if ph < 5.5:
         soil_type = "Кислый торф/подзол"
