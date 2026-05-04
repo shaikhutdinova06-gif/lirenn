@@ -990,6 +990,103 @@ body {
     padding: 20px 0;
 }
 
+/* Points filter specific styles */
+#points-filter .container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+#points-filter h2 {
+    color: #1B5E20;
+    font-size: 2em;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.filter-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.filter-card {
+    background: white;
+    padding: 25px;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(200, 230, 201, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(76, 175, 80, 0.15);
+}
+
+.filter-card h3 {
+    color: #2E7D32;
+    margin-bottom: 20px;
+    font-size: 1.2em;
+    font-weight: 600;
+    text-align: center;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(76, 175, 80, 0.2);
+}
+
+.parameter-filter {
+    margin-bottom: 15px;
+}
+
+.parameter-filter label {
+    display: block;
+    color: #2E7D32;
+    font-weight: 500;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.parameter-filter input,
+.parameter-filter select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid rgba(129, 199, 132, 0.3);
+    border-radius: 8px;
+    font-size: 16px;
+    background: white;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.05);
+}
+
+.parameter-filter input:focus,
+.parameter-filter select:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+}
+
+.filter-results {
+    background: white;
+    padding: 25px;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(200, 230, 201, 0.3);
+}
+
+.filter-results h3 {
+    color: #2E7D32;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+    font-weight: 600;
+    text-align: center;
+}
+
+#filter-results-content {
+    min-height: 200px;
+}
+
 /* Points list specific styles */
 #points-list .container {
     display: flex;
@@ -1005,28 +1102,28 @@ body {
     margin-bottom: 30px;
 }
 
-#points-list .filter-sort-container {
+.sort-container {
     display: flex;
-    gap: 20px;
+    justify-content: center;
     margin-bottom: 30px;
-    flex-wrap: wrap;
 }
 
-#points-list .filter-sort-container > div {
-    flex: 1;
-    min-width: 250px;
+.sort-card {
     background: white;
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(76, 175, 80, 0.1);
     border: 1px solid rgba(200, 230, 201, 0.3);
+    max-width: 300px;
+    width: 100%;
 }
 
-#points-list .filter-sort-container h4 {
+.sort-card h3 {
     color: #2E7D32;
     margin-bottom: 15px;
     font-size: 1.1em;
     font-weight: 600;
+    text-align: center;
 }
 
 /* Cabinet specific styles */

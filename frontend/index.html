@@ -20,6 +20,7 @@
     <ul class="nav-menu">
         <li><a href="#" class="nav-link" onclick="showSection('analysis')">Входной анализ</a></li>
         <li><a href="#" class="nav-link" onclick="showSection('map')">Общая карта</a></li>
+        <li><a href="#" class="nav-link" onclick="showSection('points-filter')">🔍 Фильтр точек</a></li>
         <li><a href="#" class="nav-link" onclick="showSection('points-list')">📍 Список точек</a></li>
         <li><a href="#" class="nav-link" onclick="showSection('cabinet')">Мой кабинет</a></li>
         <li><a href="#" class="nav-link" onclick="openFeedbackLink()">💬 Обратная связь</a></li>
@@ -272,39 +273,100 @@
     </div>
     </div>
 
-    <!-- Points List Section -->
-    <section id="points-list" class="section" style="display: none;">
-        <div class="container">
-            <h2>📍 Список всех точек</h2>
-            
-            <div class="filter-sort-container">
-                <div>
-                    <h4>Фильтр по типу почвы</h4>
-                    <select id="list-soil-filter" class="input-field">
-                        <option value="">Все типы почвы</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="filterPointsList()" style="margin-top: 10px; width: 100%;">🔍 Применить фильтр</button>
-                    <button class="btn btn-secondary" onclick="clearPointsListFilter()" style="margin-top: 5px; width: 100%;">🔄 Сбросить</button>
-                </div>
-                
-                <div>
-                    <h4>Сортировка</h4>
-                    <select id="list-sort" class="input-field">
-                        <option value="date-desc">Сначала новые</option>
-                        <option value="date-asc">Сначала старые</option>
-                        <option value="ph-desc">pH по убыванию</option>
-                        <option value="ph-asc">pH по возрастанию</option>
-                        <option value="soil">По типу почвы</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="sortPointsList()" style="margin-top: 10px; width: 100%;">↕️ Отсортировать</button>
-                </div>
+    <!-- Points Filter Section -->
+<section id="points-filter" class="section" style="display: none;">
+    <div class="container">
+        <h2>� Фильтрация точек</h2>
+        
+        <div class="filter-container">
+            <div class="filter-card">
+                <h3>🌱 Фильтр по типу почвы</h3>
+                <select id="filter-soil-type" class="input-field">
+                    <option value="">Все типы почвы</option>
+                </select>
+                <button class="btn btn-primary" onclick="applyPointsFilter()" style="margin-top: 10px; width: 100%;">🔍 Применить фильтр</button>
+                <button class="btn btn-secondary" onclick="resetPointsFilter()" style="margin-top: 5px; width: 100%;">🔄 Сбросить фильтр</button>
             </div>
             
-            <div id="points-list-content">
-                <p>Загрузка данных...</p>
+            <div class="filter-card">
+                <h3>📊 Фильтр по параметрам</h3>
+                <div class="parameter-filter">
+                    <label>pH диапазон:</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="filter-ph-min" placeholder="Min" step="0.1" min="0" max="14" class="input-field">
+                        <input type="number" id="filter-ph-max" placeholder="Max" step="0.1" min="0" max="14" class="input-field">
+                    </div>
+                </div>
+                <div class="parameter-filter">
+                    <label>Влажность (%):</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="filter-moisture-min" placeholder="Min" step="1" min="0" max="100" class="input-field">
+                        <input type="number" id="filter-moisture-max" placeholder="Max" step="1" min="0" max="100" class="input-field">
+                    </div>
+                </div>
+                <div class="parameter-filter">
+                    <label>Качество почвы:</label>
+                    <select id="filter-quality" class="input-field">
+                        <option value="">Любое качество</option>
+                        <option value="high">Высокое (>70)</option>
+                        <option value="medium">Среднее (40-70)</option>
+                        <option value="low">Низкое (<40)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="applyParameterFilter()" style="margin-top: 15px; width: 100%;">🔍 Применить параметры</button>
+            </div>
+            
+            <div class="filter-card">
+                <h3>📅 Фильтр по дате</h3>
+                <div class="parameter-filter">
+                    <label>Период:</label>
+                    <select id="filter-date-range" class="input-field">
+                        <option value="">Все время</option>
+                        <option value="today">Сегодня</option>
+                        <option value="week">Последняя неделя</option>
+                        <option value="month">Последний месяц</option>
+                        <option value="quarter">Последний квартал</option>
+                        <option value="year">Последний год</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="applyDateFilter()" style="margin-top: 15px; width: 100%;">� Применить дату</button>
             </div>
         </div>
-    </section>
+        
+        <div class="filter-results">
+            <h3>Результаты фильтрации</h3>
+            <div id="filter-results-content">
+                <p>Выберите параметры фильтрации для поиска точек</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Points List Section -->
+<section id="points-list" class="section" style="display: none;">
+    <div class="container">
+        <h2>📍 Список всех точек</h2>
+        
+        <div class="sort-container">
+            <div class="sort-card">
+                <h3>↕️ Сортировка</h3>
+                <select id="list-sort" class="input-field">
+                    <option value="date-desc">Сначала новые</option>
+                    <option value="date-asc">Сначала старые</option>
+                    <option value="ph-desc">pH по убыванию</option>
+                    <option value="ph-asc">pH по возрастанию</option>
+                    <option value="soil">По типу почвы</option>
+                    <option value="quality">По качеству</option>
+                </select>
+                <button class="btn btn-primary" onclick="sortPointsList()" style="margin-top: 10px; width: 100%;">↕️ Отсортировать</button>
+            </div>
+        </div>
+        
+        <div id="points-list-content">
+            <p>Загрузка данных...</p>
+        </div>
+    </div>
+</section>
 
     <!-- User Cabinet Section -->
 <section id="cabinet" class="section" style="display: none;">
