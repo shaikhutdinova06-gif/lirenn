@@ -3226,3 +3226,112 @@ async function submitNewMeasurement() {
         alert('Ошибка: ' + error.message);
     }
 }
+
+// Функции для подтверждения типа почвы
+let confirmedSoilType = null;
+let aiSoilTypeResult = null;
+
+function confirmSoilType(isCorrect) {
+    if (isCorrect) {
+        // Пользователь подтвердил ИИ определение
+        confirmedSoilType = aiSoilTypeResult;
+        document.getElementById('soil-type-confirmation').style.display = 'none';
+        document.getElementById('soil-type-selection-step9').style.display = 'none';
+        
+        // Показываем подтверждение
+        const displayDiv = document.getElementById('ai-soil-type-display');
+        displayDiv.innerHTML = `
+            <div style="background: #e8f5e8; padding: 10px; border-radius: 5px;">
+                <strong>✅ Подтверждено:</strong> ${aiSoilTypeResult.soil_ru} (${aiSoilTypeResult.soil_wrb})
+                <br><small>Уверенность: ${aiSoilTypeResult.confidence}%</small>
+                <br><small>${aiSoilTypeResult.reason}</small>
+            </div>
+        `;
+    } else {
+        // Пользователь отклонил ИИ определение
+        document.getElementById('soil-type-confirmation').style.display = 'none';
+        document.getElementById('soil-type-selection-step9').style.display = 'block';
+        
+        // Загружаем опции для выбора
+        loadSoilTypeOptions();
+    }
+}
+
+function loadSoilTypeOptions() {
+    const select = document.getElementById('step9-soil-type');
+    const soilTypes = [
+        {ru: 'чернозем', wrb: 'Chernozem'},
+        {ru: 'подзол', wrb: 'Podzol'},
+        {ru: 'серая лесная', wrb: 'Greyzemic'},
+        {ru: 'каштановая', wrb: 'Kastanozem'},
+        {ru: 'солонец', wrb: 'Solonetz'},
+        {ru: 'болотная', wrb: 'Histosol'},
+        {ru: 'дерново-подзолистая', wrb: 'Albeluvisol'},
+        {ru: 'аллювиальная', wrb: 'Fluvisol'},
+        {ru: 'песчаная', wrb: 'Arenosol'},
+        {ru: 'глинистая', wrb: 'Vertisol'}
+    ];
+    
+    // Сохраняем первую опцию
+    const firstOption = select.innerHTML;
+    
+    // Добавляем опции
+    soilTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type.ru;
+        option.textContent = `${type.ru} (${type.wrb})`;
+        select.appendChild(option);
+    });
+}
+
+function displayAISoilType(soilTypeResult) {
+    aiSoilTypeResult = soilTypeResult;
+    
+    if (soilTypeResult && soilTypeResult.soil_ru !== 'не определено') {
+        // Показываем ИИ результат с кнопками подтверждения
+        document.getElementById('ai-soil-type-text').innerHTML = 
+            `<strong>${soilTypeResult.soil_ru}</strong> (${soilTypeResult.soil_wrb})<br>
+             <small>${soilTypeResult.reason}</small>`;
+        document.getElementById('ai-confidence').textContent = soilTypeResult.confidence;
+        document.getElementById('soil-type-confirmation').style.display = 'block';
+        document.getElementById('soil-type-selection-step9').style.display = 'none';
+    } else {
+        // ИИ не смог определить тип - показываем только выбор вручную
+        document.getElementById('soil-type-confirmation').style.display = 'none';
+        document.getElementById('soil-type-selection-step9').style.display = 'block';
+        loadSoilTypeOptions();
+    }
+}
+
+function getConfirmedSoilType() {
+    if (confirmedSoilType) {
+        return confirmedSoilType;
+    }
+    
+    // Если пользователь выбрал вручную
+    const manualSelection = document.getElementById('step9-soil-type').value;
+    if (manualSelection) {
+        // Ищем WRB классификацию
+        const soilTypes = {
+            'чернозем': 'Chernozem',
+            'подзол': 'Podzol',
+            'серая лесная': 'Greyzemic',
+            'каштановая': 'Kastanozem',
+            'солонец': 'Solonetz',
+            'болотная': 'Histosol',
+            'дерново-подзолистая': 'Albeluvisol',
+            'аллювиальная': 'Fluvisol',
+            'песчаная': 'Arenosol',
+            'глинистая': 'Vertisol'
+        };
+        
+        return {
+            soil_ru: manualSelection,
+            soil_wrb: soilTypes[manualSelection] || '-',
+            confidence: 100, // Ручной выбор = 100% уверенность
+            reason: 'Выбрано пользователем вручную'
+        };
+    }
+    
+    return null;
+}
