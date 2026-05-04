@@ -1,6 +1,7 @@
 import json
 import os
 import uuid
+import shutil
 from datetime import datetime
 
 # Используем /data для Docker/Amvera, data для локальной разработки
@@ -8,22 +9,77 @@ DATA_DIR = os.getenv("DATA_DIR", "/data")
 DATA_FILE = DATA_DIR + "/points.json"
 FILE = DATA_FILE
 
-print(f"[STORAGE] Initializing storage...")
+# Множественные резервные копии
+BACKUP_DIR = DATA_DIR + "/backups"
+BACKUP1 = BACKUP_DIR + "/points_backup1.json"
+BACKUP2 = BACKUP_DIR + "/points_backup2.json"
+BACKUP3 = BACKUP_DIR + "/points_backup3.json"
+
+print(f"[STORAGE] Initializing enhanced storage...")
 print(f"[STORAGE] DATA_DIR: {DATA_DIR}")
 print(f"[STORAGE] DATA_FILE: {DATA_FILE}")
+print(f"[STORAGE] BACKUP_DIR: {BACKUP_DIR}")
 print(f"[STORAGE] Current working directory: {os.getcwd()}")
-print(f"[STORAGE] Directory exists before makedirs: {os.path.exists(DATA_DIR)}")
 
+# Создаем все необходимые директории
 try:
     os.makedirs(DATA_DIR, exist_ok=True)
-    print(f"[STORAGE] Directory created/verified: {DATA_DIR}")
-    print(f"[STORAGE] Directory exists after makedirs: {os.path.exists(DATA_DIR)}")
-    print(f"[STORAGE] Directory is writable: {os.access(DATA_DIR, os.W_OK)}")
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    print(f"[STORAGE] Directories created/verified")
+    print(f"[STORAGE] DATA_DIR exists: {os.path.exists(DATA_DIR)}")
+    print(f"[STORAGE] BACKUP_DIR exists: {os.path.exists(BACKUP_DIR)}")
+    print(f"[STORAGE] DATA_DIR writable: {os.access(DATA_DIR, os.W_OK)}")
+    print(f"[STORAGE] BACKUP_DIR writable: {os.access(BACKUP_DIR, os.W_OK)}")
 except Exception as e:
-    print(f"[STORAGE] ERROR creating directory: {e}")
+    print(f"[STORAGE] ERROR creating directories: {e}")
+
+def startup_recovery():
+    """Восстановление данных при запуске приложения"""
+    print("[STORAGE] Starting startup recovery...")
+    
+    # Проверяем основной файл
+    if os.path.exists(FILE):
+        try:
+            with open(FILE, "r", encoding="utf-8") as f:
+                points = json.load(f)
+            print(f"[STORAGE] Main file OK: {len(points)} points")
+            return points
+        except Exception as e:
+            print(f"[STORAGE] Main file corrupted: {e}")
+    
+    # Пробуем восстановить из резервных копий в обратном порядке
+    for backup_file, name in [(BACKUP3, "Backup3"), (BACKUP2, "Backup2"), (BACKUP1, "Backup1")]:
+        if os.path.exists(backup_file):
+            try:
+                with open(backup_file, "r", encoding="utf-8") as f:
+                    points = json.load(f)
+                print(f"[STORAGE] Recovered from {name}: {len(points)} points")
+                # Восстанавливаем основной файл
+                shutil.copy2(backup_file, FILE)
+                print(f"[STORAGE] Main file restored from {name}")
+                return points
+            except Exception as e:
+                print(f"[STORAGE] {name} corrupted: {e}")
+                continue
+    
+    print("[STORAGE] No valid backup found, starting fresh")
+    return []
+
+# Выполняем восстановление при импорте
+startup_points = startup_recovery()
 
 def get_points():
-    """Простое и надежное чтение точек"""
+    """Чтение точек с использованием восстановленных данных"""
+    global startup_points
+    
+    # Если есть восстановленные данные при запуске, используем их
+    if startup_points is not None:
+        points = startup_points
+        startup_points = None  # Освобождаем память
+        print(f"[STORAGE] Using startup recovery: {len(points)} points")
+        return points
+    
+    # Стандартное чтение
     if not os.path.exists(FILE):
         print(f"[STORAGE] File not found: {FILE}")
         # Пробуем восстановить из backup
@@ -75,22 +131,27 @@ def save_point(point):
     print(f"[STORAGE] save_point() called")
     print(f"[STORAGE] Point ID: {point.get('id')}")
     print(f"[STORAGE] Point user_id: {point.get('user_id')}")
-    print(f"[STORAGE] DATA_DIR exists: {os.path.exists(DATA_DIR)}")
-    print(f"[STORAGE] DATA_DIR writable: {os.access(DATA_DIR, os.W_OK)}")
     
     points = get_points()
     points.append(point)
     print(f"[STORAGE] Total points after append: {len(points)}")
     
-    # Создаем резервную копию
-    backup_file = FILE + ".backup"
-    if os.path.exists(FILE):
-        try:
-            import shutil
-            shutil.copy2(FILE, backup_file)
-            print(f"[STORAGE] Created backup: {backup_file}")
-        except Exception as e:
-            print(f"[STORAGE] Backup failed: {e}")
+    # Создаем множественные резервные копии
+    try:
+        # Сдвигаем старые копии
+        if os.path.exists(BACKUP2):
+            shutil.copy2(BACKUP2, BACKUP3)
+            print(f"[STORAGE] Shifted BACKUP2 to BACKUP3")
+        if os.path.exists(BACKUP1):
+            shutil.copy2(BACKUP1, BACKUP2)
+            print(f"[STORAGE] Shifted BACKUP1 to BACKUP2")
+        if os.path.exists(FILE):
+            shutil.copy2(FILE, BACKUP1)
+            print(f"[STORAGE] Shifted main file to BACKUP1")
+        
+        print(f"[STORAGE] Created multiple backup layers")
+    except Exception as e:
+        print(f"[STORAGE] Backup rotation failed: {e}")
     
     # Атомарное сохранение
     temp_file = FILE + ".tmp"
@@ -102,37 +163,36 @@ def save_point(point):
         
         if os.path.exists(FILE):
             os.replace(temp_file, FILE)
-            print(f"[STORAGE] Replaced existing file: {FILE}")
         else:
             os.rename(temp_file, FILE)
-            print(f"[STORAGE] Renamed temp to: {FILE}")
         
-        print(f"[STORAGE] Point saved successfully!")
-        print(f"[STORAGE] File now exists: {os.path.exists(FILE)}")
-        print(f"[STORAGE] File size: {os.path.getsize(FILE) if os.path.exists(FILE) else 0} bytes")
-        
+        print(f"[STORAGE] Point saved successfully")
+        return {"success": True, "message": "Point saved"}
     except Exception as e:
-        print(f"[STORAGE] ERROR saving points file: {e}")
-        if os.path.exists(temp_file):
-            try:
-                os.remove(temp_file)
-            except:
-                pass
-        raise
+        print(f"[STORAGE] Save failed: {e}")
+        # Очищаем временный файл
+        try:
+            os.remove(temp_file)
+        except:
+            pass
+        return {"error": str(e)}
 
 def recover_from_backup():
-    """Восстановление данных из резервной копии"""
-    backup_file = FILE + ".backup"
-    if os.path.exists(backup_file):
-        try:
-            import shutil
-            shutil.copy2(backup_file, FILE)
-            print(f"[STORAGE] Recovered from backup: {backup_file}")
-            return True
-        except Exception as e:
-            print(f"[STORAGE] Recovery failed: {e}")
-            return False
+    """Восстановление данных из множественных резервных копий"""
+    # Пробуем в обратном порядке: BACKUP3 → BACKUP2 → BACKUP1
+    for backup_file, name in [(BACKUP3, "Backup3"), (BACKUP2, "Backup2"), (BACKUP1, "Backup1")]:
+        if os.path.exists(backup_file):
+            try:
+                shutil.copy2(backup_file, FILE)
+                print(f"[STORAGE] Recovered from {name}: {backup_file}")
+                return True
+            except Exception as e:
+                print(f"[STORAGE] Recovery from {name} failed: {e}")
+                continue
+    
+    print("[STORAGE] No valid backup found for recovery")
     return False
+
 def get_user_points(user_id):
     return [p for p in get_points() if p.get("user_id") == user_id]
 
