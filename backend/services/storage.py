@@ -40,10 +40,20 @@ def get_points():
         if os.path.exists(FILE):
             backup_file = FILE + ".backup"
             try:
-                os.rename(FILE, backup_file)
+                os.rename(DATA_FILE, backup_file)
                 print(f"[STORAGE] Corrupted file backed up to {backup_file}")
             except:
                 pass
+        # Пробуем восстановить из резервной копии
+        if recover_from_backup():
+            print("[STORAGE] Attempting recovery from backup...")
+            try:
+                with open(DATA_FILE, "r", encoding="utf-8") as f:
+                    points = json.load(f)
+                    print(f"[STORAGE] Recovery successful: {len(points)} points")
+                    return points
+            except Exception as e:
+                print(f"[STORAGE] Recovery failed: {e}")
         return []
 
 def load_points():
@@ -62,6 +72,7 @@ def load_points():
             except:
                 pass
         return []
+
 def save_point(point):
     print(f"[STORAGE] save_point() called")
     print(f"[STORAGE] Point ID: {point.get('id')}")
@@ -72,6 +83,16 @@ def save_point(point):
     points = get_points()
     points.append(point)
     print(f"[STORAGE] Total points after append: {len(points)}")
+    
+    # Создаем резервную копию
+    backup_file = FILE + ".backup"
+    if os.path.exists(FILE):
+        try:
+            import shutil
+            shutil.copy2(FILE, backup_file)
+            print(f"[STORAGE] Created backup: {backup_file}")
+        except Exception as e:
+            print(f"[STORAGE] Backup failed: {e}")
     
     # Атомарное сохранение
     temp_file = FILE + ".tmp"
@@ -100,6 +121,20 @@ def save_point(point):
             except:
                 pass
         raise
+
+def recover_from_backup():
+    """Восстановление данных из резервной копии"""
+    backup_file = FILE + ".backup"
+    if os.path.exists(backup_file):
+        try:
+            import shutil
+            shutil.copy2(backup_file, FILE)
+            print(f"[STORAGE] Recovered from backup: {backup_file}")
+            return True
+        except Exception as e:
+            print(f"[STORAGE] Recovery failed: {e}")
+            return False
+    return False
 def get_user_points(user_id):
     return [p for p in get_points() if p.get("user_id") == user_id]
 
@@ -112,6 +147,16 @@ def add_measurement_to_point(point_id, measurement_data, user_id):
     
     for point in points:
         if point.get("id") == point_id and point.get("user_id") == user_id:
+            # Создаем резервную копию перед изменением
+            backup_file = FILE + ".backup"
+            if os.path.exists(FILE):
+                try:
+                    import shutil
+                    shutil.copy2(FILE, backup_file)
+                    print(f"[STORAGE] Created backup before measurement update: {backup_file}")
+                except Exception as e:
+                    print(f"[STORAGE] Backup failed: {e}")
+            
             # Инициализируем историю измерений если её нет
             if "measurements" not in point:
                 point["measurements"] = []
@@ -142,6 +187,7 @@ def add_measurement_to_point(point_id, measurement_data, user_id):
             else:
                 os.rename(temp_file, FILE)
             
+            print(f"[STORAGE] Measurement added successfully. Total measurements: {len(point['measurements'])}")
             return {"success": True, "measurement": measurement, "total": len(point["measurements"])}
     
     return {"error": "Point not found or access denied"}
