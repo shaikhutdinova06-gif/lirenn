@@ -134,6 +134,7 @@ function showSection(section) {
     document.getElementById("analysis").style.display = "none";
     document.getElementById("map").style.display = "none";
     document.getElementById("cabinet").style.display = "none";
+    document.getElementById("points-list").style.display = "none";
     
     // Show selected section
     const targetSection = document.getElementById(section);
@@ -1763,7 +1764,7 @@ function displayAnalysisResult(result) {
 async function loadUserCabinet() {
     try {
         const token = localStorage.getItem('auth_token');
-        const list = document.getElementById("my-points-list");
+        const list = document.getElementById("user-cabinet-content");
         
         if (!token) {
             list.innerHTML = '<p>Для просмотра личного кабинета необходимо <a href="#" onclick="showAuthModal(); return false;">войти в систему</a></p>';
@@ -1879,7 +1880,7 @@ async function loadUserCabinet() {
         
     } catch (error) {
         console.error('Error loading cabinet:', error);
-        document.getElementById("my-points-list").innerHTML = '<p>Ошибка загрузки данных. <a href="#" onclick="loadUserCabinet(); return false;">Попробовать снова</a></p>';
+        document.getElementById("user-cabinet-content").innerHTML = '<p>Ошибка загрузки данных. <a href="#" onclick="loadUserCabinet(); return false;">Попробовать снова</a></p>';
     }
 }
 
