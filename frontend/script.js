@@ -58,24 +58,6 @@ function initMap() {
         }
     )
     
-    // Очень быстрый слой - Sentinel Hub (если доступен)
-    const sentinelLayer = L.tileLayer(
-        'https://tiles.sentinel-hub.com/ogc/wms/3b03639b-5486-4093-b1ed-2e471a3573a7?' +
-        'REQUEST=GetMap&SERVICE=WMS&VERSION=1.1.1&' +
-        'LAYERS=TRUE_COLOR&FORMAT=image/jpeg&' +
-        'WIDTH=256&HEIGHT=256&BBOX={bbox}&SRS=EPSG:3857',
-        {
-            attribution: 'Sentinel Hub',
-            maxZoom: 19,
-            minZoom: 1,
-            opacity: 1,
-            // Оптимизация
-            updateWhenIdle: true,
-            updateWhenZooming: false,
-            keepBuffer: 1
-        }
-    )
-    
     // Запасной вариант - Esri World Imagery (всегда работает)
     const esriLayer = L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -92,8 +74,7 @@ function initMap() {
         "🗺️ Карта (OSM)": osmLayer,
         "🛰️ Спутник (MODIS)": satelliteLayer,
         "🛰️ Спутник (Landsat)": landsatLayer,
-        "🛰️ Спутник (Esri)": esriLayer,
-        "🛰️ Спутник (Sentinel)": sentinelLayer
+        "🛰️ Спутник (Esri)": esriLayer
     }
     
     // Добавляем информацию о слоях
@@ -101,7 +82,6 @@ function initMap() {
     console.log('  MODIS Terra: Ежедневное, оптимизирован до zoom 12, 250м/пиксель');
     console.log('  Landsat 8: 8-16 дней, оптимизирован до zoom 12, 30м/пиксель');
     console.log('  Esri World: Статичные, всегда быстрый, высокое качество');
-    console.log('  Sentinel Hub: Самый быстрый, 10м/пиксель (требует API ключ)');
     console.log('  Рекомендация: используйте Esri для скорости, MODIS для свежести');
     
     // Добавляем OSM по умолчанию
