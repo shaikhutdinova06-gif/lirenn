@@ -69,6 +69,13 @@ function initMap() {
         "🛰️ Спутник (Esri)": esriLayer
     }
     
+    // Добавляем информацию о слоях
+    console.log('[MAP] Satellite layers info:');
+    console.log('  MODIS Terra: Ежедневное обновление, 250м/пиксель');
+    console.log('  Landsat 8: 8-16 дней, 30м/пиксель');
+    console.log('  Esri World: Статичные снимки, высокое качество');
+    console.log('  Выберите слой в зависимости от нужной свежести данных');
+    
     // Добавляем OSM по умолчанию
     osmLayer.addTo(map)
     
