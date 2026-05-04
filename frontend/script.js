@@ -24,24 +24,40 @@ function initMap() {
         maxZoom: 19
     })
     
-    // Спутниковый слой - NASA GIBS MODIS (WMTS)
+    // Спутниковый слой - NASA GIBS Landsat 8 (высокое разрешение)
     const today = new Date().toISOString().split('T')[0]
-    const satelliteLayer = L.tileLayer(
-        'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/' +
-        'MODIS_Terra_CorrectedReflectance_TrueColor/default/' + today + 
-        '/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg',
-        {
-            attribution: 'NASA GIBS | MODIS Terra',
-            maxZoom: 19,
-            minZoom: 1,
-            opacity: 1
-        }
-    )
+    const satelliteLayer = L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi', {
+        layers: 'MODIS_Terra_TrueColor',
+        format: 'image/jpeg',
+        transparent: false,
+        attribution: 'NASA GIBS | MODIS Terra',
+        maxZoom: 19,
+        minZoom: 1,
+        opacity: 1,
+        time: today,
+        styles: '',
+        version: '1.3.0'
+    })
+    
+    // Альтернативный слой с Landsat 8 (еще лучше качество)
+    const landsatLayer = L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi', {
+        layers: 'Landsat_8_Surface_Reflectance',
+        format: 'image/jpeg',
+        transparent: false,
+        attribution: 'NASA GIBS | Landsat 8',
+        maxZoom: 19,
+        minZoom: 1,
+        opacity: 1,
+        time: today,
+        styles: '',
+        version: '1.3.0'
+    })
     
     // Слои для переключателя
     baseLayers = {
         "🗺️ Карта (OSM)": osmLayer,
-        "🛰️ Спутник (NASA)": satelliteLayer
+        "🛰️ Спутник (MODIS)": satelliteLayer,
+        "🛰️ Спутник (Landsat)": landsatLayer
     }
     
     // Добавляем OSM по умолчанию
