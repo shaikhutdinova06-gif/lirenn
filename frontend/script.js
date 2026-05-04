@@ -135,6 +135,7 @@ function showSection(section) {
     document.getElementById("map").style.display = "none";
     document.getElementById("cabinet").style.display = "none";
     document.getElementById("points-list").style.display = "none";
+    document.getElementById("points-filter").style.display = "none";
     
     // Show selected section
     const targetSection = document.getElementById(section);
@@ -3514,12 +3515,19 @@ async function loadPointsList() {
         showLoading('Загрузка точек...', 'Получение данных со всех источников');
         updateProgress(25);
         
-        // Load from global storage
-        const response = await fetch('/api/points');
-        if (!response.ok) throw new Error('Failed to load points');
+        // Check if we have filtered points from filter section
+        if (window.filteredPointsForList) {
+            allPointsList = window.filteredPointsForList;
+            showInfoToast(`Показ отфильтрованных точек: ${allPointsList.length}`);
+        } else {
+            // Load from global storage
+            const response = await fetch('/api/points');
+            if (!response.ok) throw new Error('Failed to load points');
+            
+            const points = await response.json();
+            allPointsList = points || [];
+        }
         
-        const points = await response.json();
-        allPointsList = points || [];
         filteredPointsList = [...allPointsList];
         
         updateProgress(50);
@@ -3715,8 +3723,235 @@ showSection = function(sectionId) {
     
     if (sectionId === 'points-list') {
         loadPointsList();
+    } else if (sectionId === 'points-filter') {
+        loadFilterSection();
     }
 };
+
+// Filter section functions
+let allPointsForFilter = [];
+let filteredPoints = [];
+
+async function loadFilterSection() {
+    try {
+        showLoading('Загрузка данных для фильтрации...', 'Получение всех точек');
+        updateProgress(25);
+        
+        // Load all points
+        const response = await fetch('/api/points');
+        if (!response.ok) throw new Error('Failed to load points');
+        
+        const points = await response.json();
+        allPointsForFilter = points || [];
+        filteredPoints = [...allPointsForFilter];
+        
+        updateProgress(50);
+        
+        // Load soil types
+        await loadSoilTypesForFilter();
+        
+        updateProgress(75);
+        
+        // Initialize filter results
+        updateFilterResults();
+        
+        updateProgress(100);
+        hideLoading();
+        showInfoToast(`Загружено ${allPointsForFilter.length} точек для фильтрации`);
+        
+    } catch (error) {
+        handleAsyncError(error, 'загрузке данных для фильтрации');
+        document.getElementById('filter-results-content').innerHTML = '<p>Ошибка загрузки данных</p>';
+    }
+}
+
+async function loadSoilTypesForFilter() {
+    try {
+        const response = await fetch('/api/soil-types');
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const select = document.getElementById('filter-soil-type');
+        select.innerHTML = '<option value="">Все типы почвы</option>';
+        
+        if (data.soil_types) {
+            data.soil_types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading soil types for filter:', error);
+    }
+}
+
+function applyPointsFilter() {
+    const selectedType = document.getElementById('filter-soil-type').value;
+    
+    if (!selectedType) {
+        filteredPoints = [...allPointsForFilter];
+    } else {
+        filteredPoints = allPointsForFilter.filter(point => {
+            const soilType = (point.soil_type?.soil_ru || point.ai_analysis?.soil_type || '');
+            return soilType === selectedType;
+        });
+    }
+    
+    updateFilterResults();
+    showInfoToast(`Отфильтровано: ${filteredPoints.length} точек`);
+}
+
+function applyParameterFilter() {
+    const phMin = parseFloat(document.getElementById('filter-ph-min').value) || 0;
+    const phMax = parseFloat(document.getElementById('filter-ph-max').value) || 14;
+    const moistureMin = parseFloat(document.getElementById('filter-moisture-min').value) || 0;
+    const moistureMax = parseFloat(document.getElementById('filter-moisture-max').value) || 100;
+    const quality = document.getElementById('filter-quality').value;
+    
+    filteredPoints = allPointsForFilter.filter(point => {
+        const ph = point.ph || 0;
+        const moisture = point.moisture || 0;
+        const qualityScore = point.quality_score || 0;
+        
+        let passPh = ph >= phMin && ph <= phMax;
+        let passMoisture = moisture >= moistureMin && moisture <= moistureMax;
+        let passQuality = true;
+        
+        if (quality === 'high') passQuality = qualityScore > 70;
+        else if (quality === 'medium') passQuality = qualityScore >= 40 && qualityScore <= 70;
+        else if (quality === 'low') passQuality = qualityScore < 40;
+        
+        return passPh && passMoisture && passQuality;
+    });
+    
+    updateFilterResults();
+    showInfoToast(`Отфильтровано по параметрам: ${filteredPoints.length} точек`);
+}
+
+function applyDateFilter() {
+    const dateRange = document.getElementById('filter-date-range').value;
+    
+    if (!dateRange) {
+        filteredPoints = [...allPointsForFilter];
+    } else {
+        const now = new Date();
+        let cutoffDate;
+        
+        switch(dateRange) {
+            case 'today':
+                cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                break;
+            case 'week':
+                cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                break;
+            case 'month':
+                cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                break;
+            case 'quarter':
+                cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+                break;
+            case 'year':
+                cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+                break;
+        }
+        
+        filteredPoints = allPointsForFilter.filter(point => {
+            const pointDate = new Date(point.created_at || 0);
+            return pointDate >= cutoffDate;
+        });
+    }
+    
+    updateFilterResults();
+    showInfoToast(`Отфильтровано по дате: ${filteredPoints.length} точек`);
+}
+
+function resetPointsFilter() {
+    // Reset all filter inputs
+    document.getElementById('filter-soil-type').value = '';
+    document.getElementById('filter-ph-min').value = '';
+    document.getElementById('filter-ph-max').value = '';
+    document.getElementById('filter-moisture-min').value = '';
+    document.getElementById('filter-moisture-max').value = '';
+    document.getElementById('filter-quality').value = '';
+    document.getElementById('filter-date-range').value = '';
+    
+    filteredPoints = [...allPointsForFilter];
+    updateFilterResults();
+    showInfoToast('Фильтры сброшены');
+}
+
+function updateFilterResults() {
+    const container = document.getElementById('filter-results-content');
+    
+    if (filteredPoints.length === 0) {
+        container.innerHTML = '<p>Точки не найдены по заданным критериям</p>';
+        return;
+    }
+    
+    // Create summary
+    const summaryHtml = `
+        <div style="background: rgba(76, 175, 80, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="color: #2E7D32; margin: 0;">Найдено точек: ${filteredPoints.length}</h4>
+            <button class="btn btn-primary" onclick="showFilteredPointsOnList()" style="margin-top: 10px;">
+                📍 Показать в списке
+            </button>
+            <button class="btn btn-secondary" onclick="showFilteredPointsOnMap()" style="margin-top: 10px; margin-left: 10px;">
+                🗺️ Показать на карте
+            </button>
+        </div>
+    `;
+    
+    // Create preview of first 5 points
+    const previewHtml = filteredPoints.slice(0, 5).map(point => {
+        const soilType = point.soil_type?.soil_ru || point.ai_analysis?.soil_type || 'Не определен';
+        const date = new Date(point.created_at || 0).toLocaleDateString('ru-RU');
+        
+        return `
+            <div style="border: 1px solid #A5D6A7; padding: 10px; margin-bottom: 10px; border-radius: 8px; background: white;">
+                <strong>🌱 ТОЧКА #${point.id.slice(0, 8)}</strong>
+                <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                    📅 ${date} | 🌍 ${soilType} | 🧪 pH: ${point.ph || '-'} | 💧 ${point.moisture || '-'}%
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = summaryHtml + previewHtml + (filteredPoints.length > 5 ? '<p style="text-align: center; color: #666;">... и еще ' + (filteredPoints.length - 5) + ' точек</p>' : '');
+}
+
+function showFilteredPointsOnList() {
+    // Store filtered points globally for list view
+    window.filteredPointsForList = filteredPoints;
+    showSection('points-list');
+    showInfoToast(`Переход к списку отфильтрованных точек`);
+}
+
+function showFilteredPointsOnMap() {
+    // Show filtered points on map
+    showSection('map');
+    showInfoToast(`Показ ${filteredPoints.length} точек на карте`);
+    
+    // Filter map markers
+    markers.forEach(marker => {
+        const point = marker._pointData;
+        const isFiltered = filteredPoints.some(fp => fp.id === point.id);
+        
+        if (isFiltered) {
+            marker.setOpacity(1);
+            marker.setIcon(L.icon({
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEM1LjU5NyAwIDAgNS41OTcgMCAxMi41QzAgMjEuMDA0IDguOTk2IDQwIDEyLjUgNDBDMTUuNTA0IDQwIDI1IDIxLjAwNCAyNSAxMi41QzI1IDUuNTk3IDE5LjQwMyAwIDEyLjUgMFoiIGZpbGw9IiNGRjU3MjIiLz4KPGNpcmNsZSBjeD0iMTIuNSIgY3k9IjEyLjUiIHI9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            }));
+        } else {
+            marker.setOpacity(0.1);
+        }
+    });
+}
 
 // Loading indicator functions
 function showLoading(text = "Анализ данных...", subtext = "Пожалуйста, подождите") {
