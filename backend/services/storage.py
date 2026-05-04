@@ -132,11 +132,12 @@ def save_point(point):
     print(f"[STORAGE] Point ID: {point.get('id')}")
     print(f"[STORAGE] Point user_id: {point.get('user_id')}")
     
+    # Save to global storage first
     points = get_points()
     points.append(point)
     print(f"[STORAGE] Total points after append: {len(points)}")
     
-    # Создаем множественные резервные копии
+    # Создаем множественные резервные копии для глобального хранилища
     try:
         # Сдвигаем старые копии
         if os.path.exists(BACKUP2):
@@ -153,7 +154,7 @@ def save_point(point):
     except Exception as e:
         print(f"[STORAGE] Backup rotation failed: {e}")
     
-    # Атомарное сохранение
+    # Атомарное сохранение глобального хранилища
     temp_file = FILE + ".tmp"
     try:
         print(f"[STORAGE] Writing to temp file: {temp_file}")
@@ -166,16 +167,49 @@ def save_point(point):
         else:
             os.rename(temp_file, FILE)
         
-        print(f"[STORAGE] Point saved successfully")
-        return {"success": True, "message": "Point saved"}
+        print(f"[STORAGE] Global point saved successfully")
     except Exception as e:
-        print(f"[STORAGE] Save failed: {e}")
+        print(f"[STORAGE] Global save failed: {e}")
         # Очищаем временный файл
         try:
             os.remove(temp_file)
         except:
             pass
-        return {"error": str(e)}
+    
+    # Also save to user profile for persistence
+    user_id = point.get('user_id')
+    if user_id:
+        try:
+            print(f"[STORAGE] Saving point to user profile: {user_id}")
+            user_data = get_user_data(user_id)
+            
+            # Add point to user's points list
+            if 'points' not in user_data:
+                user_data['points'] = []
+            
+            # Check if point already exists in user data
+            existing_point = next((p for p in user_data['points'] if p.get('id') == point.get('id')), None)
+            if existing_point:
+                # Update existing point
+                user_data['points'] = [p if p.get('id') != point.get('id') else point for p in user_data['points']]
+                print(f"[STORAGE] Updated existing point in user profile")
+            else:
+                # Add new point
+                user_data['points'].append(point)
+                print(f"[STORAGE] Added new point to user profile")
+            
+            # Save user data
+            result = save_user_data(user_id, user_data)
+            if result.get('success'):
+                print(f"[STORAGE] Successfully saved point to user profile")
+            else:
+                print(f"[STORAGE] Failed to save to user profile: {result.get('error')}")
+                
+        except Exception as e:
+            print(f"[STORAGE] Error saving to user profile: {e}")
+    
+    print(f"[STORAGE] Point saved successfully")
+    return {"success": True, "message": "Point saved"}
 
 def recover_from_backup():
     """Восстановление данных из множественных резервных копий"""
@@ -267,55 +301,108 @@ def get_point_measurements(point_id, user_id):
 
 def get_user_data(user_id):
     users_file = DATA_DIR + "/user_data.json"
-    if not os.path.exists(users_file):
-        return {"annotations": [], "settings": {}}
-    try:
-        with open(users_file, "r", encoding="utf-8") as f:
-            all_data = json.load(f)
-        return all_data.get(user_id, {"annotations": [], "settings": {}})
-    except (json.JSONDecodeError, IOError) as e:
-        print(f"Error reading user data file: {e}")
-        if os.path.exists(users_file):
-            backup_file = users_file + ".backup"
+    backup_file = DATA_DIR + "/user_data.backup"
+    
+    # Try main file first
+    if os.path.exists(users_file):
+        try:
+            with open(users_file, "r", encoding="utf-8") as f:
+                all_data = json.load(f)
+            user_data = all_data.get(user_id, {"annotations": [], "settings": {}, "points": []})
+            print(f"[USER_DATA] Loaded data for user {user_id}: {len(user_data.get('points', []))} points")
+            return user_data
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"[USER_DATA] Error reading main file: {e}")
+            # Try backup
+            if os.path.exists(backup_file):
+                try:
+                    with open(backup_file, "r", encoding="utf-8") as f:
+                        all_data = json.load(f)
+                    user_data = all_data.get(user_id, {"annotations": [], "settings": {}, "points": []})
+                    print(f"[USER_DATA] Recovered from backup for user {user_id}")
+                    # Restore main file from backup
+                    shutil.copy2(backup_file, users_file)
+                    return user_data
+                except Exception as e2:
+                    print(f"[USER_DATA] Backup also corrupted: {e2}")
+            # Create fresh data
+            return {"annotations": [], "settings": {}, "points": []}
+    else:
+        # Try backup if main file doesn't exist
+        if os.path.exists(backup_file):
             try:
-                os.rename(users_file, backup_file)
-                print(f"Corrupted file backed up to {backup_file}")
-            except:
-                pass
-        return {"annotations": [], "settings": {}}
+                with open(backup_file, "r", encoding="utf-8") as f:
+                    all_data = json.load(f)
+                user_data = all_data.get(user_id, {"annotations": [], "settings": {}, "points": []})
+                print(f"[USER_DATA] Recovered from backup (no main file) for user {user_id}")
+                shutil.copy2(backup_file, users_file)
+                return user_data
+            except Exception as e:
+                print(f"[USER_DATA] Backup recovery failed: {e}")
+        
+        return {"annotations": [], "settings": {}, "points": []}
 
 def save_user_data(user_id, data):
     users_file = DATA_DIR + "/user_data.json"
-    if not os.path.exists(users_file):
-        all_data = {}
-    else:
+    backup_file = DATA_DIR + "/user_data.backup"
+    
+    # Ensure points list exists
+    if "points" not in data:
+        data["points"] = []
+    
+    print(f"[USER_DATA] Saving data for user {user_id}: {len(data.get('points', []))} points")
+    
+    # Create backup before saving
+    if os.path.exists(users_file):
+        try:
+            shutil.copy2(users_file, backup_file)
+            print(f"[USER_DATA] Created backup")
+        except Exception as e:
+            print(f"[USER_DATA] Backup creation failed: {e}")
+    
+    # Load existing data or create new
+    if os.path.exists(users_file):
         try:
             with open(users_file, "r", encoding="utf-8") as f:
                 all_data = json.load(f)
         except (json.JSONDecodeError, IOError) as e:
-            print(f"Error reading user data file: {e}")
+            print(f"[USER_DATA] Error reading main file, starting fresh: {e}")
             all_data = {}
+    else:
+        all_data = {}
+    
+    # Update user data
     all_data[user_id] = data
-    os.makedirs(DATA_DIR, exist_ok=True)
-    # Атомарное сохранение
+    
+    # Atomic save
     temp_file = users_file + ".tmp"
     try:
+        os.makedirs(DATA_DIR, exist_ok=True)
         with open(temp_file, "w", encoding="utf-8") as f:
             json.dump(all_data, f, ensure_ascii=False, indent=2)
+        
         if os.path.exists(users_file):
             os.replace(temp_file, users_file)
         else:
             os.rename(temp_file, users_file)
+            
+        print(f"[USER_DATA] Successfully saved data for user {user_id}")
+        return {"success": True, "message": "User data saved successfully"}
+        
     except Exception as e:
-        print(f"Error saving user data file: {e}")
+        print(f"[USER_DATA] Error saving user data file: {e}")
+        # Cleanup temp file
         if os.path.exists(temp_file):
             try:
                 os.remove(temp_file)
             except:
                 pass
+        return {"error": f"Failed to save user data: {str(e)}"}
         raise
+
 def initialize_test_location():
     pass
+
 def delete_user_point(user_id, point_id):
     points = get_points()
     points = [p for p in points if not (p.get("id") == point_id and p.get("user_id") == user_id)]
