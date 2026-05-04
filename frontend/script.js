@@ -1025,9 +1025,20 @@ function showPointDetails(point) {
     const images = point.images || [];
     const firstImage = images.length > 0 ? images[0] : point.image;
     
-    // Новый AI анализ (если есть) или старый формат
+    // Приоритет: выбор пользователя > ИИ определение > старый формат
     const ai = point.ai_analysis || {};
-    const soilType = ai.soil_type || point.report?.general?.soil_type || point.soil_type || "Не определен";
+    const soilTypeObj = point.soil_type || {}; // Новый формат с подтверждением
+    const soilType = soilTypeObj.soil_ru || ai.soil_type || point.report?.general?.soil_type || "Не определен";
+    
+    // Добавляем информацию о том, кто определил тип
+    let soilTypeInfo = "";
+    if (soilTypeObj.soil_ru && soilTypeObj.confidence === 100) {
+        soilTypeInfo = `<small style="color: #4CAF50;">✅ Выбрано пользователем</small>`;
+    } else if (soilTypeObj.soil_ru && soilTypeObj.confidence < 100) {
+        soilTypeInfo = `<small style="color: #2196F3;">🤖 ИИ (${soilTypeObj.confidence}%)</small>`;
+    } else if (ai.soil_type) {
+        soilTypeInfo = `<small style="color: #FF9800;">🔬 Старый ИИ анализ</small>`;
+    }
     const fertility = ai.fertility_score || 5;
     const fertilityText = ai.fertility_text || "Среднее";
     const summary = ai.summary || "";
@@ -1074,6 +1085,7 @@ function showPointDetails(point) {
             <div style="padding: 15px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(76, 175, 80, 0.1) 100%); border-radius: 10px; margin: 15px 0; border-left: 4px solid #22c55e;">
                 <div style="font-size: 12px; color: #666; margin-bottom: 5px; text-transform: uppercase;">🌱 Тип почвы</div>
                 <div style="font-size: 18px; font-weight: 700; color: #2E7D32;">${soilType}</div>
+                ${soilTypeInfo ? `<div style="margin-top: 5px;">${soilTypeInfo}</div>` : ''}
             </div>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">
@@ -1722,6 +1734,20 @@ async function loadUserCabinet() {
             const ai = point.ai_analysis || {};
             const fertility = ai.fertility_score || 5;
             
+            // Приоритет: выбор пользователя > ИИ определение > старый формат
+            const soilTypeObj = point.soil_type || {};
+            const soilType = soilTypeObj.soil_ru || ai.soil_type || "Не определен";
+            
+            // Добавляем информацию о том, кто определил тип
+            let soilTypeInfo = "";
+            if (soilTypeObj.soil_ru && soilTypeObj.confidence === 100) {
+                soilTypeInfo = `<small style="color: #4CAF50;">✅ Выбрано пользователем</small>`;
+            } else if (soilTypeObj.soil_ru && soilTypeObj.confidence < 100) {
+                soilTypeInfo = `<small style="color: #2196F3;">🤖 ИИ (${soilTypeObj.confidence}%)</small>`;
+            } else if (ai.soil_type) {
+                soilTypeInfo = `<small style="color: #FF9800;">🔬 Старый ИИ анализ</small>`;
+            }
+            
             const div = document.createElement("div");
             div.className = "cabinet-point";
             div.style.cssText = "border:1px solid #A5D6A7; padding:15px; margin-bottom:15px; border-radius:10px; background:white;";
@@ -1732,9 +1758,10 @@ async function loadUserCabinet() {
                 <p><strong>Координаты:</strong> ${point.lat?.toFixed(4)}, ${point.lng?.toFixed(4)}</p>
                 <p><strong>pH:</strong> ${point.ph || "-"} | <strong>Влажность:</strong> ${point.moisture || "-"}%</p>
                 
-                ${ai.soil_type ? `
+                ${soilType !== "Не определен" ? `
                     <div style="padding:10px; background:rgba(76,175,80,0.1); border-radius:6px; margin:10px 0;">
-                        <p style="margin:0;"><strong>Тип почвы:</strong> ${ai.soil_type}</p>
+                        <p style="margin:0;"><strong>Тип почвы:</strong> ${soilType}</p>
+                        ${soilTypeInfo ? `<p style="margin:5px 0 0 0; font-size:12px;">${soilTypeInfo}</p>` : ''}
                         <p style="margin:5px 0 0 0; font-size:12px;">Плодородие: ${fertility}/10</p>
                     </div>
                 ` : ""}
