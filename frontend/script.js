@@ -24,29 +24,55 @@ function initMap() {
         maxZoom: 19
     })
     
-    // Спутниковый слой - NASA GIBS MODIS (рабочий вариант)
+    // Быстрый спутниковый слой - MODIS (оптимизированный)
     const satelliteLayer = L.tileLayer(
         'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/' +
-        'MODIS_Terra_CorrectedReflectance_TrueColor/default/{time}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg',
+        'MODIS_Terra_TrueColor/default/{time}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg',
         {
             attribution: 'NASA GIBS | MODIS Terra',
-            maxZoom: 19,
+            maxZoom: 12,  // Ограничиваем для скорости
             minZoom: 1,
             opacity: 1,
-            time: new Date().toISOString().split('T')[0]
+            time: new Date().toISOString().split('T')[0],
+            // Оптимизация загрузки
+            updateWhenIdle: true,
+            updateWhenZooming: false,
+            keepBuffer: 2
         }
     )
     
-    // Высококачественный слой Landsat 8
+    // Быстрый слой Landsat 8 (оптимизированный)
     const landsatLayer = L.tileLayer(
         'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/' +
         'Landsat_8_Surface_Reflectance/default/{time}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg',
         {
             attribution: 'NASA GIBS | Landsat 8',
+            maxZoom: 12,  // Ограничиваем для скорости
+            minZoom: 1,
+            opacity: 1,
+            time: new Date().toISOString().split('T')[0],
+            // Оптимизация загрузки
+            updateWhenIdle: true,
+            updateWhenZooming: false,
+            keepBuffer: 2
+        }
+    )
+    
+    // Очень быстрый слой - Sentinel Hub (если доступен)
+    const sentinelLayer = L.tileLayer(
+        'https://tiles.sentinel-hub.com/ogc/wms/3b03639b-5486-4093-b1ed-2e471a3573a7?' +
+        'REQUEST=GetMap&SERVICE=WMS&VERSION=1.1.1&' +
+        'LAYERS=TRUE_COLOR&FORMAT=image/jpeg&' +
+        'WIDTH=256&HEIGHT=256&BBOX={bbox}&SRS=EPSG:3857',
+        {
+            attribution: 'Sentinel Hub',
             maxZoom: 19,
             minZoom: 1,
             opacity: 1,
-            time: new Date().toISOString().split('T')[0]
+            // Оптимизация
+            updateWhenIdle: true,
+            updateWhenZooming: false,
+            keepBuffer: 1
         }
     )
     
@@ -66,15 +92,17 @@ function initMap() {
         "🗺️ Карта (OSM)": osmLayer,
         "🛰️ Спутник (MODIS)": satelliteLayer,
         "🛰️ Спутник (Landsat)": landsatLayer,
-        "🛰️ Спутник (Esri)": esriLayer
+        "🛰️ Спутник (Esri)": esriLayer,
+        "🛰️ Спутник (Sentinel)": sentinelLayer
     }
     
     // Добавляем информацию о слоях
     console.log('[MAP] Satellite layers info:');
-    console.log('  MODIS Terra: Ежедневное обновление, 250м/пиксель');
-    console.log('  Landsat 8: 8-16 дней, 30м/пиксель');
-    console.log('  Esri World: Статичные снимки, высокое качество');
-    console.log('  Выберите слой в зависимости от нужной свежести данных');
+    console.log('  MODIS Terra: Ежедневное, оптимизирован до zoom 12, 250м/пиксель');
+    console.log('  Landsat 8: 8-16 дней, оптимизирован до zoom 12, 30м/пиксель');
+    console.log('  Esri World: Статичные, всегда быстрый, высокое качество');
+    console.log('  Sentinel Hub: Самый быстрый, 10м/пиксель (требует API ключ)');
+    console.log('  Рекомендация: используйте Esri для скорости, MODIS для свежести');
     
     // Добавляем OSM по умолчанию
     osmLayer.addTo(map)
