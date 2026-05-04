@@ -235,18 +235,22 @@ function updateLayers(oldStep, newStep) {
 async function validateStep(step) {
     switch(step) {
         case 1:
-            // Validate photos if present - simple validation without API call
-            if (stepData.images && stepData.images.length > 0) {
-                try {
-                    // Simple client-side validation
-                    if (stepData.images.length > 10) {
-                        alert('Слишком много фото. Максимум 10 фото.');
-                        return false;
-                    }
-                    console.log(`Validated ${stepData.images.length} photos`);
-                } catch (error) {
-                    console.error('Validation error:', error);
+            // Validate photos - MANDATORY for step 1
+            if (!stepData.images || stepData.images.length === 0) {
+                alert('❌ Необходимо загрузить хотя бы одно фото почвы для продолжения');
+                return false;
+            }
+            
+            try {
+                // Simple client-side validation
+                if (stepData.images.length > 10) {
+                    alert('Слишком много фото. Максимум 10 фото.');
+                    return false;
                 }
+                console.log(`Validated ${stepData.images.length} photos`);
+            } catch (error) {
+                console.error('Validation error:', error);
+                return false;
             }
             return true;
         case 3:
@@ -272,6 +276,13 @@ async function validateStep(step) {
             }
             stepData.lat = parseFloat(lat);
             stepData.lng = parseFloat(lng);
+            return true;
+        case 2:
+            // Validate photo processing results - MANDATORY for step 2
+            if (!stepData.images || stepData.images.length === 0) {
+                alert('❌ Необходимо загрузить фото почвы для продолжения анализа');
+                return false;
+            }
             return true;
         default:
             return true;
@@ -1778,32 +1789,63 @@ async function loadUserCabinet() {
             div.className = "cabinet-point";
             div.style.cssText = "border:1px solid #A5D6A7; padding:15px; margin-bottom:15px; border-radius:10px; background:white;";
             
+            // Добавляем информацию о регионе и качестве почвы
+            const region = point.region || "Не определен";
+            const qualityScore = point.quality_score || 0;
+            const reference = point.reference || {};
+            
             div.innerHTML = `
-                ${firstImage ? `<img src="${firstImage}" style="width:100%; border-radius:8px; margin-bottom:10px; max-height:200px; object-fit:cover;">` : ""}
+                ${firstImage ? `
+                    <div style="position: relative; margin-bottom: 10px;">
+                        <img src="${firstImage}" style="width:100%; border-radius:8px; max-height:200px; object-fit:cover; cursor: pointer;" 
+                             onclick="openPhotoModal('${firstImage}')">
+                        ${images.length > 1 ? `
+                            <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">
+                                📷 ${images.length} фото
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : ""}
+                
                 <h4 style="color:#2E7D32; margin-bottom:10px;">🌱 ТОЧКА #${point.id.slice(0, 8)}</h4>
-                <p><strong>Координаты:</strong> ${point.lat?.toFixed(4)}, ${point.lng?.toFixed(4)}</p>
-                <p><strong>pH:</strong> ${point.ph || "-"} | <strong>Влажность:</strong> ${point.moisture || "-"}%</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; font-size: 14px;">
+                    <div><strong>Координаты:</strong><br>${point.lat?.toFixed(4)}, ${point.lng?.toFixed(4)}</div>
+                    <div><strong>Регион:</strong><br>${region}</div>
+                    <div><strong>pH:</strong> ${point.ph || "-"}</div>
+                    <div><strong>Влажность:</strong> ${point.moisture || "-"}%</div>
+                    <div><strong>N:</strong> ${point.nitrogen || "-"}</div>
+                    <div><strong>P:</strong> ${point.phosphorus || "-"}</div>
+                    <div><strong>K:</strong> ${point.potassium || "-"}</div>
+                    <div><strong>Качество:</strong> ${qualityScore}/100</div>
+                </div>
                 
                 ${soilType !== "Не определен" ? `
                     <div style="padding:10px; background:rgba(76,175,80,0.1); border-radius:6px; margin:10px 0;">
                         <p style="margin:0;"><strong>Тип почвы:</strong> ${soilType}</p>
                         ${soilTypeInfo ? `<p style="margin:5px 0 0 0; font-size:12px;">${soilTypeInfo}</p>` : ''}
-                        <p style="margin:5px 0 0 0; font-size:12px;">Плодородие: ${fertility}/10</p>
+                        ${reference.ph ? `<p style="margin:5px 0 0 0; font-size:12px;"><em>Эталон pH: ${reference.ph}</em></p>` : ''}
                     </div>
                 ` : ""}
                 
                 ${point.tags?.length ? `<p><strong>Теги:</strong> ${point.tags.join(", ")}</p>` : ""}
                 ${point.notes ? `<p><strong>Заметки:</strong> ${point.notes}</p>` : ""}
                 
-                <div style="display:flex; gap:8px; margin-top:10px;">
+                <div style="display:flex; gap:8px; margin-top:10px; flex-wrap: wrap;">
                     <button onclick="map.setView([${point.lat}, ${point.lng}], 15); showSection('map');" 
-                        style="flex:1; padding:8px; background:#1976D2; color:white; border:none; border-radius:6px; cursor:pointer;">
+                        style="flex:1; min-width:100px; padding:8px; background:#1976D2; color:white; border:none; border-radius:6px; cursor:pointer;">
                         📍 На карте
                     </button>
                     <button onclick="openDynamicsModal('${point.id}', 'Точка #${point.id.slice(0, 8)}')" 
-                        style="flex:1; padding:8px; background:#388E3C; color:white; border:none; border-radius:6px; cursor:pointer;">
+                        style="flex:1; min-width:100px; padding:8px; background:#388E3C; color:white; border:none; border-radius:6px; cursor:pointer;">
                         📊 Динамика
                     </button>
+                    ${images.length > 1 ? `
+                        <button onclick="showPointPhotos('${JSON.stringify(images).replace(/'/g, "\\'")}')" 
+                            style="flex:1; min-width:100px; padding:8px; background:#FF9800; color:white; border:none; border-radius:6px; cursor:pointer;">
+                            📷 Все фото
+                        </button>
+                    ` : ''}
                     ${!point.is_test ? `<button onclick="deletePoint('${point.id}')" 
                         style="padding:8px 16px; background:#ef4444; color:white; border:none; border-radius:6px; cursor:pointer;">
                         🗑️
@@ -3387,4 +3429,55 @@ function getConfirmedSoilType() {
     }
     
     return null;
+}
+
+function showPointPhotos(imagesJson) {
+    try {
+        const images = JSON.parse(imagesJson);
+        if (!images || images.length === 0) {
+            alert('Нет фотографий для просмотра');
+            return;
+        }
+        
+        // Создаем модальное окно для просмотра фото
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        `;
+        
+        modal.innerHTML = `
+            <div style="background: white; padding: 20px; border-radius: 16px; max-width: 90%; max-height: 90%; position: relative;">
+                <button onclick="this.parentElement.parentElement.remove()" style="position: absolute; right: 10px; top: 10px; background: #f44336; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;">×</button>
+                <h3 style="margin: 0 0 20px 0; color: #2E7D32;">📷 Фотографии точки (${images.length})</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; max-height: 70vh; overflow-y: auto;">
+                    ${images.map((img, idx) => `
+                        <div style="text-align: center;">
+                            <img src="${img}" style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; cursor: pointer;" 
+                                 onclick="openPhotoModal('${img}')">
+                            <p style="margin: 5px 0; font-size: 12px; color: #666;">Фото ${idx + 1}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+    } catch (error) {
+        console.error('Error parsing images:', error);
+        alert('Ошибка при загрузке фотографий');
+    }
+}
+
+function openFeedbackLink() {
+    window.open('https://vk.com/topic-238378507_60860089', '_blank');
 }
