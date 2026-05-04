@@ -448,6 +448,9 @@ body::before {
     padding: 20px;
     border-radius: 10px;
     overflow-y: auto;
+    position: relative;
+    z-index: 1000;
+    pointer-events: auto;
 }
 
 .details-panel h3 {
