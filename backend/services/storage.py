@@ -23,37 +23,35 @@ except Exception as e:
     print(f"[STORAGE] ERROR creating directory: {e}")
 
 def get_points():
-    print(f"[STORAGE] get_points() called")
-    print(f"[STORAGE] Looking for file: {FILE}")
-    print(f"[STORAGE] File exists: {os.path.exists(FILE)}")
-    
+    """Простое и надежное чтение точек"""
     if not os.path.exists(FILE):
-        print(f"[STORAGE] File not found, returning empty list")
-        return []
-    try:
-        with open(FILE, encoding="utf-8") as f:
-            points = json.load(f)
-        print(f"[STORAGE] Loaded {len(points)} points from file")
-        return points
-    except (json.JSONDecodeError, IOError) as e:
-        print(f"[STORAGE] Error reading points file: {e}")
-        if os.path.exists(FILE):
-            backup_file = FILE + ".backup"
-            try:
-                os.rename(DATA_FILE, backup_file)
-                print(f"[STORAGE] Corrupted file backed up to {backup_file}")
-            except:
-                pass
-        # Пробуем восстановить из резервной копии
+        print(f"[STORAGE] File not found: {FILE}")
+        # Пробуем восстановить из backup
         if recover_from_backup():
-            print("[STORAGE] Attempting recovery from backup...")
+            print("[STORAGE] Recovered from backup")
+        else:
+            print("[STORAGE] No backup found, starting fresh")
+        return []
+    
+    try:
+        with open(FILE, "r", encoding="utf-8") as f:
+            points = json.load(f)
+            print(f"[STORAGE] Successfully loaded {len(points)} points")
+            return points
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"[STORAGE] Error reading main file: {e}")
+        # Поврежденный файл - пробуем восстановить
+        if recover_from_backup():
+            print("[STORAGE] Recovered from backup due to corruption")
             try:
-                with open(DATA_FILE, "r", encoding="utf-8") as f:
+                with open(FILE, "r", encoding="utf-8") as f:
                     points = json.load(f)
                     print(f"[STORAGE] Recovery successful: {len(points)} points")
                     return points
-            except Exception as e:
-                print(f"[STORAGE] Recovery failed: {e}")
+            except Exception as e2:
+                print(f"[STORAGE] Recovery failed: {e2}")
+        else:
+            print("[STORAGE] No backup available, starting fresh")
         return []
 
 def load_points():
