@@ -865,29 +865,27 @@ function filterPointsBySoilType() {
     const selectedType = document.getElementById('soil-type-filter').value;
     console.log('Filtering by soil type:', selectedType);
     
-    // Очищаем старые маркеры
-    markers.forEach(marker => {
-        if (marker._soilType !== selectedType) {
-            marker.setOpacity(0.3);
-        } else {
+    if (!selectedType) {
+        // Если фильтр не выбран, показываем все точки
+        markers.forEach(marker => {
             marker.setOpacity(1);
-        }
-    });
-}
-
-function searchPointsBySoilName() {
-    const searchTerm = document.getElementById('soil-search-input').value.toLowerCase().trim();
-    console.log('Searching by soil name:', searchTerm);
-    
-    if (!searchTerm) {
-        alert('Введите название почвы для поиска');
+            marker.setIcon(L.icon({
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEM1LjU5NyAwIDAgNS41OTcgMCAxMi41QzAgMjEuMDA0IDguOTk2IDQwIDEyLjUgNDBDMTUuNTA0IDQwIDI1IDIxLjAwNCAyNSAxMi41QzI1IDUuNTk3IDE5LjQwMyAwIDEyLjUgMFoiIGZpbGw9IiMyRTdEMzIiLz4KPGNpcmNsZSBjeD0iMTIuNSIgY3k9IjEyLjUiIHI9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            }));
+        });
         return;
     }
     
     let foundCount = 0;
     markers.forEach(marker => {
-        const soilType = (marker._soilType || '').toLowerCase();
-        if (soilType.includes(searchTerm)) {
+        const point = marker._pointData;
+        const soilType = (point.soil_type?.soil_ru || point.ai_analysis?.soil_type || '').toLowerCase();
+        
+        if (soilType === selectedType.toLowerCase()) {
             marker.setOpacity(1);
             marker.setIcon(L.icon({
                 iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUiIGhlaWdodD0iNDEiIHZpZXdCb3g9IjAgMCAyNSA0MSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjUgMEM1LjU5NyAwIDAgNS41OTcgMCAxMi41QzAgMjEuMDA0IDguOTk2IDQwIDEyLjUgNDBDMTUuNTA0IDQwIDI1IDIxLjAwNCAyNSAxMi41QzI1IDUuNTk3IDE5LjQwMyAwIDEyLjUgMFoiIGZpbGw9IiNGRjU3MjIiLz4KPGNpcmNsZSBjeD0iMTIuNSIgY3k9IjEyLjUiIHI9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
@@ -898,25 +896,18 @@ function searchPointsBySoilName() {
             }));
             foundCount++;
         } else {
-            marker.setOpacity(0.2);
+            marker.setOpacity(0.3);
         }
     });
     
-    // Показываем результат поиска
     if (foundCount > 0) {
-        // Центрируем карту на первой найденной точке
-        const firstFound = markers.find(m => m.getOpacity() === 1);
-        if (firstFound) {
-            map.setView(firstFound.getLatLng(), 10);
-        }
-        alert(`Найдено точек: ${foundCount}`);
+        showInfoToast(`Найдено точек: ${foundCount}`);
     } else {
-        alert('Точки с таким типом почвы не найдены');
+        showInfoToast('Точки с таким типом почвы не найдены');
     }
 }
 
-function clearSoilSearch() {
-    document.getElementById('soil-search-input').value = '';
+function clearSoilFilter() {
     document.getElementById('soil-type-filter').value = '';
     
     // Восстанавливаем все маркеры
@@ -930,6 +921,8 @@ function clearSoilSearch() {
             shadowSize: [41, 41]
         }));
     });
+    
+    showInfoToast('Фильтр сброшен');
 }
 
 function updateStepUI() {
@@ -3510,6 +3503,219 @@ function showPointPhotos(imagesJson) {
 function openFeedbackLink() {
     window.open('https://vk.com/topic-238378507_60860089', '_blank');
 }
+
+// Points List Functions
+let allPointsList = [];
+let filteredPointsList = [];
+
+async function loadPointsList() {
+    try {
+        showLoading('Загрузка точек...', 'Получение данных со всех источников');
+        updateProgress(25);
+        
+        // Load from global storage
+        const response = await fetch('/api/points');
+        if (!response.ok) throw new Error('Failed to load points');
+        
+        const points = await response.json();
+        allPointsList = points || [];
+        filteredPointsList = [...allPointsList];
+        
+        updateProgress(50);
+        
+        // Load soil types for filter
+        await loadSoilTypesForList();
+        
+        updateProgress(75);
+        
+        // Render points list
+        renderPointsList();
+        
+        updateProgress(100);
+        hideLoading();
+        showSuccessToast(`Загружено ${allPointsList.length} точек`);
+        
+    } catch (error) {
+        handleAsyncError(error, 'загрузке списка точек');
+        document.getElementById('points-list-content').innerHTML = '<p>Ошибка загрузки данных</p>';
+    }
+}
+
+async function loadSoilTypesForList() {
+    try {
+        const response = await fetch('/api/soil-types');
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const select = document.getElementById('list-soil-filter');
+        select.innerHTML = '<option value="">Все типы почвы</option>';
+        
+        if (data.soil_types) {
+            data.soil_types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading soil types for list:', error);
+    }
+}
+
+function renderPointsList() {
+    const container = document.getElementById('points-list-content');
+    
+    if (filteredPointsList.length === 0) {
+        container.innerHTML = '<p>Точки не найдены</p>';
+        return;
+    }
+    
+    const pointsHtml = filteredPointsList.map(point => {
+        const images = point.images || [];
+        const firstImage = images.length > 0 ? images[0] : point.image;
+        const ai = point.ai_analysis || {};
+        const fertility = ai.fertility_score || 5;
+        
+        // Приоритет: выбор пользователя > ИИ определение > старый формат
+        const soilTypeObj = point.soil_type || {};
+        const soilType = soilTypeObj.soil_ru || ai.soil_type || "Не определен";
+        
+        // Добавляем информацию о том, кто определил тип
+        let soilTypeInfo = "";
+        if (soilTypeObj.soil_ru && soilTypeObj.confidence === 100) {
+            soilTypeInfo = `<small style="color: #4CAF50;">✅ Выбрано пользователем</small>`;
+        } else if (soilTypeObj.soil_ru && soilTypeObj.confidence < 100) {
+            soilTypeInfo = `<small style="color: #2196F3;">🤖 ИИ (${soilTypeObj.confidence}%)</small>`;
+        } else if (ai.soil_type) {
+            soilTypeInfo = `<small style="color: #FF9800;">🔬 Старый ИИ анализ</small>`;
+        }
+        
+        const region = point.region || "Не определен";
+        const qualityScore = point.quality_score || 0;
+        const date = point.created_at || new Date().toISOString();
+        const formattedDate = new Date(date).toLocaleDateString('ru-RU');
+        
+        return `
+            <div class="cabinet-point" style="border:1px solid #A5D6A7; padding:15px; margin-bottom:15px; border-radius:10px; background:white;">
+                ${firstImage ? `
+                    <div style="position: relative; margin-bottom: 10px;">
+                        <img src="${firstImage}" style="width:100%; border-radius:8px; max-height:200px; object-fit:cover; cursor: pointer;" 
+                             onclick="openPhotoModal('${firstImage}')">
+                        ${images.length > 1 ? `
+                            <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">
+                                📷 ${images.length} фото
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : ""}
+                
+                <h4 style="color:#2E7D32; margin-bottom:10px;">🌱 ТОЧКА #${point.id.slice(0, 8)}</h4>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; font-size: 14px;">
+                    <div><strong>Дата:</strong> ${formattedDate}</div>
+                    <div><strong>Регион:</strong> ${region}</div>
+                    <div><strong>Координаты:</strong><br>${point.lat?.toFixed(4)}, ${point.lng?.toFixed(4)}</div>
+                    <div><strong>Качество:</strong> ${qualityScore}/100</div>
+                    <div><strong>pH:</strong> ${point.ph || "-"}</div>
+                    <div><strong>Влажность:</strong> ${point.moisture || "-"}%</div>
+                    <div><strong>N:</strong> ${point.nitrogen || "-"}</div>
+                    <div><strong>P:</strong> ${point.phosphorus || "-"}</div>
+                    <div><strong>K:</strong> ${point.potassium || "-"}</div>
+                    <div><strong>Пользователь:</strong> ${point.user_id?.slice(0, 8) || "-"}</div>
+                </div>
+                
+                ${soilType !== "Не определен" ? `
+                    <div style="padding:10px; background:rgba(76,175,80,0.1); border-radius:6px; margin:10px 0;">
+                        <p style="margin:0;"><strong>Тип почвы:</strong> ${soilType}</p>
+                        ${soilTypeInfo ? `<p style="margin:5px 0 0 0; font-size:12px;">${soilTypeInfo}</p>` : ''}
+                        <p style="margin:5px 0 0 0; font-size:12px;">Плодородие: ${fertility}/10</p>
+                    </div>
+                ` : ""}
+                
+                ${point.tags?.length ? `<p><strong>Теги:</strong> ${point.tags.join(", ")}</p>` : ""}
+                ${point.notes ? `<p><strong>Заметки:</strong> ${point.notes}</p>` : ""}
+                
+                <div style="display:flex; gap:8px; margin-top:10px; flex-wrap: wrap;">
+                    <button onclick="map.setView([${point.lat}, ${point.lng}], 15); showSection('map');" 
+                        style="flex:1; min-width:100px; padding:8px; background:#1976D2; color:white; border:none; border-radius:6px; cursor:pointer;">
+                        📍 На карте
+                    </button>
+                    ${images.length > 1 ? `
+                        <button onclick="showPointPhotos('${JSON.stringify(images).replace(/'/g, "\\'")}')" 
+                            style="flex:1; min-width:100px; padding:8px; background:#FF9800; color:white; border:none; border-radius:6px; cursor:pointer;">
+                            📷 Все фото
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = pointsHtml;
+}
+
+function filterPointsList() {
+    const selectedType = document.getElementById('list-soil-filter').value;
+    
+    if (!selectedType) {
+        filteredPointsList = [...allPointsList];
+    } else {
+        filteredPointsList = allPointsList.filter(point => {
+            const soilType = (point.soil_type?.soil_ru || point.ai_analysis?.soil_type || '');
+            return soilType === selectedType;
+        });
+    }
+    
+    renderPointsList();
+    showInfoToast(`Отфильтровано: ${filteredPointsList.length} точек`);
+}
+
+function clearPointsListFilter() {
+    document.getElementById('list-soil-filter').value = '';
+    filteredPointsList = [...allPointsList];
+    renderPointsList();
+    showInfoToast('Фильтр сброшен');
+}
+
+function sortPointsList() {
+    const sortBy = document.getElementById('list-sort').value;
+    
+    switch(sortBy) {
+        case 'date-desc':
+            filteredPointsList.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+            break;
+        case 'date-asc':
+            filteredPointsList.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+            break;
+        case 'ph-desc':
+            filteredPointsList.sort((a, b) => (b.ph || 0) - (a.ph || 0));
+            break;
+        case 'ph-asc':
+            filteredPointsList.sort((a, b) => (a.ph || 0) - (b.ph || 0));
+            break;
+        case 'soil':
+            filteredPointsList.sort((a, b) => {
+                const soilA = a.soil_type?.soil_ru || a.ai_analysis?.soil_type || '';
+                const soilB = b.soil_type?.soil_ru || b.ai_analysis?.soil_type || '';
+                return soilA.localeCompare(soilB);
+            });
+            break;
+    }
+    
+    renderPointsList();
+    showInfoToast('Список отсортирован');
+}
+
+// Load points list when section is shown
+const originalShowSection = showSection;
+showSection = function(sectionId) {
+    originalShowSection(sectionId);
+    
+    if (sectionId === 'points-list') {
+        loadPointsList();
+    }
+};
 
 // Loading indicator functions
 function showLoading(text = "Анализ данных...", subtext = "Пожалуйста, подождите") {
