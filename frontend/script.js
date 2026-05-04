@@ -545,7 +545,6 @@ function collectStepData() {
     const notes = document.getElementById('step8-notes')?.value || '';
     
     return {
-        images: stepData.images,
         ph: stepData.ph,
         moisture: stepData.moisture,
         nitrogen: stepData.nitrogen,
@@ -553,8 +552,6 @@ function collectStepData() {
         potassium: stepData.potassium,
         lat: stepData.lat,
         lng: stepData.lng,
-        color: stepData.color,
-        icon: stepData.icon,
         tags: stepData.tags,
         notes: notes,
         soil_type: selectedSoilType || stepData.validationResult?.identified_soil_type || ""
@@ -575,6 +572,42 @@ async function saveFinalPoint() {
     }
     if (window.debugLog) debugLog('summaryDiv found');
     
+    // Валидация обязательных полей
+    const point = collectStepData();
+    
+    // Проверка наличия фото
+    if (!point.image && (!stepData || !stepData.images || stepData.images.length === 0)) {
+        alert('❌ Необходимо загрузить фото почвы для анализа');
+        showSection('analysis');
+        nextStep(1);
+        return;
+    }
+    
+    // Проверка обязательных значений
+    if (!point.ph || point.ph === '') {
+        alert('❌ Необходимо указать pH почвы для анализа');
+        showSection('analysis');
+        nextStep(3);
+        return;
+    }
+    
+    // Проверка координат
+    if (!point.lat || !point.lng) {
+        alert('❌ Необходимо указать координаты точки');
+        showSection('analysis');
+        nextStep(4);
+        return;
+    }
+    
+    // Проверка типа почвы (если ИИ не смог определить, пользователь должен выбрать)
+    const confirmedType = getConfirmedSoilType();
+    if (!confirmedType) {
+        alert('❌ Необходимо подтвердить или выбрать тип почвы');
+        showSection('analysis');
+        nextStep(9);
+        return;
+    }
+    
     // Проверяем авторизацию
     const token = localStorage.getItem('auth_token');
     if (!token) {
@@ -587,7 +620,6 @@ async function saveFinalPoint() {
     
     // Build final point data
     const userId = localStorage.getItem('user_id');
-    const point = collectStepData();
     
     if (window.debugLog) debugLog('Point data collected: lat=' + point.lat + ', lng=' + point.lng);
     console.log('Saving point:', point);
@@ -620,8 +652,6 @@ async function saveFinalPoint() {
                 <p><strong>pH:</strong> ${point.ph || 'Не указано'}</p>
                 <p><strong>Влажность:</strong> ${point.moisture || 'Не указано'}%</p>
                 <p><strong>Фото:</strong> ${point.images ? point.images.length : 0} шт.</p>
-                <p><strong>Цвет:</strong> ${point.color || 'green'}</p>
-                <p><strong>Иконка:</strong> ${point.icon || 'sample'}</p>
                 <p><strong>Теги:</strong> ${point.tags ? point.tags.join(', ') : 'Нет'}</p>
                 <p><strong>Заметки:</strong> ${point.notes || 'Нет'}</p>
             </div>
@@ -719,7 +749,7 @@ async function saveFinalPoint() {
 
 function resetForm() {
     currentStep = 1;
-    stepData = {
+    let stepData = {
         images: [],
         ph: null,
         moisture: null,
@@ -728,8 +758,6 @@ function resetForm() {
         potassium: null,
         lat: null,
         lng: null,
-        color: 'green',
-        icon: 'sample',
         tags: [],
         notes: null
     };
@@ -745,8 +773,6 @@ function resetForm() {
     document.getElementById('step3-potassium').value = '';
     document.getElementById('step4-lat').value = '';
     document.getElementById('step4-lng').value = '';
-    document.getElementById('step7-color').value = 'green';
-    document.getElementById('step7-icon').value = 'sample';
     document.getElementById('step8-tags').value = '';
     document.getElementById('step8-notes').value = '';
     
@@ -1073,9 +1099,9 @@ function showPointDetails(point) {
     pointInfoDiv.innerHTML = `
         <div style="font-family: Arial, sans-serif;">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0;">
-                <span style="font-size: 28px;">${point.type === 'professional' ? '🎓' : '🔬'}</span>
+                <span style="font-size: 28px;">🌱</span>
                 <div>
-                    <div style="font-size: 12px; color: #666; text-transform: uppercase;">${point.type === 'professional' ? 'Профессиональная точка' : 'Любительская точка'}</div>
+                    <div style="font-size: 12px; color: #666; text-transform: uppercase;">Анализ почвы</div>
                     <div style="font-size: 11px; color: #999;">${date}</div>
                 </div>
             </div>
@@ -1297,8 +1323,8 @@ function createPopup(p) {
             `}
             
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                <span style="font-size: 20px;">${p.type === 'professional' ? '🎓' : '🔬'}</span>
-                <b style="font-size: 14px;">${p.type === 'professional' ? 'ПРОФЕССИОНАЛЬНАЯ' : 'ЛЮБИТЕЛЬСКАЯ'}</b>
+                <span style="font-size: 20px;">🌱</span>
+                <b style="font-size: 14px;">АНАЛИЗ ПОЧВЫ</b>
             </div>
             
             <div style="padding: 10px; background: rgba(34, 197, 94, 0.1); border-radius: 8px; margin-bottom: 10px; border-left: 3px solid #22c55e;">
@@ -1754,7 +1780,7 @@ async function loadUserCabinet() {
             
             div.innerHTML = `
                 ${firstImage ? `<img src="${firstImage}" style="width:100%; border-radius:8px; margin-bottom:10px; max-height:200px; object-fit:cover;">` : ""}
-                <h4 style="color:#2E7D32; margin-bottom:10px;">${point.type === 'professional' ? '🎓' : '🔬'} ТОЧКА #${point.id.slice(0, 8)}</h4>
+                <h4 style="color:#2E7D32; margin-bottom:10px;">🌱 ТОЧКА #${point.id.slice(0, 8)}</h4>
                 <p><strong>Координаты:</strong> ${point.lat?.toFixed(4)}, ${point.lng?.toFixed(4)}</p>
                 <p><strong>pH:</strong> ${point.ph || "-"} | <strong>Влажность:</strong> ${point.moisture || "-"}%</p>
                 

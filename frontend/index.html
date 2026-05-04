@@ -217,35 +217,17 @@
                 <button class="btn btn-secondary" onclick="if(window.debugLog)debugLog('Button clicked: prevStep(6)');prevStep(6)">← Назад</button>
             </div>
 
-            <!-- Step 8: Annotations -->
+            <!-- Step 8: Additional Information -->
             <div class="step-panel" data-step="8">
-                <h3>Шаг 8: Пометки на карте</h3>
-                <p>Добавьте заметки, теги и маркеры</p>
-                <div class="input-group">
-                    <label>Цвет метки</label>
-                    <select id="step8-color">
-                        <option value="green">🟢 Норма</option>
-                        <option value="yellow">🟡 Внимание</option>
-                        <option value="red">🔴 Аномалия</option>
-                        <option value="blue">🔵 Интерес</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>Иконка</label>
-                    <select id="step8-icon">
-                        <option value="sample">🧪 Образец</option>
-                        <option value="analysis">📊 Анализ</option>
-                        <option value="interest">⭐ Интерес</option>
-                        <option value="control">🎯 Контроль</option>
-                    </select>
-                </div>
+                <h3>Шаг 8: Дополнительная информация</h3>
+                <p>Добавьте заметки и теги для лучшей организации</p>
                 <div class="input-group">
                     <label>Теги</label>
-                    <input type="text" id="step8-tags" placeholder="#чернозём, #суглинок">
+                    <input type="text" id="step8-tags" placeholder="через запятую">
                 </div>
                 <div class="input-group">
-                    <label>Текстовые заметки</label>
-                    <textarea id="step8-notes" rows="3" placeholder="Описание участка, наблюдения, комментарии"></textarea>
+                    <label>Заметки</label>
+                    <textarea id="step8-notes" rows="3" placeholder="Дополнительная информация о точке..."></textarea>
                 </div>
                 <div id="step8-result"></div>
                 <button class="btn btn-primary" onclick="if(window.debugLog)debugLog('Button clicked: nextStep(9)');nextStep(9)">Далее →</button>
