@@ -134,26 +134,33 @@
             <!-- Step 3: Physical-Chemical Analysis -->
             <div class="step-panel" data-step="3">
                 <h3>Шаг 3: Анализ физико-химических показателей</h3>
-                <p>Введите данные о почве (pH, влажность, NPK)</p>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                    ⚠️ <strong>pH обязателен</strong> для ИИ анализа. Остальные поля необязательны, но улучшают точность анализа.
+                </p>
                 <div class="input-group">
-                    <label>pH почвы</label>
-                    <input type="number" id="step3-ph" step="0.1" min="0" max="14">
+                    <label>pH почвы *</label>
+                    <input type="number" id="step3-ph" step="0.1" min="0" max="14" required>
+                    <small style="color: #666;">Обязательно для ИИ анализа</small>
                 </div>
                 <div class="input-group">
                     <label>Влажность (%)</label>
                     <input type="number" id="step3-moisture" step="1" min="0" max="100">
+                    <small style="color: #666;">Необязательно</small>
                 </div>
                 <div class="input-group">
                     <label>Азот (N) мг/кг</label>
                     <input type="number" id="step3-nitrogen" step="1" min="0">
+                    <small style="color: #666;">Необязательно</small>
                 </div>
                 <div class="input-group">
                     <label>Фосфор (P) мг/кг</label>
                     <input type="number" id="step3-phosphorus" step="1" min="0">
+                    <small style="color: #666;">Необязательно</small>
                 </div>
                 <div class="input-group">
                     <label>Калий (K) мг/кг</label>
                     <input type="number" id="step3-potassium" step="1" min="0">
+                    <small style="color: #666;">Необязательно</small>
                 </div>
                 <div id="step3-result"></div>
                 <button class="btn btn-primary" onclick="if(window.debugLog)debugLog('Button clicked: nextStep(4)');nextStep(4)">Далее →</button>

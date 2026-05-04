@@ -6,6 +6,86 @@ import json
 
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
+async def detect_soil_type(data):
+    """Авто-определение типа почвы через AI"""
+    if not API_KEY:
+        return {
+            "soil_ru": "не определено",
+            "soil_wrb": "-",
+            "confidence": 0,
+            "reason": "API ключ не настроен"
+        }
+    
+    prompt = f"""
+Ты — профессиональный почвовед РФ.
+Определи тип почвы по данным.
+
+Данные:
+Регион: {data.get('region', 'неизвестно')}
+pH: {data.get('ph', 'не указано')}
+Влажность: {data.get('moisture', 'не указано')}%
+Азот: {data.get('nitrogen', 'не указано')} мг/кг
+Фосфор: {data.get('phosphorus', 'не указано')} мг/кг
+Калий: {data.get('potassium', 'не указано')} мг/кг
+Описание: {data.get('notes', '')}
+
+Верни строго JSON:
+{{
+  "soil_ru": "название на русском (например: чернозем, подзол, серая лесная)",
+  "soil_wrb": "международная классификация WRB (например: Chernozem, Podzol, Greyzemic)",
+  "confidence": 0-100,
+  "reason": "краткое объяснение почему такой тип"
+}}
+"""
+    
+    try:
+        response = requests.post(
+            "https://api.deepseek.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            json={
+                "model": "deepseek-chat",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 200,
+                "temperature": 0.3
+            },
+            timeout=10
+        )
+        
+        if response.status_code != 200:
+            return {
+                "soil_ru": "не определено",
+                "soil_wrb": "-",
+                "confidence": 0,
+                "reason": f"API ошибка: {response.status_code}"
+            }
+        
+        text = response.json()["choices"][0]["message"]["content"]
+        
+        # Пытаемся распарсить JSON
+        try:
+            result = json.loads(text)
+            # Валидация полей
+            if not all(k in result for k in ["soil_ru", "soil_wrb", "confidence", "reason"]):
+                raise ValueError("Missing required fields")
+            return result
+        except (json.JSONDecodeError, ValueError):
+            # Если JSON не распарсился, возвращаем fallback
+            return {
+                "soil_ru": "не определено",
+                "soil_wrb": "-",
+                "confidence": 0,
+                "reason": "Ошибка парсинга AI ответа"
+            }
+            
+    except Exception as e:
+        print(f"[AI] Soil type detection error: {e}")
+        return {
+            "soil_ru": "не определено",
+            "soil_wrb": "-",
+            "confidence": 0,
+            "reason": f"Ошибка: {str(e)}"
+        }
+
 def classify_image(image):
     """Простая классификация по цвету и текстуре без PIL"""
     try:
