@@ -1,6 +1,6 @@
-let map = null
-let markers = []
-let currentStep = 1
+let map = null;
+let markers = [];
+let currentStep = 1;
 let stepData = {
     images: [],
     ph: null,
@@ -10,13 +10,13 @@ let stepData = {
     lat: null,
     lng: null,
     notes: null
-}
-let baseLayers = {}
-let overlayLayers = {}
+};
+let baseLayers = {};
+let overlayLayers = {};
 
 function initMap() {
-    if (map) return
-    map = L.map('leaflet-map').setView([55.75, 37.61], 10)
+    if (map) return;
+    map = L.map('leaflet-map').setView([55.75, 37.61], 10);
     
     // Базовый слой - OpenStreetMap
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
