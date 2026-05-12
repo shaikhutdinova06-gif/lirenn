@@ -81,12 +81,28 @@
                 
                 <hr style="margin: 15px 0; border-color: #A5D6A7;">
                 
-                <h4>Фильтр по типу почвы</h4>
-                <select id="soil-type-filter" class="input-field">
-                    <option value="">Все типы почвы</option>
-                </select>
-                <button class="btn btn-primary" onclick="filterPointsBySoilType()" style="margin-top: 10px; width: 100%;">🔍 Найти на карте</button>
-                <button class="btn btn-secondary" onclick="clearSoilFilter()" style="margin-top: 5px; width: 100%;">🔄 Сбросить фильтр</button>
+                <h4>🔍 Фильтр точек на карте</h4>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div>
+                        <label style="font-size: 14px; color: #666; margin-bottom: 5px; display: block;">🌱 Тип почвы:</label>
+                        <select id="soil-type-filter" class="input-field">
+                            <option value="">Все типы почвы</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 14px; color: #666; margin-bottom: 5px; display: block;">👤 Пользователь:</label>
+                        <select id="user-filter" class="input-field">
+                            <option value="">Все пользователи</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="applyMapFilters()" style="flex: 1;">🔍 Применить фильтры</button>
+                    <button class="btn btn-secondary" onclick="resetMapFilters()" style="flex: 1;">🔄 Сбросить все</button>
+                </div>
+                <div id="filter-info" style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-radius: 6px; font-size: 14px; color: #2E7D32; display: none;">
+                    <strong>� Результаты фильтрации:</strong> <span id="filter-count"></span>
+                </div>
             </aside>
             <div class="map-area">
                 <div id="leaflet-map"></div>
@@ -518,6 +534,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script src="/static/script.js"></script>
+<script src="script_map_filters.js"></script>
 <!-- Loading Overlay -->
 <div id="loading-overlay" class="loading-overlay">
     <div class="loading-content">
