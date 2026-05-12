@@ -39,7 +39,7 @@ function initMap() {
             updateWhenZooming: false,
             keepBuffer: 2
         }
-    )
+    );
     
     // Быстрый слой Landsat 8 (оптимизированный)
     const landsatLayer = L.tileLayer(
@@ -56,7 +56,7 @@ function initMap() {
             updateWhenZooming: false,
             keepBuffer: 2
         }
-    )
+    );
     
     // Запасной вариант - Esri World Imagery (всегда работает)
     const esriLayer = L.tileLayer(
@@ -67,7 +67,7 @@ function initMap() {
             minZoom: 1,
             opacity: 1
         }
-    )
+    );
     
     // Слои для переключателя
     baseLayers = {
