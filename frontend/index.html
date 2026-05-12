@@ -372,6 +372,33 @@
 <section id="cabinet" class="section" style="display: none;">
     <div class="container">
         <h2>👤 Мой кабинет</h2>
+        
+        <!-- Cabinet Filter -->
+        <div style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
+            <h3 style="margin: 0 0 15px 0; color: #2E7D32;">🔍 Фильтр точек</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div>
+                    <label style="font-size: 14px; color: #666; margin-bottom: 5px; display: block;">🌱 Тип почвы:</label>
+                    <select id="cabinet-soil-type-filter" class="input-field" style="width: 100%;">
+                        <option value="">Все типы почвы</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 14px; color: #666; margin-bottom: 5px; display: block;">📅 Период:</label>
+                    <select id="cabinet-period-filter" class="input-field" style="width: 100%;">
+                        <option value="">Все время</option>
+                        <option value="7">Последние 7 дней</option>
+                        <option value="30">Последние 30 дней</option>
+                        <option value="90">Последние 90 дней</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <button onclick="applyCabinetFilters()" class="btn btn-primary" style="flex: 1;">🔍 Применить фильтры</button>
+                <button onclick="resetCabinetFilters()" class="btn btn-secondary" style="flex: 1;">🔄 Сбросить</button>
+            </div>
+        </div>
+        
         <div id="user-cabinet-content">
             <p>Загрузка данных...</p>
         </div>
