@@ -119,11 +119,20 @@
     <!-- Input Analysis Section - Single Form -->
     <div class="section" id="analysis" style="display: none;">
         <div class="container" style="max-width: 800px; margin: 0 auto;">
-            <h2 style="text-align: center; color: #2E7D32; margin-bottom: 25px;">Анкета анализа почвы</h2>
+            <h2 style="text-align: center; color: #1B5E20; margin-bottom: 8px; font-size: 1.8em; font-weight: 700;">Анкета анализа почвы</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 30px; font-size: 14px;">
+                Заполните форму для получения развёрнутого ИИ-анализа вашей почвы с научными рекомендациями
+            </p>
 
             <!-- Photo Upload -->
-            <div class="form-card" style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
-                <h3 style="margin: 0 0 15px 0; color: #2E7D32;">Фото почвы</h3>
+            <div class="form-card">
+                <div class="form-card-header">
+                    <span class="form-card-icon">📸</span>
+                    <div>
+                        <h3 class="form-card-title">Фото почвы</h3>
+                        <p class="form-card-hint">Фото помогает ИИ определить тип, цвет и структуру почвы. Снимайте поверхность и разрез (профиль) с хорошим освещением.</p>
+                    </div>
+                </div>
                 <div class="input-group">
                     <label>Загрузите фото (до 10 фото с разных ракурсов)</label>
                     <input type="file" id="form-image" accept="image/*" multiple onchange="handleFormImage()">
@@ -132,8 +141,14 @@
             </div>
 
             <!-- Location -->
-            <div class="form-card" style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
-                <h3 style="margin: 0 0 15px 0; color: #2E7D32;">Местоположение</h3>
+            <div class="form-card">
+                <div class="form-card-header">
+                    <span class="form-card-icon">📍</span>
+                    <div>
+                        <h3 class="form-card-title">Местоположение</h3>
+                        <p class="form-card-hint">Точные координаты позволяют определить регион и климатическую зону, что важно для классификации почвы. Нажмите на карту или используйте кнопку геолокации.</p>
+                    </div>
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="input-group">
                         <label>Широта (lat)</label>
@@ -151,70 +166,83 @@
             </div>
 
             <!-- Soil Parameters -->
-            <div class="form-card" style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
-                <h3 style="margin: 0 0 15px 0; color: #2E7D32;">Параметры почвы</h3>
-                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
-                    pH обязателен для ИИ анализа. Остальные поля необязательны, но улучшают точность.
-                </p>
+            <div class="form-card">
+                <div class="form-card-header">
+                    <span class="form-card-icon">🔬</span>
+                    <div>
+                        <h3 class="form-card-title">Параметры почвы</h3>
+                        <p class="form-card-hint">Введите результаты лабораторных или полевых измерений. Чем больше данных, тем точнее будет ИИ-анализ.</p>
+                    </div>
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="input-group">
-                        <label>pH почвы *</label>
-                        <input type="number" id="form-ph" step="0.1" min="0" max="14" required class="input-field">
-                        <small style="color: #666;">Обязательно</small>
+                        <label>pH почвы <span style="color: #d32f2f;">*</span></label>
+                        <input type="number" id="form-ph" step="0.1" min="0" max="14" required class="input-field" placeholder="например: 6.5">
+                        <small class="field-help">Измеряется pH-метром или индикаторной бумагой. Шкала 0-14: ниже 7 кислая, выше 7 щелочная.</small>
                     </div>
                     <div class="input-group">
-                        <label>Влажность (%)</label>
-                        <input type="number" id="form-moisture" step="1" min="0" max="100" class="input-field">
-                        <small style="color: #666;">Необязательно</small>
+                        <label>Влажность (%) <span class="optional-badge">необяз.</span></label>
+                        <input type="number" id="form-moisture" step="1" min="0" max="100" class="input-field" placeholder="например: 45">
+                        <small class="field-help">Процент содержания воды в почве. Определяется высушиванием образца или влагомером.</small>
                     </div>
                     <div class="input-group">
-                        <label>Азот (N) мг/кг</label>
-                        <input type="number" id="form-nitrogen" step="1" min="0" class="input-field">
-                        <small style="color: #666;">Необязательно</small>
+                        <label>Азот (N) мг/кг <span class="optional-badge">необяз.</span></label>
+                        <input type="number" id="form-nitrogen" step="1" min="0" class="input-field" placeholder="например: 120">
+                        <small class="field-help">Общий азот. Основной элемент питания растений, влияет на рост зелёной массы.</small>
                     </div>
                     <div class="input-group">
-                        <label>Фосфор (P) мг/кг</label>
-                        <input type="number" id="form-phosphorus" step="1" min="0" class="input-field">
-                        <small style="color: #666;">Необязательно</small>
+                        <label>Фосфор (P) мг/кг <span class="optional-badge">необяз.</span></label>
+                        <input type="number" id="form-phosphorus" step="1" min="0" class="input-field" placeholder="например: 80">
+                        <small class="field-help">Подвижный фосфор. Отвечает за развитие корневой системы и цветение.</small>
                     </div>
                     <div class="input-group">
-                        <label>Калий (K) мг/кг</label>
-                        <input type="number" id="form-potassium" step="1" min="0" class="input-field">
-                        <small style="color: #666;">Необязательно</small>
+                        <label>Калий (K) мг/кг <span class="optional-badge">необяз.</span></label>
+                        <input type="number" id="form-potassium" step="1" min="0" class="input-field" placeholder="например: 150">
+                        <small class="field-help">Обменный калий. Повышает устойчивость растений к болезням и засухе.</small>
                     </div>
                 </div>
             </div>
 
             <!-- Sampling Info -->
-            <div class="form-card" style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
-                <h3 style="margin: 0 0 15px 0; color: #2E7D32;">Информация о пробах</h3>
+            <div class="form-card">
+                <div class="form-card-header">
+                    <span class="form-card-icon">🧪</span>
+                    <div>
+                        <h3 class="form-card-title">Информация о пробах</h3>
+                        <p class="form-card-hint">Укажите количество отобранных проб и дату. Для достоверных результатов рекомендуется брать не менее 5 проб с участка методом конверта.</p>
+                    </div>
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="input-group">
                         <label>Количество проб почвы</label>
                         <input type="number" id="form-sample-count" min="1" step="1" value="1" class="input-field">
+                        <small class="field-help">Сколько точечных проб было отобрано и смешано.</small>
                     </div>
                     <div class="input-group">
                         <label>Дата взятия пробы</label>
                         <input type="date" id="form-sampling-date" class="input-field">
+                        <small class="field-help">Лучше отбирать пробы весной или осенью.</small>
                     </div>
                 </div>
             </div>
 
             <!-- Soil Type Selection -->
-            <div class="form-card" style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
-                <h3 style="margin: 0 0 15px 0; color: #2E7D32;">Тип почвы</h3>
+            <div class="form-card">
+                <div class="form-card-header">
+                    <span class="form-card-icon">🌱</span>
+                    <div>
+                        <h3 class="form-card-title">Тип почвы</h3>
+                        <p class="form-card-hint">Если вы знаете тип почвы, выберите его из списка. Если нет — ИИ определит тип автоматически после анализа по данным и фото.</p>
+                    </div>
+                </div>
                 <div id="ai-soil-type-display"></div>
                 <div id="soil-type-confirmation" style="margin-top: 10px; display: none;">
                     <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; border-left: 4px solid #2196F3;">
                         <p style="margin: 0 0 10px 0; font-weight: bold;">ИИ определил тип почвы:</p>
                         <p id="ai-soil-type-text" style="margin: 0 0 15px 0;"></p>
                         <div style="display: flex; gap: 10px; align-items: center;">
-                            <button class="btn btn-success" onclick="confirmSoilType(true)" style="font-size: 14px; padding: 8px 16px;">
-                                Верно
-                            </button>
-                            <button class="btn btn-warning" onclick="confirmSoilType(false)" style="font-size: 14px; padding: 8px 16px;">
-                                Неверно
-                            </button>
+                            <button class="btn btn-success" onclick="confirmSoilType(true)" style="font-size: 14px; padding: 8px 16px;">Верно</button>
+                            <button class="btn btn-warning" onclick="confirmSoilType(false)" style="font-size: 14px; padding: 8px 16px;">Неверно</button>
                             <span style="color: #666; font-size: 12px;">Уверенность: <span id="ai-confidence"></span>%</span>
                         </div>
                     </div>
@@ -224,31 +252,41 @@
                     <select id="form-soil-type" class="input-field">
                         <option value="">Выберите тип почвы</option>
                     </select>
-                    <small style="color: #666;">ИИ может определить тип автоматически после сохранения</small>
                 </div>
             </div>
 
             <!-- Additional Info -->
-            <div class="form-card" style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
-                <h3 style="margin: 0 0 15px 0; color: #2E7D32;">Дополнительная информация</h3>
-                <div class="input-group">
-                    <label>Описание профиля почвы <span style="color: #999; font-weight: normal;">(необязательно)</span></label>
-                    <textarea id="form-soil-profile" rows="3" placeholder="Опишите профиль почвы: горизонты, цвет, структура, включения..." class="input-field" style="resize: vertical;"></textarea>
+            <div class="form-card">
+                <div class="form-card-header">
+                    <span class="form-card-icon">📝</span>
+                    <div>
+                        <h3 class="form-card-title">Дополнительная информация</h3>
+                        <p class="form-card-hint">Необязательные поля, но описание профиля значительно улучшает качество ИИ-анализа.</p>
+                    </div>
                 </div>
                 <div class="input-group">
-                    <label>Теги <span style="color: #999; font-weight: normal;">(необязательно)</span></label>
-                    <input type="text" id="form-tags" placeholder="через запятую" class="input-field">
+                    <label>Описание профиля почвы <span class="optional-badge">необяз.</span></label>
+                    <textarea id="form-soil-profile" rows="3" placeholder="Опишите профиль почвы: горизонты (A, B, C), цвет каждого слоя, структура (комковатая, зернистая), включения (камни, корни)..." class="input-field" style="resize: vertical;"></textarea>
+                    <small class="field-help">Профиль — вертикальный разрез почвы. Опишите слои сверху вниз: цвет, толщину, структуру.</small>
                 </div>
                 <div class="input-group">
-                    <label>Заметки <span style="color: #999; font-weight: normal;">(необязательно)</span></label>
-                    <textarea id="form-notes" rows="2" placeholder="Дополнительная информация о точке..." class="input-field" style="resize: vertical;"></textarea>
+                    <label>Теги <span class="optional-badge">необяз.</span></label>
+                    <input type="text" id="form-tags" placeholder="через запятую, например: огород, чернозём, Подмосковье" class="input-field">
+                    <small class="field-help">Метки для быстрого поиска и фильтрации точек.</small>
+                </div>
+                <div class="input-group">
+                    <label>Заметки <span class="optional-badge">необяз.</span></label>
+                    <textarea id="form-notes" rows="2" placeholder="Любая дополнительная информация: рельеф, растительность, история использования..." class="input-field" style="resize: vertical;"></textarea>
                 </div>
             </div>
 
             <!-- Submit -->
             <div id="final-summary"></div>
-            <div style="text-align: center; margin-bottom: 30px;">
-                <button class="btn btn-success" onclick="submitAnalysisForm()" style="font-size: 16px; padding: 12px 40px;">Сохранить точку</button>
+            <div style="text-align: center; margin: 30px 0;">
+                <button class="btn btn-success btn-submit" onclick="submitAnalysisForm()">
+                    🔬 Отправить на анализ
+                </button>
+                <p style="color: #999; font-size: 12px; margin-top: 10px;">ИИ проведёт анализ и предоставит развёрнутый отчёт с научными рекомендациями</p>
             </div>
         </div>
     </div>

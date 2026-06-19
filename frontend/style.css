@@ -255,7 +255,7 @@ body {
 }
 
 .section#analysis {
-    background: #f8f9fa;
+    background: linear-gradient(180deg, #f1f8e9 0%, #e8f5e9 50%, #f5f5f5 100%);
     padding: 20px;
 }
 
@@ -457,6 +457,7 @@ body {
 
 .sidebar {
     width: 200px;
+    max-width: 200px;
     background: rgba(232, 245, 233, 0.9);
     padding: 20px;
     border-radius: 10px;
@@ -465,6 +466,15 @@ body {
     gap: 10px;
     position: relative;
     z-index: 10;
+    overflow: hidden;
+}
+
+.sidebar select {
+    max-width: 100%;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
 }
 
 .sidebar h3 {
@@ -1012,6 +1022,237 @@ body {
 .section {
     min-height: calc(100vh - 80px);
     padding: 20px 0;
+}
+
+/* ============================
+   Form Card Design
+   ============================ */
+.form-card {
+    background: white;
+    padding: 24px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(200, 230, 201, 0.5);
+    box-shadow: 0 2px 12px rgba(76, 175, 80, 0.08);
+    transition: box-shadow 0.2s ease;
+}
+
+.form-card:hover {
+    box-shadow: 0 4px 20px rgba(76, 175, 80, 0.12);
+}
+
+.form-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid rgba(76, 175, 80, 0.15);
+}
+
+.form-card-icon {
+    font-size: 28px;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.form-card-title {
+    color: #1B5E20;
+    font-size: 1.15em;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+}
+
+.form-card-hint {
+    color: #78909C;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.field-help {
+    display: block;
+    color: #90A4AE;
+    font-size: 12px;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
+.optional-badge {
+    background: #E8F5E9;
+    color: #66BB6A;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 10px;
+    vertical-align: middle;
+}
+
+.btn-submit {
+    font-size: 17px !important;
+    padding: 14px 48px !important;
+    border-radius: 14px !important;
+    letter-spacing: 0.3px;
+    box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
+}
+
+.btn-submit:hover {
+    box-shadow: 0 6px 24px rgba(76, 175, 80, 0.4);
+    transform: translateY(-2px);
+}
+
+/* ============================
+   Cabinet AI Report Card
+   ============================ */
+.ai-report {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    border: 1px solid rgba(200, 230, 201, 0.5);
+    box-shadow: 0 2px 16px rgba(76, 175, 80, 0.08);
+}
+
+.ai-report-header {
+    background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #388E3C 100%);
+    color: white;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ai-report-header h4 {
+    margin: 0;
+    font-size: 1.15em;
+    font-weight: 600;
+}
+
+.ai-report-body {
+    padding: 24px;
+}
+
+.ai-report-section {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.ai-report-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.ai-report-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #78909C;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.ai-report-value {
+    font-size: 14px;
+    color: #333;
+    line-height: 1.6;
+}
+
+.ai-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 12px;
+}
+
+.ai-metric {
+    text-align: center;
+    padding: 12px 8px;
+    border-radius: 10px;
+    background: #f8f9fa;
+}
+
+.ai-metric-label {
+    font-size: 11px;
+    color: #78909C;
+    margin-bottom: 4px;
+}
+
+.ai-metric-value {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.ai-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    margin: 3px;
+}
+
+.ai-tag-risk {
+    background: rgba(244, 67, 54, 0.1);
+    color: #d32f2f;
+}
+
+.ai-tag-crop {
+    background: rgba(76, 175, 80, 0.12);
+    color: #2E7D32;
+}
+
+.ai-tag-ref {
+    background: rgba(33, 150, 243, 0.08);
+    color: #1565C0;
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: block;
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.fertility-bar {
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+
+.fertility-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+/* Dynamics badge */
+.dynamics-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.dynamics-badge-up {
+    background: rgba(76, 175, 80, 0.12);
+    color: #2E7D32;
+}
+
+.dynamics-badge-down {
+    background: rgba(244, 67, 54, 0.12);
+    color: #d32f2f;
+}
+
+.dynamics-badge-stable {
+    background: rgba(33, 150, 243, 0.12);
+    color: #1565C0;
 }
 
 /* Points filter specific styles */
