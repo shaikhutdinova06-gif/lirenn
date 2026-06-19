@@ -165,10 +165,8 @@ function showSection(section) {
     }
     
     if (section === "analysis") {
-        // Reset to step 1 and show it
-        currentStep = 1;
-        updateStepUI();
-        if (window.debugLog) debugLog('Analysis section opened, showing step 1');
+        initAnalysisForm();
+        if (window.debugLog) debugLog('Analysis form opened');
     }
 }
 
@@ -983,8 +981,11 @@ function getMyLocation() {
     navigator.geolocation.getCurrentPosition((pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        document.getElementById('step4-lat').value = lat.toFixed(6);
-        document.getElementById('step4-lng').value = lng.toFixed(6);
+        // Support both old step IDs and new form IDs
+        const latEl = document.getElementById('form-lat') || document.getElementById('step4-lat');
+        const lngEl = document.getElementById('form-lng') || document.getElementById('step4-lng');
+        if (latEl) latEl.value = lat.toFixed(6);
+        if (lngEl) lngEl.value = lng.toFixed(6);
         stepData.lat = lat;
         stepData.lng = lng;
         
@@ -1000,6 +1001,268 @@ function getMyLocation() {
     }, (error) => {
         alert('Не удалось определить местоположение');
     });
+}
+
+// =========================
+// SINGLE ANALYSIS FORM
+// =========================
+
+let analysisMap = null;
+let analysisMarker = null;
+
+function initAnalysisForm() {
+    // Reset form data
+    stepData = {
+        images: [],
+        ph: null,
+        nitrogen: null,
+        phosphorus: null,
+        potassium: null,
+        lat: null,
+        lng: null,
+        notes: null
+    };
+
+    // Set today's date as default
+    const dateInput = document.getElementById('form-sampling-date');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+
+    // Initialize analysis mini-map
+    setTimeout(() => {
+        initAnalysisMap();
+        loadFormSoilTypes();
+    }, 200);
+}
+
+function initAnalysisMap() {
+    const mapEl = document.getElementById('analysis-map');
+    if (!mapEl) return;
+
+    if (analysisMap) {
+        analysisMap.invalidateSize();
+        return;
+    }
+
+    analysisMap = L.map('analysis-map').setView([55.75, 37.61], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(analysisMap);
+
+    analysisMap.on('click', function(e) {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+        document.getElementById('form-lat').value = lat.toFixed(6);
+        document.getElementById('form-lng').value = lng.toFixed(6);
+        stepData.lat = lat;
+        stepData.lng = lng;
+
+        if (analysisMarker) {
+            analysisMap.removeLayer(analysisMarker);
+        }
+        analysisMarker = L.marker([lat, lng]).addTo(analysisMap)
+            .bindPopup('Выбранная точка')
+            .openPopup();
+    });
+}
+
+function loadFormSoilTypes() {
+    const select = document.getElementById('form-soil-type');
+    if (!select) return;
+    if (select.options.length > 1) return; // already loaded
+
+    allSoilTypes.forEach(category => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = category.category;
+        category.types.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            optgroup.appendChild(option);
+        });
+        select.appendChild(optgroup);
+    });
+}
+
+async function handleFormImage() {
+    const imageInput = document.getElementById('form-image');
+    if (imageInput.files.length > 0) {
+        const files = Array.from(imageInput.files).slice(0, 10);
+        stepData.images = [];
+
+        const previewDiv = document.getElementById('form-image-preview');
+        previewDiv.innerHTML = '';
+
+        for (const file of files) {
+            const base64 = await toBase64(file);
+            stepData.images.push(base64);
+
+            const img = document.createElement('img');
+            img.src = base64;
+            img.style.width = '100px';
+            img.style.height = '100px';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = '8px';
+            img.style.border = '2px solid #A5D6A7';
+            previewDiv.appendChild(img);
+        }
+    }
+}
+
+function getFormLocation() {
+    navigator.geolocation.getCurrentPosition((pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        document.getElementById('form-lat').value = lat.toFixed(6);
+        document.getElementById('form-lng').value = lng.toFixed(6);
+        stepData.lat = lat;
+        stepData.lng = lng;
+
+        if (analysisMarker && analysisMap) {
+            analysisMap.removeLayer(analysisMarker);
+        }
+        if (analysisMap) {
+            analysisMarker = L.marker([lat, lng]).addTo(analysisMap)
+                .bindPopup('Ваше местоположение')
+                .openPopup();
+            analysisMap.setView([lat, lng], 13);
+        }
+    }, () => {
+        alert('Не удалось определить местоположение');
+    });
+}
+
+async function submitAnalysisForm() {
+    // Collect all form data
+    const ph = document.getElementById('form-ph')?.value;
+    const moisture = document.getElementById('form-moisture')?.value;
+    const nitrogen = document.getElementById('form-nitrogen')?.value;
+    const phosphorus = document.getElementById('form-phosphorus')?.value;
+    const potassium = document.getElementById('form-potassium')?.value;
+    const lat = document.getElementById('form-lat')?.value;
+    const lng = document.getElementById('form-lng')?.value;
+    const sampleCount = document.getElementById('form-sample-count')?.value;
+    const samplingDate = document.getElementById('form-sampling-date')?.value;
+    const soilProfile = document.getElementById('form-soil-profile')?.value;
+    const tags = document.getElementById('form-tags')?.value;
+    const notes = document.getElementById('form-notes')?.value;
+    const soilType = document.getElementById('form-soil-type')?.value;
+
+    // Validation
+    if (!stepData.images || stepData.images.length === 0) {
+        showErrorToast('Необходимо загрузить хотя бы одно фото почвы');
+        return;
+    }
+    if (!ph) {
+        showErrorToast('Необходимо указать pH почвы');
+        return;
+    }
+    if (!lat || !lng) {
+        showErrorToast('Необходимо указать координаты');
+        return;
+    }
+
+    // Check auth
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        showErrorToast('Для сохранения необходимо войти в систему');
+        showAuthModal();
+        return;
+    }
+
+    showLoading('Сохранение точки...', 'Анализ и сохранение данных');
+
+    const pointData = {
+        ph: parseFloat(ph),
+        moisture: moisture ? parseFloat(moisture) : null,
+        nitrogen: nitrogen ? parseFloat(nitrogen) : null,
+        phosphorus: phosphorus ? parseFloat(phosphorus) : null,
+        potassium: potassium ? parseFloat(potassium) : null,
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
+        sample_count: sampleCount ? parseInt(sampleCount) : 1,
+        sampling_date: samplingDate || null,
+        soil_profile_description: soilProfile || null,
+        tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        notes: notes || '',
+        soil_type: soilType || '',
+        images: stepData.images,
+        image: stepData.images.length > 0 ? stepData.images[0] : null
+    };
+
+    // Use confirmed soil type if available
+    const confirmedType = getConfirmedSoilType();
+    if (confirmedType && confirmedType.soil_ru !== 'не определено') {
+        pointData.soil_type = confirmedType.soil_ru;
+    }
+
+    const summaryDiv = document.getElementById('final-summary');
+
+    try {
+        updateProgress(25);
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        };
+
+        const response = await fetch('/api/block1', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(pointData)
+        });
+
+        if (response.status === 401) {
+            hideLoading();
+            showErrorToast('Сессия истекла. Войдите снова.');
+            showAuthModal();
+            return;
+        }
+
+        updateProgress(50);
+        const text = await response.text();
+        let result;
+        try {
+            result = JSON.parse(text);
+        } catch (e) {
+            result = { error: 'Ответ сервера: ' + text.substring(0, 200) };
+        }
+
+        if (result.status === 'success' || result.status === 'ok') {
+            updateProgress(75);
+            localStorage.setItem('hasCompletedAnalysis', 'true');
+
+            if (summaryDiv) {
+                summaryDiv.innerHTML = '<div style="padding: 20px; background: rgba(76, 175, 80, 0.2); border-radius: 8px; margin-top: 15px;"><h4>Точка успешно сохранена!</h4><p>Перенаправление на карту...</p></div>';
+            }
+
+            await loadPoints();
+            await loadUserCabinet();
+
+            updateProgress(100);
+            showSuccessToast('Точка успешно сохранена!');
+
+            setTimeout(() => {
+                hideLoading();
+                showSection('map');
+            }, 1000);
+        } else {
+            hideLoading();
+            showErrorToast('Ошибка: ' + (result.error || 'Попробуйте снова'));
+            if (summaryDiv) {
+                summaryDiv.innerHTML = '<div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;"><h4>Ошибка при сохранении</h4><p>' + (result.error || 'Попробуйте снова') + '</p></div>';
+            }
+        }
+    } catch (error) {
+        console.error('Save error:', error);
+        hideLoading();
+        showErrorToast('Ошибка сети: ' + error.message);
+        if (summaryDiv) {
+            summaryDiv.innerHTML = '<div style="padding: 20px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; margin-top: 15px;"><h4>Ошибка</h4><p>' + error.message + '</p></div>';
+        }
+    }
 }
 
 function setCurrentPoint(lat, lng) {
@@ -3359,37 +3622,33 @@ let aiSoilTypeResult = null;
 
 function confirmSoilType(isCorrect) {
     if (isCorrect) {
-        // Пользователь подтвердил ИИ определение
         confirmedSoilType = aiSoilTypeResult;
         document.getElementById('soil-type-confirmation').style.display = 'none';
-        document.getElementById('soil-type-selection-step9').style.display = 'none';
+        const selDiv = document.getElementById('soil-type-selection') || document.getElementById('soil-type-selection-step9');
+        if (selDiv) selDiv.style.display = 'none';
         
-        // Показываем подтверждение
         const displayDiv = document.getElementById('ai-soil-type-display');
         displayDiv.innerHTML = `
             <div style="background: #e8f5e8; padding: 10px; border-radius: 5px;">
-                <strong>✅ Подтверждено:</strong> ${aiSoilTypeResult.soil_ru} (${aiSoilTypeResult.soil_wrb})
+                <strong>Подтверждено:</strong> ${aiSoilTypeResult.soil_ru} (${aiSoilTypeResult.soil_wrb})
                 <br><small>Уверенность: ${aiSoilTypeResult.confidence}%</small>
                 <br><small>${aiSoilTypeResult.reason}</small>
             </div>
         `;
     } else {
-        // Пользователь отклонил ИИ определение
         document.getElementById('soil-type-confirmation').style.display = 'none';
-        document.getElementById('soil-type-selection-step9').style.display = 'block';
-        
-        // Загружаем опции для выбора
+        const selDiv = document.getElementById('soil-type-selection') || document.getElementById('soil-type-selection-step9');
+        if (selDiv) selDiv.style.display = 'block';
         loadSoilTypeOptions();
     }
 }
 
 function loadSoilTypeOptions() {
-    const select = document.getElementById('step9-soil-type');
+    const select = document.getElementById('form-soil-type') || document.getElementById('step9-soil-type');
+    if (!select) return;
     
-    // Сохраняем первую опцию
     const firstOption = select.innerHTML;
     
-    // Добавляем опции из нового списка почв
     allSoilTypes.forEach(category => {
         const optgroup = document.createElement('optgroup');
         optgroup.label = category.category;
@@ -3404,37 +3663,34 @@ function loadSoilTypeOptions() {
         select.appendChild(optgroup);
     });
     
-    // Восстанавливаем первую опцию
     select.innerHTML = firstOption + select.innerHTML.substring(firstOption.length);
 }
 
 function displayAISoilType(soilTypeResult) {
     aiSoilTypeResult = soilTypeResult;
+    const selDiv = document.getElementById('soil-type-selection') || document.getElementById('soil-type-selection-step9');
     
     if (soilTypeResult && soilTypeResult.soil_ru !== 'не определено') {
-        // Показываем ИИ результат с кнопками подтверждения
         document.getElementById('ai-soil-type-text').innerHTML = 
             `<strong>${soilTypeResult.soil_ru}</strong> (${soilTypeResult.soil_wrb})<br>
              <small>${soilTypeResult.reason}</small>`;
         document.getElementById('ai-confidence').textContent = soilTypeResult.confidence;
         document.getElementById('soil-type-confirmation').style.display = 'block';
-        document.getElementById('soil-type-selection-step9').style.display = 'none';
+        if (selDiv) selDiv.style.display = 'none';
     } else {
-        // ИИ не смог определить тип - показываем только выбор вручную
         document.getElementById('soil-type-confirmation').style.display = 'none';
-        document.getElementById('soil-type-selection-step9').style.display = 'block';
+        if (selDiv) selDiv.style.display = 'block';
         loadSoilTypeOptions();
     }
 }
 
 function getConfirmedSoilType() {
-    // Если пользователь подтвердил ИИ определение
     if (confirmedSoilType) {
         return confirmedSoilType;
     }
     
-    // Если пользователь выбрал вручную
-    const manualSelection = document.getElementById('step9-soil-type').value;
+    const manualSelect = document.getElementById('form-soil-type') || document.getElementById('step9-soil-type');
+    const manualSelection = manualSelect ? manualSelect.value : '';
     if (manualSelection) {
         return {
             soil_ru: manualSelection,
