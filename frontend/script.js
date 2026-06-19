@@ -1813,8 +1813,6 @@ async function loadNearbyPoints() {
         addPointToMap(point);
     });
 }
-    });
-}
 
 // Удаление точки
 async function deletePoint(pointId) {
