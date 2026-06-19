@@ -6,28 +6,27 @@ import secrets
 import json
 import os
 
+from backend.services.file_utils import DATA_DIR, atomic_json_save, safe_json_load
+
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
-# Заменяем bcrypt на SHA-256 + salt
+
 def hash_password(password: str) -> str:
     salt = secrets.token_hex(32)
     pwd_hash = hashlib.sha256((password + salt).encode()).hexdigest()
     return f"{salt}${pwd_hash}"
 
+
 def verify_password(password: str, hashed_password: str) -> bool:
     try:
         salt, pwd_hash = hashed_password.split('$')
         return pwd_hash == hashlib.sha256((password + salt).encode()).hexdigest()
-    except:
+    except Exception:
         return False
 
-# Используем /data для Docker/Amvera, data для локальной разработки
-DATA_DIR = os.getenv("DATA_DIR", "/data")
-# Принудительно исправляем путь для Amvera
-if os.path.exists("/app"):
-    DATA_DIR = "/data"
+
 USERS_FILE = DATA_DIR + "/users.json"
 print(f"Using USERS_FILE: {USERS_FILE}")
 
@@ -35,43 +34,14 @@ def get_users():
     if not os.path.exists(USERS_FILE):
         save_users({})
         return {}
-    try:
-        with open(USERS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError) as e:
-        print(f"Error reading users file: {e}")
-        # Создаем резервную копию поврежденного файла
-        if os.path.exists(USERS_FILE):
-            backup_file = USERS_FILE + ".backup"
-            try:
-                os.rename(USERS_FILE, backup_file)
-                print(f"Corrupted file backed up to {backup_file}")
-            except:
-                pass
+    users = safe_json_load(USERS_FILE, default=None)
+    if users is None:
         save_users({})
         return {}
+    return users
 
 def save_users(users):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    # Атомарное сохранение через временный файл
-    temp_file = USERS_FILE + ".tmp"
-    try:
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(users, f, ensure_ascii=False, indent=2)
-        # Атомарное переименование
-        if os.path.exists(USERS_FILE):
-            os.replace(temp_file, USERS_FILE)
-        else:
-            os.rename(temp_file, USERS_FILE)
-    except Exception as e:
-        print(f"Error saving users file: {e}")
-        # Удаляем временный файл если что-то пошло не так
-        if os.path.exists(temp_file):
-            try:
-                os.remove(temp_file)
-            except:
-                pass
-        raise
+    atomic_json_save(USERS_FILE, users)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):

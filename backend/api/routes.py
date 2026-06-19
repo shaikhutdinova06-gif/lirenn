@@ -5,6 +5,7 @@ from backend.services.storage import get_user_points, get_points, get_user_data,
 from backend.services.ai_model import deepseek_classify
 from backend.services.auth import register_user, authenticate_user, create_access_token, get_current_user
 from backend.services.satellite import get_satellite_image, get_ndvi_image
+from backend.services.dependencies import require_auth, get_client_ip
 from math import radians, cos, sin, sqrt, asin
 import json
 import os
@@ -25,18 +26,7 @@ def get_current_user_from_token(credentials: HTTPAuthorizationCredentials):
 async def startup_event():
     initialize_test_location()
 
-def get_client_ip(request: Request):
-    """Получить IP адрес клиента"""
-    # Проверяем различные заголовки для получения реального IP
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return real_ip
-    
-    return request.client.host if request.client else "unknown"
+# get_client_ip is now in backend.services.dependencies
 
 @router.post("/classify-image")
 async def classify_image(request: Request):
@@ -112,18 +102,9 @@ async def get_soil_types():
 async def block1(request: Request):
     try:
         data = await request.json()
-        # Требуем авторизацию
-        auth_header = request.headers.get("Authorization")
-        if not auth_header or not auth_header.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="Authorization required")
-        
-        token = auth_header.replace("Bearer ", "")
-        user = get_current_user(token)
-        if not user:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        
+        user = require_auth(request)
         data["user_id"] = user["username"]
-        result = await process_block1(data)  # async function now
+        result = await process_block1(data)
         return result
     except HTTPException:
         raise
@@ -137,16 +118,7 @@ async def user_cabinet(request: Request):
     """
     Получить данные личного кабинета пользователя
     """
-    # Требуем авторизацию
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Authorization required")
-    
-    token = auth_header.replace("Bearer ", "")
-    user = get_current_user(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
+    user = require_auth(request)
     user_id = user["username"]
     user_data = get_user_data(user_id)
     user_points = get_user_points(user_id)
@@ -328,16 +300,7 @@ def get_measurements(point_id: str, request: Request):
     """
     Получить историю измерений точки (pH, влажность, N, P, K)
     """
-    # Проверяем авторизацию
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Authorization required")
-    
-    token = auth_header.replace("Bearer ", "")
-    user = get_current_user(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
+    user = require_auth(request)
     from backend.services.storage import get_point_measurements
     measurements = get_point_measurements(point_id, user["username"])
     
@@ -353,17 +316,7 @@ async def add_measurement(point_id: str, request: Request):
     Добавить новое измерение к точке
     Body: {ph, moisture, nitrogen, phosphorus, potassium, notes}
     """
-    # Проверяем авторизацию
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Authorization required")
-    
-    token = auth_header.replace("Bearer ", "")
-    user = get_current_user(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    # Получаем данные измерения
+    user = require_auth(request)
     data = await request.json()
     
     from backend.services.storage import add_measurement_to_point
@@ -379,16 +332,7 @@ def get_dynamics(point_id: str, request: Request):
     """
     Получить данные для графика динамики почвы
     """
-    # Проверяем авторизацию
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Authorization required")
-    
-    token = auth_header.replace("Bearer ", "")
-    user = get_current_user(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
+    user = require_auth(request)
     from backend.services.storage import get_point_measurements
     measurements = get_point_measurements(point_id, user["username"])
     
@@ -435,15 +379,7 @@ def get_dynamics(point_id: str, request: Request):
 @router.post("/point/{point_id}/analyze-dynamics")
 async def analyze_dynamics(point_id: str, request: Request):
     """ИИ анализ динамики почвы"""
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Authorization required")
-    
-    token = auth_header.replace("Bearer ", "")
-    user = get_current_user(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
+    user = require_auth(request)
     try:
         from backend.services.ai_model import analyze_soil_dynamics
         from backend.services.storage import get_points
