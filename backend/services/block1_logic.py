@@ -131,7 +131,10 @@ async def process_block1(data):
             "chemical_analysis": ai_result.get("chemical_analysis", ""),
             "risks": ai_result.get("risks", []),
             "recommendations": recommendations,  # Умные рекомендации
-            "summary": ai_result.get("summary", "")
+            "suitable_crops": ai_result.get("suitable_crops", []),
+            "summary": ai_result.get("summary", ""),
+            "scientific_references": ai_result.get("scientific_references", []),
+            "detailed_analysis": ai_result.get("detailed_analysis", {}),
         },
         # Экологический отчет
         "ecological_report": {

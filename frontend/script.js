@@ -1234,20 +1234,31 @@ async function submitAnalysisForm() {
             updateProgress(75);
             localStorage.setItem('hasCompletedAnalysis', 'true');
 
+            const savedPoint = result.point || {};
+            const savedAi = savedPoint.ai_analysis || {};
+            const savedRefs = savedAi.scientific_references || [];
+
             if (summaryDiv) {
-                summaryDiv.innerHTML = '<div style="padding: 20px; background: rgba(76, 175, 80, 0.2); border-radius: 8px; margin-top: 15px;"><h4>Точка успешно сохранена!</h4><p>Перенаправление на карту...</p></div>';
+                summaryDiv.innerHTML = `
+                <div style="padding: 24px; background: white; border-radius: 16px; margin-top: 15px; border: 1px solid rgba(76,175,80,0.3); box-shadow: 0 4px 16px rgba(76,175,80,0.1);">
+                    <h4 style="color: #1B5E20; margin-bottom: 12px;">✅ Точка успешно сохранена!</h4>
+                    ${savedAi.summary ? '<p style="color:#333; line-height:1.6; margin-bottom:12px;"><strong>ИИ-заключение:</strong> ' + savedAi.summary + '</p>' : ''}
+                    ${savedAi.fertility_score ? '<p style="color:#333;">Плодородие: <strong>' + savedAi.fertility_score + '/10</strong></p>' : ''}
+                    ${savedRefs.length > 0 ? '<p style="color:#666; font-size:12px; margin-top:8px;">📚 Анализ основан на ' + savedRefs.length + ' научных источниках</p>' : ''}
+                    <p style="color: #666; margin-top: 12px;">Перенаправление в Мой кабинет для просмотра полного отчёта...</p>
+                </div>`;
             }
 
             await loadPoints();
             await loadUserCabinet();
 
             updateProgress(100);
-            showSuccessToast('Точка успешно сохранена!');
+            showSuccessToast('Анализ завершён! Полный отчёт в Мой кабинет');
 
             setTimeout(() => {
                 hideLoading();
-                showSection('map');
-            }, 1000);
+                showSection('cabinet');
+            }, 2500);
         } else {
             hideLoading();
             showErrorToast('Ошибка: ' + (result.error || 'Попробуйте снова'));
@@ -2154,40 +2165,187 @@ function displayCabinetPoints(points) {
     const list = document.getElementById("user-cabinet-content");
     
     if (!points || points.length === 0) {
-        list.innerHTML = '<p>Нет точек для отображения</p>';
+        list.innerHTML = '<p style="text-align:center; color:#999; padding:40px 0;">Нет точек для отображения. Создайте первую точку через <a href="#" onclick="showSection(\'analysis\'); return false;">Входной анализ</a>.</p>';
         return;
     }
     
     let html = '';
-    points.forEach(point => {
+    points.forEach((point, idx) => {
         const firstImage = point.images && point.images.length > 0 ? point.images[0] : point.image;
-        const soilType = point.soil_type || point.ai_analysis?.soil_type || "Не определен";
-        const date = new Date(point.created_at).toLocaleDateString('ru-RU');
-        
+        const soilTypeObj = point.soil_type || {};
+        const ai = point.ai_analysis || {};
+        const soilType = soilTypeObj.soil_ru || ai.soil_type || point.soil_type_name || "Не определен";
+        const date = point.created_at ? new Date(point.created_at).toLocaleDateString('ru-RU') : (point.timestamp ? new Date(point.timestamp).toLocaleDateString('ru-RU') : '—');
+        const fertility = ai.fertility_score || 5;
+        const fertilityColor = fertility >= 7 ? '#4CAF50' : fertility >= 5 ? '#FFC107' : '#F44336';
+        const eco = point.ecological_report || {};
+        const zc = eco.zc || 0;
+        const zcCat = eco.zc_category || "не определено";
+        const measurements = point.measurements || [];
+        const hasDynamics = measurements.length > 1;
+        const refs = ai.scientific_references || [];
+        const detailedAnalysis = ai.detailed_analysis || {};
+
         html += `
-            <div class="cabinet-point" style="border:1px solid #A5D6A7; padding:15px; margin-bottom:15px; border-radius:10px; background:white;">
-                ${firstImage ? `
-                    <div style="position: relative; margin-bottom: 10px;">
-                        <img src="${firstImage}" style="width:100%; max-height:200px; object-fit: cover; border-radius:8px;">
-                    </div>
-                ` : ''}
-                
-                <h4 style="color: #2E7D32; margin-bottom: 10px;">🌱 ${soilType}</h4>
-                
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; font-size: 14px; margin-bottom: 10px;">
-                    <div><strong>📍 Координаты:</strong><br>${point.lat?.toFixed(6)}, ${point.lng?.toFixed(6)}</div>
-                    <div><strong>🌡️ pH:</strong><br>${point.ph || 'Не указано'}</div>
-                    <div><strong>💧 Влажность:</strong><br>${point.moisture || 'Не указано'}%</div>
-                    <div><strong>📅 Дата:</strong><br>${date}</div>
+            <div class="ai-report">
+                <div class="ai-report-header">
+                    <h4>🌱 ${soilType}</h4>
+                    <span style="font-size: 13px; opacity: 0.85;">📅 ${date}</span>
                 </div>
-                
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button class="btn btn-primary" onclick="map.setView([${point.lat}, ${point.lng}], 15)" style="flex: 1;">
-                        📍 На карте
-                    </button>
-                    <button class="btn btn-secondary" onclick="showPointDetails(${JSON.stringify(point).replace(/"/g, '&quot;')})" style="flex: 1;">
-                        📋 Детали
-                    </button>
+                <div class="ai-report-body">
+                    ${firstImage ? `
+                        <div style="margin-bottom: 16px;">
+                            <img src="${firstImage}" style="width:100%; max-height:220px; object-fit:cover; border-radius:12px; cursor:pointer;" onclick="openPhotoModal('${firstImage}')">
+                        </div>
+                    ` : ''}
+
+                    <!-- Metrics Grid -->
+                    <div class="ai-report-section">
+                        <div class="ai-metric-grid">
+                            <div class="ai-metric">
+                                <div class="ai-metric-label">pH</div>
+                                <div class="ai-metric-value" style="color:#2196F3;">${point.ph || '—'}</div>
+                            </div>
+                            <div class="ai-metric">
+                                <div class="ai-metric-label">Влажность</div>
+                                <div class="ai-metric-value" style="color:#00BCD4;">${point.moisture ? point.moisture + '%' : '—'}</div>
+                            </div>
+                            <div class="ai-metric">
+                                <div class="ai-metric-label">N (азот)</div>
+                                <div class="ai-metric-value" style="color:#4CAF50;">${point.nitrogen || '—'}</div>
+                            </div>
+                            <div class="ai-metric">
+                                <div class="ai-metric-label">P (фосфор)</div>
+                                <div class="ai-metric-value" style="color:#FFC107;">${point.phosphorus || '—'}</div>
+                            </div>
+                            <div class="ai-metric">
+                                <div class="ai-metric-label">K (калий)</div>
+                                <div class="ai-metric-value" style="color:#F44336;">${point.potassium || '—'}</div>
+                            </div>
+                            <div class="ai-metric">
+                                <div class="ai-metric-label">Плодородие</div>
+                                <div class="ai-metric-value" style="color:${fertilityColor};">${fertility}/10</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fertility bar -->
+                    <div class="ai-report-section">
+                        <div class="ai-report-label">Оценка плодородия</div>
+                        <div class="fertility-bar">
+                            <div class="fertility-bar-fill" style="width:${fertility * 10}%; background:${fertilityColor};"></div>
+                        </div>
+                        ${ai.fertility_text ? `<div class="ai-report-value" style="margin-top:8px;">${ai.fertility_text}</div>` : ''}
+                    </div>
+
+                    <!-- AI Summary -->
+                    ${ai.summary ? `
+                        <div class="ai-report-section">
+                            <div class="ai-report-label">🤖 Заключение ИИ</div>
+                            <div class="ai-report-value">${ai.summary}</div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Chemical Analysis -->
+                    ${ai.chemical_analysis ? `
+                        <div class="ai-report-section">
+                            <div class="ai-report-label">🔬 Химический анализ</div>
+                            <div class="ai-report-value">${ai.chemical_analysis}</div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Detailed analysis -->
+                    ${detailedAnalysis.ph_interpretation ? `
+                        <div class="ai-report-section">
+                            <div class="ai-report-label">📊 Детальный анализ</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                                ${detailedAnalysis.ph_interpretation ? `<div class="ai-report-value"><strong>pH:</strong> ${detailedAnalysis.ph_interpretation}</div>` : ''}
+                                ${detailedAnalysis.nutrient_status ? `<div class="ai-report-value"><strong>Питание:</strong> ${detailedAnalysis.nutrient_status}</div>` : ''}
+                                ${detailedAnalysis.organic_matter ? `<div class="ai-report-value"><strong>Органика:</strong> ${detailedAnalysis.organic_matter}</div>` : ''}
+                                ${detailedAnalysis.microbiological_activity ? `<div class="ai-report-value"><strong>Микробиология:</strong> ${detailedAnalysis.microbiological_activity}</div>` : ''}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Ecological Report -->
+                    <div class="ai-report-section">
+                        <div class="ai-report-label">🌍 Экологический статус</div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="font-size:14px;">Zc загрязнение:</span>
+                            <span style="font-weight:700; color:${zc < 16 ? '#4CAF50' : zc < 32 ? '#FFC107' : '#F44336'};">${zc} (${zcCat})</span>
+                        </div>
+                    </div>
+
+                    <!-- Risks -->
+                    ${ai.risks && ai.risks.length > 0 ? `
+                        <div class="ai-report-section">
+                            <div class="ai-report-label">⚠️ Риски и проблемы</div>
+                            <div>${ai.risks.map(r => '<span class="ai-tag ai-tag-risk">' + r + '</span>').join('')}</div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Recommendations -->
+                    ${ai.recommendations && ai.recommendations.length > 0 ? `
+                        <div class="ai-report-section">
+                            <div class="ai-report-label">✅ Рекомендации</div>
+                            <ul style="margin:0; padding-left:18px; color:#333; font-size:14px; line-height:1.7;">
+                                ${ai.recommendations.map(r => '<li>' + r + '</li>').join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+
+                    <!-- Suitable crops -->
+                    ${ai.suitable_crops && ai.suitable_crops.length > 0 ? `
+                        <div class="ai-report-section">
+                            <div class="ai-report-label">🌾 Рекомендуемые культуры</div>
+                            <div>${ai.suitable_crops.map(c => '<span class="ai-tag ai-tag-crop">' + c + '</span>').join('')}</div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Scientific References -->
+                    ${refs.length > 0 ? `
+                        <div class="ai-report-section">
+                            <div class="ai-report-label">📚 Научные источники</div>
+                            <div>${refs.map(r => '<span class="ai-tag ai-tag-ref">📖 ' + r + '</span>').join('')}</div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Dynamics -->
+                    ${hasDynamics ? `
+                        <div class="ai-report-section">
+                            <div class="ai-report-label">📈 Динамика (${measurements.length} измерений)</div>
+                            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                                ${(() => {
+                                    const first = measurements[0];
+                                    const last = measurements[measurements.length - 1];
+                                    let badges = '';
+                                    if (first.ph != null && last.ph != null) {
+                                        const diff = last.ph - first.ph;
+                                        const cls = diff > 0.2 ? 'dynamics-badge-up' : diff < -0.2 ? 'dynamics-badge-down' : 'dynamics-badge-stable';
+                                        const arrow = diff > 0.2 ? '↑' : diff < -0.2 ? '↓' : '→';
+                                        badges += '<span class="dynamics-badge ' + cls + '">pH ' + arrow + ' ' + (diff > 0 ? '+' : '') + diff.toFixed(1) + '</span>';
+                                    }
+                                    if (first.moisture != null && last.moisture != null) {
+                                        const diff = last.moisture - first.moisture;
+                                        const cls = diff > 2 ? 'dynamics-badge-up' : diff < -2 ? 'dynamics-badge-down' : 'dynamics-badge-stable';
+                                        const arrow = diff > 2 ? '↑' : diff < -2 ? '↓' : '→';
+                                        badges += '<span class="dynamics-badge ' + cls + '">Влажность ' + arrow + ' ' + (diff > 0 ? '+' : '') + diff.toFixed(0) + '%</span>';
+                                    }
+                                    return badges || '<span class="dynamics-badge dynamics-badge-stable">Данные стабильны</span>';
+                                })()}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Actions -->
+                    <div style="display:flex; gap:10px; margin-top:16px;">
+                        <button class="btn btn-primary" onclick="showSection('map'); setTimeout(() => map.setView([${point.lat}, ${point.lng}], 15), 300)" style="flex:1; font-size:13px;">
+                            📍 На карте
+                        </button>
+                        <button class="btn btn-secondary" onclick="openDynamicsModal('${point.id}')" style="flex:1; font-size:13px;">
+                            📊 Динамика
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
