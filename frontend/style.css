@@ -457,6 +457,7 @@ body {
 
 .sidebar {
     width: 200px;
+    max-width: 200px;
     background: rgba(232, 245, 233, 0.9);
     padding: 20px;
     border-radius: 10px;
@@ -465,6 +466,15 @@ body {
     gap: 10px;
     position: relative;
     z-index: 10;
+    overflow: hidden;
+}
+
+.sidebar select {
+    max-width: 100%;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
 }
 
 .sidebar h3 {

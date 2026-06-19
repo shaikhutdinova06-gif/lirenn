@@ -951,6 +951,26 @@ function updateStepUI() {
     }
 }
 
+async function initUser() {
+    const token = localStorage.getItem('auth_token');
+    const username = localStorage.getItem('username');
+    if (token && username) {
+        updateAuthUI();
+        try {
+            const res = await fetch('/api/user-cabinet', {
+                headers: {'Authorization': `Bearer ${token}`}
+            });
+            if (!res.ok) {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('username');
+                updateAuthUI();
+            }
+        } catch (e) {
+            console.warn('Auth check failed:', e);
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('DOM loaded');
     loadSoilTypes();
