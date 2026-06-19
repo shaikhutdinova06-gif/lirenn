@@ -116,177 +116,141 @@
         </div>
     </div>
 
-    <!-- Input Analysis Section -->
+    <!-- Input Analysis Section - Single Form -->
     <div class="section" id="analysis" style="display: none;">
-        <div class="analysis-section">
-            <!-- Step Content -->
-        <div class="step-content" id="step-content">
-            <!-- Step 1: Photo Classification -->
-            <div class="step-panel" data-step="1">
-                <h3>Шаг 1: Входной анализ фото</h3>
-                <p>Загрузите фото почвы для автоматической классификации (до 10 фото с разных ракурсов)</p>
+        <div class="container" style="max-width: 800px; margin: 0 auto;">
+            <h2 style="text-align: center; color: #2E7D32; margin-bottom: 25px;">Анкета анализа почвы</h2>
+
+            <!-- Photo Upload -->
+            <div class="form-card" style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
+                <h3 style="margin: 0 0 15px 0; color: #2E7D32;">Фото почвы</h3>
                 <div class="input-group">
-                    <label>Фото почвы (макс. 10)</label>
-                    <input type="file" id="step1-image" accept="image/*" multiple onchange="handleStep1Image()">
+                    <label>Загрузите фото (до 10 фото с разных ракурсов)</label>
+                    <input type="file" id="form-image" accept="image/*" multiple onchange="handleFormImage()">
                 </div>
-                <div id="step1-result"></div>
-                <div id="step1-image-preview" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
-                <button class="btn btn-primary" onclick="if(window.debugLog)debugLog('Button clicked: nextStep(2)');nextStep(2)">Далее →</button>
-                <button class="btn btn-secondary" onclick="if(window.debugLog)debugLog('Button clicked: skipPhoto()');skipPhoto()">Пропустить</button>
+                <div id="form-image-preview" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
             </div>
 
-            <!-- Step 2: Check Photo Presence -->
-            <div class="step-panel" data-step="2">
-                <h3>Шаг 2: Проверка наличия фото</h3>
-                <p id="step2-message"></p>
-                <div id="step2-result"></div>
-                <button class="btn btn-primary" onclick="if(window.debugLog)debugLog('Button clicked: nextStep(3)');nextStep(3)">Далее →</button>
-                <button class="btn btn-secondary" onclick="if(window.debugLog)debugLog('Button clicked: prevStep(1)');prevStep(1)">← Назад</button>
+            <!-- Location -->
+            <div class="form-card" style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
+                <h3 style="margin: 0 0 15px 0; color: #2E7D32;">Местоположение</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="input-group">
+                        <label>Широта (lat)</label>
+                        <input type="number" id="form-lat" step="0.000001" value="55.7558" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label>Долгота (lng)</label>
+                        <input type="number" id="form-lng" step="0.000001" value="37.6173" class="input-field">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="getFormLocation()" style="margin-top: 10px;">🎯 Моё местоположение</button>
+                <div class="map-wrapper" style="margin-top: 15px;">
+                    <div id="analysis-map" style="height: 300px; border-radius: 8px;"></div>
+                </div>
             </div>
 
-            <!-- Step 3: Physical-Chemical Analysis -->
-            <div class="step-panel" data-step="3">
-                <h3>Шаг 3: Анализ физико-химических показателей</h3>
+            <!-- Soil Parameters -->
+            <div class="form-card" style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
+                <h3 style="margin: 0 0 15px 0; color: #2E7D32;">Параметры почвы</h3>
                 <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
-                    ⚠️ <strong>pH обязателен</strong> для ИИ анализа. Остальные поля необязательны, но улучшают точность анализа.
+                    pH обязателен для ИИ анализа. Остальные поля необязательны, но улучшают точность.
                 </p>
-                <div class="input-group">
-                    <label>pH почвы *</label>
-                    <input type="number" id="step3-ph" step="0.1" min="0" max="14" required>
-                    <small style="color: #666;">Обязательно для ИИ анализа</small>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="input-group">
+                        <label>pH почвы *</label>
+                        <input type="number" id="form-ph" step="0.1" min="0" max="14" required class="input-field">
+                        <small style="color: #666;">Обязательно</small>
+                    </div>
+                    <div class="input-group">
+                        <label>Влажность (%)</label>
+                        <input type="number" id="form-moisture" step="1" min="0" max="100" class="input-field">
+                        <small style="color: #666;">Необязательно</small>
+                    </div>
+                    <div class="input-group">
+                        <label>Азот (N) мг/кг</label>
+                        <input type="number" id="form-nitrogen" step="1" min="0" class="input-field">
+                        <small style="color: #666;">Необязательно</small>
+                    </div>
+                    <div class="input-group">
+                        <label>Фосфор (P) мг/кг</label>
+                        <input type="number" id="form-phosphorus" step="1" min="0" class="input-field">
+                        <small style="color: #666;">Необязательно</small>
+                    </div>
+                    <div class="input-group">
+                        <label>Калий (K) мг/кг</label>
+                        <input type="number" id="form-potassium" step="1" min="0" class="input-field">
+                        <small style="color: #666;">Необязательно</small>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label>Влажность (%)</label>
-                    <input type="number" id="step3-moisture" step="1" min="0" max="100">
-                    <small style="color: #666;">Необязательно</small>
-                </div>
-                <div class="input-group">
-                    <label>Азот (N) мг/кг</label>
-                    <input type="number" id="step3-nitrogen" step="1" min="0">
-                    <small style="color: #666;">Необязательно</small>
-                </div>
-                <div class="input-group">
-                    <label>Фосфор (P) мг/кг</label>
-                    <input type="number" id="step3-phosphorus" step="1" min="0">
-                    <small style="color: #666;">Необязательно</small>
-                </div>
-                <div class="input-group">
-                    <label>Калий (K) мг/кг</label>
-                    <input type="number" id="step3-potassium" step="1" min="0">
-                    <small style="color: #666;">Необязательно</small>
-                </div>
-                <div id="step3-result"></div>
-                <button class="btn btn-primary" onclick="if(window.debugLog)debugLog('Button clicked: nextStep(4)');nextStep(4)">Далее →</button>
-                <button class="btn btn-secondary" onclick="if(window.debugLog)debugLog('Button clicked: prevStep(2)');prevStep(2)">← Назад</button>
             </div>
 
-            <!-- Step 4: Geolocation -->
-            <div class="step-panel" data-step="4">
-                <h3>Шаг 4: Работа с геолокацией</h3>
-                <p>Зафиксируйте местоположение точки</p>
-                <div class="input-group">
-                    <label>Широта (lat)</label>
-                    <input type="number" id="step4-lat" step="0.000001" value="55.7558">
+            <!-- Sampling Info -->
+            <div class="form-card" style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
+                <h3 style="margin: 0 0 15px 0; color: #2E7D32;">Информация о пробах</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="input-group">
+                        <label>Количество проб почвы</label>
+                        <input type="number" id="form-sample-count" min="1" step="1" value="1" class="input-field">
+                    </div>
+                    <div class="input-group">
+                        <label>Дата взятия пробы</label>
+                        <input type="date" id="form-sampling-date" class="input-field">
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label>Долгота (lng)</label>
-                    <input type="number" id="step4-lng" step="0.000001" value="37.6173">
-                </div>
-                <div class="button-group">
-                    <button class="btn btn-primary" onclick="getMyLocation()">🎯 Моё местоположение</button>
-                </div>
-                <div id="step4-result"></div>
-                <button class="btn btn-primary" onclick="if(window.debugLog)debugLog('Button clicked: nextStep(5)');nextStep(5)">Далее →</button>
-                <button class="btn btn-secondary" onclick="if(window.debugLog)debugLog('Button clicked: prevStep(3)');prevStep(3)">← Назад</button>
             </div>
 
-            <!-- Step 5: Map Fixation -->
-            <div class="step-panel" data-step="5">
-                <h3>Шаг 5: Фиксация точки на карте</h3>
-                <p>Выберите точку на интерактивной карте</p>
-                <div class="map-wrapper">
-                    <div id="analysis-map" style="height: 400px;"></div>
-                </div>
-                <div id="step5-result"></div>
-                <button class="btn btn-primary" onclick="if(window.debugLog)debugLog('Button clicked: nextStep(6)');nextStep(6)">Далее →</button>
-                <button class="btn btn-secondary" onclick="if(window.debugLog)debugLog('Button clicked: prevStep(4)');prevStep(4)">← Назад</button>
-            </div>
-
-            <!-- Step 6: Database Comparison -->
-            <div class="step-panel" data-step="6">
-                <h3>Шаг 6: Сопоставление с базой данных</h3>
-                <p>Сравнение с существующими данными</p>
-                <div id="step6-result"></div>
-                <button class="btn btn-primary" onclick="if(window.debugLog)debugLog('Button clicked: nextStep(7)');nextStep(7)">Далее →</button>
-                <button class="btn btn-secondary" onclick="if(window.debugLog)debugLog('Button clicked: prevStep(5)');prevStep(5)">← Назад</button>
-            </div>
-
-            <!-- Step 7: Personal Cabinet -->
-            <div class="step-panel" data-step="7">
-                <h3>Шаг 7: Создание личного кабинета</h3>
-                <p>Ваши данные будут сохранены в персональной базе</p>
-                <div id="step7-result"></div>
-                <button class="btn btn-primary" onclick="if(window.debugLog)debugLog('Button clicked: nextStep(8)');nextStep(8)">Далее →</button>
-                <button class="btn btn-secondary" onclick="if(window.debugLog)debugLog('Button clicked: prevStep(6)');prevStep(6)">← Назад</button>
-            </div>
-
-            <!-- Step 8: Additional Information -->
-            <div class="step-panel" data-step="8">
-                <h3>Шаг 8: Дополнительная информация</h3>
-                <p>Добавьте заметки и теги для лучшей организации</p>
-                <div class="input-group">
-                    <label>Теги</label>
-                    <input type="text" id="step8-tags" placeholder="через запятую">
-                </div>
-                <div class="input-group">
-                    <label>Заметки</label>
-                    <textarea id="step8-notes" rows="3" placeholder="Дополнительная информация о точке..."></textarea>
-                </div>
-                <div id="step8-result"></div>
-                <button class="btn btn-primary" onclick="if(window.debugLog)debugLog('Button clicked: nextStep(9)');nextStep(9)">Далее →</button>
-                <button class="btn btn-secondary" onclick="if(window.debugLog)debugLog('Button clicked: prevStep(7)');prevStep(7)">← Назад</button>
-            </div>
-
-            <!-- Step 9: Final Actions -->
-            <div class="step-panel" data-step="9">
-                <h3>Шаг 9: Финальные действия</h3>
-                <p>Проверьте все данные и выберите тип почвы</p>
-                <div id="step9-result"></div>
-                
-                <div style="margin: 20px 0;">
-                    <h4>🌱 Тип почвы</h4>
-                    <div id="ai-soil-type-display"></div>
-                    <div id="soil-type-confirmation" style="margin-top: 10px; display: none;">
-                        <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; border-left: 4px solid #2196F3;">
-                            <p style="margin: 0 0 10px 0; font-weight: bold;">🤔 ИИ определил тип почвы:</p>
-                            <p id="ai-soil-type-text" style="margin: 0 0 15px 0;"></p>
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <button class="btn btn-success" onclick="confirmSoilType(true)" style="font-size: 14px; padding: 8px 16px;">
-                                    ✅ Верно
-                                </button>
-                                <button class="btn btn-warning" onclick="confirmSoilType(false)" style="font-size: 14px; padding: 8px 16px;">
-                                    ❌ Неверно
-                                </button>
-                                <span style="color: #666; font-size: 12px;">Уверенность: <span id="ai-confidence"></span>%</span>
-                            </div>
+            <!-- Soil Type Selection -->
+            <div class="form-card" style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
+                <h3 style="margin: 0 0 15px 0; color: #2E7D32;">Тип почвы</h3>
+                <div id="ai-soil-type-display"></div>
+                <div id="soil-type-confirmation" style="margin-top: 10px; display: none;">
+                    <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; border-left: 4px solid #2196F3;">
+                        <p style="margin: 0 0 10px 0; font-weight: bold;">ИИ определил тип почвы:</p>
+                        <p id="ai-soil-type-text" style="margin: 0 0 15px 0;"></p>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn btn-success" onclick="confirmSoilType(true)" style="font-size: 14px; padding: 8px 16px;">
+                                Верно
+                            </button>
+                            <button class="btn btn-warning" onclick="confirmSoilType(false)" style="font-size: 14px; padding: 8px 16px;">
+                                Неверно
+                            </button>
+                            <span style="color: #666; font-size: 12px;">Уверенность: <span id="ai-confidence"></span>%</span>
                         </div>
                     </div>
-                    <div id="soil-type-selection-step9" style="margin-top: 10px;">
-                        <label>Выберите правильный тип почвы:</label>
-                        <select id="step9-soil-type" class="input-field">
-                            <option value="">Выберите тип почвы</option>
-                        </select>
-                        <small style="color: #666;">ИИ может ошибаться - выберите правильный тип</small>
-                    </div>
                 </div>
-                
-                
-                <div id="final-summary"></div>
-                <button class="btn btn-success" onclick="if(window.debugLog)debugLog('Button clicked: saveFinalPoint()');saveFinalPoint()">💾 Сохранить точку</button>
-                <button class="btn btn-secondary" onclick="if(window.debugLog)debugLog('Button clicked: prevStep(8)');prevStep(8)">← Назад</button>
+                <div id="soil-type-selection" style="margin-top: 10px;">
+                    <label>Выберите тип почвы:</label>
+                    <select id="form-soil-type" class="input-field">
+                        <option value="">Выберите тип почвы</option>
+                    </select>
+                    <small style="color: #666;">ИИ может определить тип автоматически после сохранения</small>
+                </div>
+            </div>
+
+            <!-- Additional Info -->
+            <div class="form-card" style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
+                <h3 style="margin: 0 0 15px 0; color: #2E7D32;">Дополнительная информация</h3>
+                <div class="input-group">
+                    <label>Описание профиля почвы <span style="color: #999; font-weight: normal;">(необязательно)</span></label>
+                    <textarea id="form-soil-profile" rows="3" placeholder="Опишите профиль почвы: горизонты, цвет, структура, включения..." class="input-field" style="resize: vertical;"></textarea>
+                </div>
+                <div class="input-group">
+                    <label>Теги <span style="color: #999; font-weight: normal;">(необязательно)</span></label>
+                    <input type="text" id="form-tags" placeholder="через запятую" class="input-field">
+                </div>
+                <div class="input-group">
+                    <label>Заметки <span style="color: #999; font-weight: normal;">(необязательно)</span></label>
+                    <textarea id="form-notes" rows="2" placeholder="Дополнительная информация о точке..." class="input-field" style="resize: vertical;"></textarea>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div id="final-summary"></div>
+            <div style="text-align: center; margin-bottom: 30px;">
+                <button class="btn btn-success" onclick="submitAnalysisForm()" style="font-size: 16px; padding: 12px 40px;">Сохранить точку</button>
             </div>
         </div>
-    </div>
     </div>
 
     <!-- Points Filter Section -->

@@ -99,6 +99,9 @@ async def process_block1(data):
         "color": data.get("color", "green"),
         "user_id": data.get("user_id"),
         "image": image,  # Сохраняем фото как base64
+        "sample_count": data.get("sample_count", 1),
+        "sampling_date": data.get("sampling_date"),
+        "soil_profile_description": data.get("soil_profile_description"),
         "timestamp": datetime.utcnow().isoformat(),
         "last_updated": datetime.utcnow().isoformat(),
         "confidence": calculate_confidence(data),
