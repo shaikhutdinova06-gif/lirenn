@@ -1,6 +1,18 @@
+from backend.services.soil_reference import get_reference
+
+# Допустимые отклонения от эталона (± процент)
+_TOLERANCE = 0.3  # 30%
+
 def get_soil_parameters(soil_type):
-    """Заглушка для get_soil_parameters (soil_model удалён)"""
-    # Возвращает базовые параметры для чернозёма по умолчанию
+    """Получить диапазоны параметров для типа почвы из эталонных данных"""
+    ref = get_reference(soil_type)
+    if ref:
+        params = {}
+        for key, value in ref.items():
+            margin = abs(value * _TOLERANCE)
+            params[key] = (value - margin, value + margin)
+        return params
+    # Fallback: базовые параметры для чернозёма
     return {
         "ph": (6.0, 7.3),
         "humus": (6, 10),

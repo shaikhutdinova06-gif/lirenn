@@ -40,8 +40,11 @@ pH: {data.get('ph', 'не указано')}
     
     try:
         response = requests.post(
-            "https://api.deepseek.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {API_KEY}"},
+            "https://api.deepseek.com/chat/completions",
+            headers={
+                "Authorization": f"Bearer {API_KEY}",
+                "Content-Type": "application/json"
+            },
             json={
                 "model": "deepseek-chat",
                 "messages": [{"role": "user", "content": prompt}],
@@ -64,18 +67,31 @@ pH: {data.get('ph', 'не указано')}
         # Пытаемся распарсить JSON
         try:
             result = json.loads(text)
-            # Валидация полей
-            if not all(k in result for k in ["soil_ru", "soil_wrb", "confidence", "reason"]):
-                raise ValueError("Missing required fields")
-            return result
-        except (json.JSONDecodeError, ValueError):
-            # Если JSON не распарсился, возвращаем fallback
+        except json.JSONDecodeError:
+            # Извлекаем JSON из markdown code blocks
+            if "```json" in text:
+                json_str = text.split("```json")[1].split("```")[0].strip()
+                result = json.loads(json_str)
+            elif "```" in text:
+                json_str = text.split("```")[1].split("```")[0].strip()
+                result = json.loads(json_str)
+            else:
+                return {
+                    "soil_ru": "не определено",
+                    "soil_wrb": "-",
+                    "confidence": 0,
+                    "reason": "Ошибка парсинга AI ответа"
+                }
+        
+        # Валидация полей
+        if not all(k in result for k in ["soil_ru", "soil_wrb", "confidence", "reason"]):
             return {
                 "soil_ru": "не определено",
                 "soil_wrb": "-",
                 "confidence": 0,
                 "reason": "Ошибка парсинга AI ответа"
             }
+        return result
             
     except Exception as e:
         print(f"[AI] Soil type detection error: {e}")
@@ -168,17 +184,36 @@ async def analyze_soil_dynamics(point, measurements):
         # Пытаемся распарсить JSON
         try:
             result = json.loads(text)
-            # Валидация полей
-            if not all(k in result for k in ["summary", "trends", "recommendations"]):
-                raise ValueError("Missing required fields")
-            return result
-        except (json.JSONDecodeError, ValueError):
-            # Если JSON не распарсился, возвращаем fallback
+        except json.JSONDecodeError:
+            # Извлекаем JSON из markdown code blocks
+            try:
+                if "```json" in text:
+                    json_str = text.split("```json")[1].split("```")[0].strip()
+                    result = json.loads(json_str)
+                elif "```" in text:
+                    json_str = text.split("```")[1].split("```")[0].strip()
+                    result = json.loads(json_str)
+                else:
+                    return {
+                        "summary": "ИИ анализ завершен, но возникли проблемы с форматированием",
+                        "trends": [{"parameter": "Анализ", "trend": "недоступен", "change": text[:100], "significance": "неизвестно"}],
+                        "recommendations": ["Повторите анализ позже или обратитесь к специалисту"]
+                    }
+            except (json.JSONDecodeError, IndexError):
+                return {
+                    "summary": "ИИ анализ завершен, но возникли проблемы с форматированием",
+                    "trends": [{"parameter": "Анализ", "trend": "недоступен", "change": text[:100], "significance": "неизвестно"}],
+                    "recommendations": ["Повторите анализ позже или обратитесь к специалисту"]
+                }
+        
+        # Валидация полей
+        if not all(k in result for k in ["summary", "trends", "recommendations"]):
             return {
                 "summary": "ИИ анализ завершен, но возникли проблемы с форматированием",
-                "trends": [{"parameter": "Анализ", "trend": "недоступен", "change": text[:100], "significance": "неизвестно"}],
+                "trends": [],
                 "recommendations": ["Повторите анализ позже или обратитесь к специалисту"]
             }
+        return result
             
     except Exception as e:
         print(f"[AI] Dynamics analysis error: {e}")
@@ -234,13 +269,14 @@ async def deepseek_classify(image):
     try:
         if not API_KEY:
             print("No DEEPSEEK_API_KEY found, using fallback")
-            return "soil"
+            return classify_image(image)
         
         # Подготавливаем изображение для анализа
-        prompt = """
-        Определи, является ли это изображение почвой. Ответь только "soil" если это почва, 
-        или "not_soil" если это не почва (например: трава, камни, вода, небо, здания и т.д.).
-        """
+        image_prefix = ""
+        if isinstance(image, str) and image.startswith("data:image"):
+            image_prefix = image
+        else:
+            image_prefix = f"data:image/jpeg;base64,{image}"
         
         response = requests.post(
             "https://api.deepseek.com/chat/completions",
@@ -253,7 +289,16 @@ async def deepseek_classify(image):
                 "messages": [
                     {
                         "role": "user", 
-                        "content": prompt
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Определи, является ли это изображение почвой. Ответь только 'soil' если это почва, или 'not_soil' если это не почва."
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": image_prefix}
+                            }
+                        ]
                     }
                 ],
                 "max_tokens": 10,

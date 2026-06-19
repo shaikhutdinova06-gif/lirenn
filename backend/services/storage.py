@@ -398,7 +398,6 @@ def save_user_data(user_id, data):
             except:
                 pass
         return {"error": f"Failed to save user data: {str(e)}"}
-        raise
 
 def initialize_test_location():
     pass

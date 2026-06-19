@@ -6,7 +6,7 @@ def detect_region(lat, lng):
     try:
         url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lng}&format=json&accept-language=ru"
         headers = {"User-Agent": "soil-analysis-app"}
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, headers=headers, timeout=5)
         
         if response.status_code == 200:
             data = response.json()
@@ -37,7 +37,7 @@ def get_country(lat, lng):
     try:
         url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lng}&format=json&addressdetails=1"
         headers = {"User-Agent": "soil-analysis-app"}
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, headers=headers, timeout=5)
         
         if response.status_code == 200:
             data = response.json()

@@ -87,11 +87,9 @@ class TestGetSoilQualityScore:
         assert get_soil_quality_score({}) == 50
 
     def test_zero_deviation(self):
-        # score = 100 per param, averaged: (100+100)/2 = 100,
-        # but the function computes score -= 0 for each, then score/count = 100/2 = 50
         deviation = {"ph_percent": 0.0, "humus_percent": 0.0}
         score = get_soil_quality_score(deviation)
-        assert score == 50.0
+        assert score == 100
 
     def test_large_deviation_reduces_score(self):
         deviation = {"ph_percent": 50.0, "humus_percent": 50.0}

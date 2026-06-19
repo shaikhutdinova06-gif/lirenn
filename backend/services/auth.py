@@ -126,8 +126,6 @@ def authenticate_user(username: str, password: str):
     
     if not verify_password(password, user["hashed_password"]):
         print(f"Password verification failed for {username}")
-        print(f"Input password length: {len(password)}")
-        print(f"Stored hash: {user['hashed_password'][:50]}...")
         return False
     
     print(f"Authentication successful for {username}")
