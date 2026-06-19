@@ -81,12 +81,28 @@
                 
                 <hr style="margin: 15px 0; border-color: #A5D6A7;">
                 
-                <h4>Фильтр по типу почвы</h4>
-                <select id="soil-type-filter" class="input-field">
-                    <option value="">Все типы почвы</option>
-                </select>
-                <button class="btn btn-primary" onclick="filterPointsBySoilType()" style="margin-top: 10px; width: 100%;">🔍 Найти на карте</button>
-                <button class="btn btn-secondary" onclick="clearSoilFilter()" style="margin-top: 5px; width: 100%;">🔄 Сбросить фильтр</button>
+                <h4>🔍 Фильтр точек на карте</h4>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div>
+                        <label style="font-size: 14px; color: #666; margin-bottom: 5px; display: block;">🌱 Тип почвы:</label>
+                        <select id="soil-type-filter" class="input-field">
+                            <option value="">Все типы почвы</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 14px; color: #666; margin-bottom: 5px; display: block;">👤 Пользователь:</label>
+                        <select id="user-filter" class="input-field">
+                            <option value="">Все пользователи</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="applyMapFilters()" style="flex: 1;">🔍 Применить фильтры</button>
+                    <button class="btn btn-secondary" onclick="resetMapFilters()" style="flex: 1;">🔄 Сбросить все</button>
+                </div>
+                <div id="filter-info" style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-radius: 6px; font-size: 14px; color: #2E7D32; display: none;">
+                    <strong>� Результаты фильтрации:</strong> <span id="filter-count"></span>
+                </div>
             </aside>
             <div class="map-area">
                 <div id="leaflet-map"></div>
@@ -372,6 +388,33 @@
 <section id="cabinet" class="section" style="display: none;">
     <div class="container">
         <h2>👤 Мой кабинет</h2>
+        
+        <!-- Cabinet Filter -->
+        <div style="background: rgba(232, 245, 233, 0.9); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(200, 230, 201, 0.3);">
+            <h3 style="margin: 0 0 15px 0; color: #2E7D32;">🔍 Фильтр точек</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div>
+                    <label style="font-size: 14px; color: #666; margin-bottom: 5px; display: block;">🌱 Тип почвы:</label>
+                    <select id="cabinet-soil-type-filter" class="input-field" style="width: 100%;">
+                        <option value="">Все типы почвы</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 14px; color: #666; margin-bottom: 5px; display: block;">📅 Период:</label>
+                    <select id="cabinet-period-filter" class="input-field" style="width: 100%;">
+                        <option value="">Все время</option>
+                        <option value="7">Последние 7 дней</option>
+                        <option value="30">Последние 30 дней</option>
+                        <option value="90">Последние 90 дней</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <button onclick="applyCabinetFilters()" class="btn btn-primary" style="flex: 1;">🔍 Применить фильтры</button>
+                <button onclick="resetCabinetFilters()" class="btn btn-secondary" style="flex: 1;">🔄 Сбросить</button>
+            </div>
+        </div>
+        
         <div id="user-cabinet-content">
             <p>Загрузка данных...</p>
         </div>
@@ -458,33 +501,22 @@
     </div>
 </main>
 
-<!-- Debug Panel -->
-<div id="debug-panel" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.9); color: #0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 11px; max-width: 400px; max-height: 300px; overflow: auto; z-index: 10000; display: none;">
-  <h4 style="margin: 0 0 5px 0; color: #0f0;">🐛 Debug</h4>
-  <div id="debug-messages"></div>
-  <button onclick="document.getElementById('debug-panel').style.display='none'" style="margin-top: 5px; font-size: 10px;">Закрыть</button>
-</div>
 
 <script>
-// Debug logging
+// Debug logging disabled
 window.debugLog = function(msg, type='info') {
-  const panel = document.getElementById('debug-panel');
-  const div = document.getElementById('debug-messages');
-  if (panel && div) {
-    panel.style.display = 'block';
-    const color = type === 'error' ? '#f44' : (type === 'warn' ? '#ff4' : '#0f0');
-    div.innerHTML += '<div style="border-bottom: 1px solid rgba(255,255,255,0.2); padding: 2px 0; color: ' + color + ';">' + new Date().toLocaleTimeString() + ' - ' + msg + '</div>';
-  }
+  // Debug logging disabled for production
 };
 
 // Global error handler
 window.onerror = function(msg, url, line, col, error) {
-  debugLog('ERROR: ' + msg + ' at line ' + line, 'error');
+  // Debug logging disabled for production
   return false;
 };
 
 // Check modules on load
 document.addEventListener('DOMContentLoaded', function() {
+  // Debug logging disabled for production
   debugLog('Page loaded, checking modules...');
   
   // Check sections
@@ -502,6 +534,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script src="/static/script.js"></script>
+<script src="/static/script_map_filters.js"></script>
 <!-- Loading Overlay -->
 <div id="loading-overlay" class="loading-overlay">
     <div class="loading-content">

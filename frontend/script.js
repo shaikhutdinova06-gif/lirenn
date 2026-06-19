@@ -1,6 +1,6 @@
-let map = null
-let markers = []
-let currentStep = 1
+let map = null;
+let markers = [];
+let currentStep = 1;
 let stepData = {
     images: [],
     ph: null,
@@ -10,13 +10,13 @@ let stepData = {
     lat: null,
     lng: null,
     notes: null
-}
-let baseLayers = {}
-let overlayLayers = {}
+};
+let baseLayers = {};
+let overlayLayers = {};
 
 function initMap() {
-    if (map) return
-    map = L.map('leaflet-map').setView([55.75, 37.61], 10)
+    if (map) return;
+    map = L.map('leaflet-map').setView([55.75, 37.61], 10);
     
     // Базовый слой - OpenStreetMap
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -39,7 +39,7 @@ function initMap() {
             updateWhenZooming: false,
             keepBuffer: 2
         }
-    )
+    );
     
     // Быстрый слой Landsat 8 (оптимизированный)
     const landsatLayer = L.tileLayer(
@@ -56,7 +56,7 @@ function initMap() {
             updateWhenZooming: false,
             keepBuffer: 2
         }
-    )
+    );
     
     // Запасной вариант - Esri World Imagery (всегда работает)
     const esriLayer = L.tileLayer(
@@ -67,7 +67,7 @@ function initMap() {
             minZoom: 1,
             opacity: 1
         }
-    )
+    );
     
     // Слои для переключателя
     baseLayers = {
@@ -704,6 +704,9 @@ async function saveFinalPoint() {
         const headers = {'Content-Type': 'application/json'};
         headers['Authorization'] = `Bearer ${token}`;
         
+        if (window.debugLog) debugLog('Sending point data: ' + JSON.stringify(point, null, 2));
+        console.log('Sending point data:', point);
+        
         const response = await fetch('/api/block1', {
             method: 'POST',
             headers: headers,
@@ -711,6 +714,7 @@ async function saveFinalPoint() {
         });
         
         if (window.debugLog) debugLog('Response received, status: ' + response.status);
+        console.log('Response status:', response.status);
         
         if (response.status === 401) {
             if (window.debugLog) debugLog('ERROR: 401 Unauthorized', 'error');
@@ -1783,104 +1787,15 @@ async function loadUserCabinet() {
         }
         
         const data = await res.json();
-        list.innerHTML = "";
         
-        if (!data.points || data.points.length === 0) {
-            list.innerHTML = "<p>У вас пока нет точек</p>";
-            return;
-        }
+        // Save points globally for filtering
+        window.userPoints = data.points || [];
         
-        // Отображаем точки с фото и AI анализом
-        data.points.forEach(point => {
-            const images = point.images || [];
-            const firstImage = images.length > 0 ? images[0] : point.image;
-            const ai = point.ai_analysis || {};
-            const fertility = ai.fertility_score || 5;
-            
-            // Приоритет: выбор пользователя > ИИ определение > старый формат
-            const soilTypeObj = point.soil_type || {};
-            const soilType = soilTypeObj.soil_ru || ai.soil_type || "Не определен";
-            
-            // Добавляем информацию о том, кто определил тип
-            let soilTypeInfo = "";
-            if (soilTypeObj.soil_ru && soilTypeObj.confidence === 100) {
-                soilTypeInfo = `<small style="color: #4CAF50;">✅ Выбрано пользователем</small>`;
-            } else if (soilTypeObj.soil_ru && soilTypeObj.confidence < 100) {
-                soilTypeInfo = `<small style="color: #2196F3;">🤖 ИИ (${soilTypeObj.confidence}%)</small>`;
-            } else if (ai.soil_type) {
-                soilTypeInfo = `<small style="color: #FF9800;">🔬 Старый ИИ анализ</small>`;
-            }
-            
-            const div = document.createElement("div");
-            div.className = "cabinet-point";
-            div.style.cssText = "border:1px solid #A5D6A7; padding:15px; margin-bottom:15px; border-radius:10px; background:white;";
-            
-            // Добавляем информацию о регионе и качестве почвы
-            const region = point.region || "Не определен";
-            const qualityScore = point.quality_score || 0;
-            const reference = point.reference || {};
-            
-            div.innerHTML = `
-                ${firstImage ? `
-                    <div style="position: relative; margin-bottom: 10px;">
-                        <img src="${firstImage}" style="width:100%; border-radius:8px; max-height:200px; object-fit:cover; cursor: pointer;" 
-                             onclick="openPhotoModal('${firstImage}')">
-                        ${images.length > 1 ? `
-                            <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">
-                                📷 ${images.length} фото
-                            </div>
-                        ` : ''}
-                    </div>
-                ` : ""}
-                
-                <h4 style="color:#2E7D32; margin-bottom:10px;">🌱 ТОЧКА #${point.id.slice(0, 8)}</h4>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; font-size: 14px;">
-                    <div><strong>Координаты:</strong><br>${point.lat?.toFixed(4)}, ${point.lng?.toFixed(4)}</div>
-                    <div><strong>Регион:</strong><br>${region}</div>
-                    <div><strong>pH:</strong> ${point.ph || "-"}</div>
-                    <div><strong>Влажность:</strong> ${point.moisture || "-"}%</div>
-                    <div><strong>N:</strong> ${point.nitrogen || "-"}</div>
-                    <div><strong>P:</strong> ${point.phosphorus || "-"}</div>
-                    <div><strong>K:</strong> ${point.potassium || "-"}</div>
-                    <div><strong>Качество:</strong> ${qualityScore}/100</div>
-                </div>
-                
-                ${soilType !== "Не определен" ? `
-                    <div style="padding:10px; background:rgba(76,175,80,0.1); border-radius:6px; margin:10px 0;">
-                        <p style="margin:0;"><strong>Тип почвы:</strong> ${soilType}</p>
-                        ${soilTypeInfo ? `<p style="margin:5px 0 0 0; font-size:12px;">${soilTypeInfo}</p>` : ''}
-                        ${reference.ph ? `<p style="margin:5px 0 0 0; font-size:12px;"><em>Эталон pH: ${reference.ph}</em></p>` : ''}
-                    </div>
-                ` : ""}
-                
-                ${point.tags?.length ? `<p><strong>Теги:</strong> ${point.tags.join(", ")}</p>` : ""}
-                ${point.notes ? `<p><strong>Заметки:</strong> ${point.notes}</p>` : ""}
-                
-                <div style="display:flex; gap:8px; margin-top:10px; flex-wrap: wrap;">
-                    <button onclick="map.setView([${point.lat}, ${point.lng}], 15); showSection('map');" 
-                        style="flex:1; min-width:100px; padding:8px; background:#1976D2; color:white; border:none; border-radius:6px; cursor:pointer;">
-                        📍 На карте
-                    </button>
-                    <button onclick="openDynamicsModal('${point.id}', 'Точка #${point.id.slice(0, 8)}')" 
-                        style="flex:1; min-width:100px; padding:8px; background:#388E3C; color:white; border:none; border-radius:6px; cursor:pointer;">
-                        📊 Динамика
-                    </button>
-                    ${images.length > 1 ? `
-                        <button onclick="showPointPhotos('${JSON.stringify(images).replace(/'/g, "\\'")}')" 
-                            style="flex:1; min-width:100px; padding:8px; background:#FF9800; color:white; border:none; border-radius:6px; cursor:pointer;">
-                            📷 Все фото
-                        </button>
-                    ` : ''}
-                    ${!point.is_test ? `<button onclick="deletePoint('${point.id}')" 
-                        style="padding:8px 16px; background:#ef4444; color:white; border:none; border-radius:6px; cursor:pointer;">
-                        🗑️
-                    </button>` : ''}
-                </div>
-            `;
-            list.appendChild(div);
-        });
+        // Load soil types for filter
+        await loadSoilTypesForCabinet();
         
+        // Display all points initially
+        displayCabinetPoints(window.userPoints);
     } catch (error) {
         console.error('Error loading cabinet:', error);
         document.getElementById("user-cabinet-content").innerHTML = '<p>Ошибка загрузки данных. <a href="#" onclick="loadUserCabinet(); return false;">Попробовать снова</a></p>';
@@ -1927,6 +1842,96 @@ async function deletePoint(pointId) {
 
 // Загружать данные кабинета пользователя при инициализации
 setTimeout(loadUserCabinet, 1000);
+
+// Cabinet Filter Functions
+function applyCabinetFilters() {
+    const soilType = document.getElementById('cabinet-soil-type-filter').value;
+    const period = document.getElementById('cabinet-period-filter').value;
+    
+    const allPoints = window.userPoints || [];
+    let filteredPoints = [...allPoints];
+    
+    // Filter by soil type
+    if (soilType) {
+        filteredPoints = filteredPoints.filter(point => {
+            const pointSoilType = point.soil_type || point.ai_analysis?.soil_type || '';
+            return pointSoilType === soilType;
+        });
+    }
+    
+    // Filter by period
+    if (period) {
+        const daysAgo = new Date();
+        daysAgo.setDate(daysAgo.getDate() - parseInt(period));
+        
+        filteredPoints = filteredPoints.filter(point => {
+            const pointDate = new Date(point.created_at);
+            return pointDate >= daysAgo;
+        });
+    }
+    
+    // Display filtered points
+    displayCabinetPoints(filteredPoints);
+    
+    const count = filteredPoints.length;
+    showInfoToast(`Найдено точек: ${count} из ${allPoints.length}`);
+}
+
+function resetCabinetFilters() {
+    document.getElementById('cabinet-soil-type-filter').value = '';
+    document.getElementById('cabinet-period-filter').value = '';
+    
+    const allPoints = window.userPoints || [];
+    displayCabinetPoints(allPoints);
+    
+    showInfoToast(`Показаны все точки: ${allPoints.length}`);
+}
+
+function displayCabinetPoints(points) {
+    const list = document.getElementById("user-cabinet-content");
+    
+    if (!points || points.length === 0) {
+        list.innerHTML = '<p>Нет точек для отображения</p>';
+        return;
+    }
+    
+    let html = '';
+    points.forEach(point => {
+        const firstImage = point.images && point.images.length > 0 ? point.images[0] : point.image;
+        const soilType = point.soil_type || point.ai_analysis?.soil_type || "Не определен";
+        const date = new Date(point.created_at).toLocaleDateString('ru-RU');
+        
+        html += `
+            <div class="cabinet-point" style="border:1px solid #A5D6A7; padding:15px; margin-bottom:15px; border-radius:10px; background:white;">
+                ${firstImage ? `
+                    <div style="position: relative; margin-bottom: 10px;">
+                        <img src="${firstImage}" style="width:100%; max-height:200px; object-fit: cover; border-radius:8px;">
+                    </div>
+                ` : ''}
+                
+                <h4 style="color: #2E7D32; margin-bottom: 10px;">🌱 ${soilType}</h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; font-size: 14px; margin-bottom: 10px;">
+                    <div><strong>📍 Координаты:</strong><br>${point.lat?.toFixed(6)}, ${point.lng?.toFixed(6)}</div>
+                    <div><strong>🌡️ pH:</strong><br>${point.ph || 'Не указано'}</div>
+                    <div><strong>💧 Влажность:</strong><br>${point.moisture || 'Не указано'}%</div>
+                    <div><strong>📅 Дата:</strong><br>${date}</div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn btn-primary" onclick="map.setView([${point.lat}, ${point.lng}], 15)" style="flex: 1;">
+                        📍 На карте
+                    </button>
+                    <button class="btn btn-secondary" onclick="showPointDetails(${JSON.stringify(point).replace(/"/g, '&quot;')})" style="flex: 1;">
+                        📋 Детали
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    list.innerHTML = html;
+}
 
 // Загрузка всех публичных точек на карту
 async function loadAllPublicPoints() {
@@ -4036,76 +4041,6 @@ class ProgressTracker {
     }
 }
 
-// Keyboard shortcuts
-document.addEventListener('keydown', function(event) {
-    // Only handle shortcuts when not typing in input fields
-    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
-        return;
-    }
-    
-    // Ctrl/Cmd + combinations
-    if (event.ctrlKey || event.metaKey) {
-        switch(event.key) {
-            case 's':
-                event.preventDefault();
-                // Save current step if on analysis
-                if (currentSection === 'analysis' && currentStep > 0) {
-                    const nextBtn = document.querySelector('.btn-primary');
-                    if (nextBtn) nextBtn.click();
-                }
-                break;
-            case 'Enter':
-                event.preventDefault();
-                // Submit current form
-                const submitBtn = document.querySelector('.btn-success');
-                if (submitBtn) submitBtn.click();
-                break;
-            case 'Escape':
-                event.preventDefault();
-                // Close modals
-                closeAllModals();
-                break;
-        }
-        return;
-    }
-    
-    // Single key shortcuts
-    switch(event.key) {
-        case '1':
-            showSection('analysis');
-            showInfoToast('Переключено на анализ');
-            break;
-        case '2':
-            showSection('map');
-            showInfoToast('Переключено на карту');
-            break;
-        case '3':
-            showSection('cabinet');
-            showInfoToast('Переключено на личный кабинет');
-            break;
-        case 'Escape':
-            // Close loading overlay
-            const loadingOverlay = document.getElementById('loading-overlay');
-            if (loadingOverlay && loadingOverlay.style.display === 'flex') {
-                hideLoading();
-            }
-            closeAllModals();
-            break;
-        case 'ArrowLeft':
-            // Previous step in analysis
-            if (currentSection === 'analysis' && currentStep > 1) {
-                prevStep(currentStep - 1);
-            }
-            break;
-        case 'ArrowRight':
-            // Next step in analysis
-            if (currentSection === 'analysis' && currentStep < 9) {
-                nextStep(currentStep + 1);
-            }
-            break;
-    }
-});
-
 function closeAllModals() {
     // Close all modal dialogs
     const modals = document.querySelectorAll('.modal');
@@ -4123,53 +4058,3 @@ function closeAllModals() {
         }
     });
 }
-
-// Add help tooltip for keyboard shortcuts
-function showKeyboardHelp() {
-    const helpText = `
-        <h4>🎹 Горячие клавиши:</h4>
-        <ul style="text-align: left; font-size: 14px;">
-            <li><strong>1</strong> - Анализ</li>
-            <li><strong>2</strong> - Карта</li>
-            <li><strong>3</strong> - Личный кабинет</li>
-            <li><strong>←/→</strong> - Предыдущий/Следующий шаг</li>
-            <li><strong>Ctrl+S</strong> - Сохранить шаг</li>
-            <li><strong>Ctrl+Enter</strong> - Отправить форму</li>
-            <li><strong>Escape</strong> - Закрыть модальное окно</li>
-        </ul>
-    `;
-    
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.7);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10001;
-    `;
-    
-    modal.innerHTML = `
-        <div style="background: white; padding: 30px; border-radius: 16px; max-width: 500px; position: relative;">
-            <button onclick="this.parentElement.parentElement.remove()" style="position: absolute; right: 10px; top: 10px; background: #f44336; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;">×</button>
-            ${helpText}
-            <button onclick="this.parentElement.parentElement.remove()" style="margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer;">Понятно</button>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-}
-
-// Add keyboard help button to navigation
-document.addEventListener('DOMContentLoaded', function() {
-    const navMenu = document.querySelector('.nav-menu');
-    if (navMenu) {
-        const helpLi = document.createElement('li');
-        helpLi.innerHTML = '<a href="#" class="nav-link" onclick="showKeyboardHelp()">⌨️</a>';
-        navMenu.appendChild(helpLi);
-    }
-});
