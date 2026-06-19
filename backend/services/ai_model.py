@@ -1,21 +1,21 @@
 import os
 import requests
 import base64
-import struct
 import json
+
+from backend.services.deepseek_client import call_deepseek
 
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 async def detect_soil_type(data):
     """Авто-определение типа почвы через AI"""
-    if not API_KEY:
-        return {
-            "soil_ru": "не определено",
-            "soil_wrb": "-",
-            "confidence": 0,
-            "reason": "API ключ не настроен"
-        }
-    
+    fallback = {
+        "soil_ru": "не определено",
+        "soil_wrb": "-",
+        "confidence": 0,
+        "reason": "API ключ не настроен"
+    }
+
     prompt = f"""
 Ты — профессиональный почвовед РФ.
 Определи тип почвы по данным.
@@ -37,84 +37,25 @@ pH: {data.get('ph', 'не указано')}
   "reason": "краткое объяснение почему такой тип"
 }}
 """
-    
-    try:
-        response = requests.post(
-            "https://api.deepseek.com/chat/completions",
-            headers={
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "deepseek-chat",
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 200,
-                "temperature": 0.3
-            },
-            timeout=10
-        )
-        
-        if response.status_code != 200:
-            return {
-                "soil_ru": "не определено",
-                "soil_wrb": "-",
-                "confidence": 0,
-                "reason": f"API ошибка: {response.status_code}"
-            }
-        
-        text = response.json()["choices"][0]["message"]["content"]
-        
-        # Пытаемся распарсить JSON
-        try:
-            result = json.loads(text)
-        except json.JSONDecodeError:
-            # Извлекаем JSON из markdown code blocks
-            if "```json" in text:
-                json_str = text.split("```json")[1].split("```")[0].strip()
-                result = json.loads(json_str)
-            elif "```" in text:
-                json_str = text.split("```")[1].split("```")[0].strip()
-                result = json.loads(json_str)
-            else:
-                return {
-                    "soil_ru": "не определено",
-                    "soil_wrb": "-",
-                    "confidence": 0,
-                    "reason": "Ошибка парсинга AI ответа"
-                }
-        
-        # Валидация полей
-        if not all(k in result for k in ["soil_ru", "soil_wrb", "confidence", "reason"]):
-            return {
-                "soil_ru": "не определено",
-                "soil_wrb": "-",
-                "confidence": 0,
-                "reason": "Ошибка парсинга AI ответа"
-            }
-        return result
-            
-    except Exception as e:
-        print(f"[AI] Soil type detection error: {e}")
-        return {
-            "soil_ru": "не определено",
-            "soil_wrb": "-",
-            "confidence": 0,
-            "reason": f"Ошибка: {str(e)}"
-        }
+
+    return call_deepseek(
+        prompt,
+        max_tokens=200,
+        timeout=10,
+        required_fields=["soil_ru", "soil_wrb", "confidence", "reason"],
+        fallback=fallback,
+    )
 
 async def analyze_soil_dynamics(point, measurements):
     """ИИ анализ динамики почвы"""
-    if not API_KEY:
-        return {
-            "summary": "ИИ анализ недоступен - не настроен API ключ",
-            "trends": [],
-            "recommendations": ["Настройте API ключ для ИИ анализа"]
-        }
-    
-    # Подготовка данных для анализа
-    measurements_data = []
-    for m in measurements:
-        measurements_data.append({
+    fallback = {
+        "summary": "ИИ анализ недоступен - не настроен API ключ",
+        "trends": [],
+        "recommendations": ["Настройте API ключ для ИИ анализа"]
+    }
+
+    measurements_data = [
+        {
             "date": m.get("timestamp", "")[:10],
             "ph": m.get("ph"),
             "moisture": m.get("moisture"),
@@ -122,12 +63,13 @@ async def analyze_soil_dynamics(point, measurements):
             "phosphorus": m.get("phosphorus"),
             "potassium": m.get("potassium"),
             "notes": m.get("notes", "")
-        })
-    
-    # Информация о точке
+        }
+        for m in measurements
+    ]
+
     soil_type = point.get("soil_type", {}).get("soil_ru", "не определено")
     region = point.get("region", "неизвестно")
-    
+
     prompt = f"""
 Ты — профессиональный почвовед-агроном.
 Проанализируй динамику показателей почвы за период.
@@ -158,70 +100,14 @@ async def analyze_soil_dynamics(point, measurements):
   ]
 }}
 """
-    
-    try:
-        response = requests.post(
-            "https://api.deepseek.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {API_KEY}"},
-            json={
-                "model": "deepseek-chat",
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 500,
-                "temperature": 0.3
-            },
-            timeout=15
-        )
-        
-        if response.status_code != 200:
-            return {
-                "summary": f"Ошибка API: {response.status_code}",
-                "trends": [],
-                "recommendations": ["Попробуйте повторить анализ позже"]
-            }
-        
-        text = response.json()["choices"][0]["message"]["content"]
-        
-        # Пытаемся распарсить JSON
-        try:
-            result = json.loads(text)
-        except json.JSONDecodeError:
-            # Извлекаем JSON из markdown code blocks
-            try:
-                if "```json" in text:
-                    json_str = text.split("```json")[1].split("```")[0].strip()
-                    result = json.loads(json_str)
-                elif "```" in text:
-                    json_str = text.split("```")[1].split("```")[0].strip()
-                    result = json.loads(json_str)
-                else:
-                    return {
-                        "summary": "ИИ анализ завершен, но возникли проблемы с форматированием",
-                        "trends": [{"parameter": "Анализ", "trend": "недоступен", "change": text[:100], "significance": "неизвестно"}],
-                        "recommendations": ["Повторите анализ позже или обратитесь к специалисту"]
-                    }
-            except (json.JSONDecodeError, IndexError):
-                return {
-                    "summary": "ИИ анализ завершен, но возникли проблемы с форматированием",
-                    "trends": [{"parameter": "Анализ", "trend": "недоступен", "change": text[:100], "significance": "неизвестно"}],
-                    "recommendations": ["Повторите анализ позже или обратитесь к специалисту"]
-                }
-        
-        # Валидация полей
-        if not all(k in result for k in ["summary", "trends", "recommendations"]):
-            return {
-                "summary": "ИИ анализ завершен, но возникли проблемы с форматированием",
-                "trends": [],
-                "recommendations": ["Повторите анализ позже или обратитесь к специалисту"]
-            }
-        return result
-            
-    except Exception as e:
-        print(f"[AI] Dynamics analysis error: {e}")
-        return {
-            "summary": f"Ошибка анализа: {str(e)}",
-            "trends": [],
-            "recommendations": ["Попробуйте повторить анализ позже"]
-        }
+
+    return call_deepseek(
+        prompt,
+        max_tokens=500,
+        timeout=15,
+        required_fields=["summary", "trends", "recommendations"],
+        fallback=fallback,
+    )
 
 def classify_image(image):
     """Простая классификация по цвету и текстуре без PIL"""
@@ -326,17 +212,12 @@ async def analyze_soil(data):
     """
     Полноценный AI анализ почвы как в лаборатории
     """
-    try:
-        if not API_KEY:
-            print("[AI] No API key, using fallback")
-            return get_fallback_analysis(data)
-        
-        ph = data.get('ph', 'не указан')
-        moisture = data.get('moisture', 'не указана')
-        notes = data.get('notes', 'нет описания')
-        has_image = data.get('has_image', False)
-        
-        prompt = f"""Ты — профессиональный почвовед и агрохимик с 20-летним опытом.
+    ph = data.get('ph', 'не указан')
+    moisture = data.get('moisture', 'не указана')
+    notes = data.get('notes', 'нет описания')
+    has_image = data.get('has_image', False)
+
+    prompt = f"""Ты — профессиональный почвовед и агрохимик с 20-летним опытом.
 
 ДАННЫЕ АНАЛИЗА:
 - pH: {ph}
@@ -365,50 +246,18 @@ async def analyze_soil(data):
   "summary": "краткое заключение 2-3 предложения"
 }}"""
 
-        response = requests.post(
-            "https://api.deepseek.com/chat/completions",
-            headers={
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "deepseek-chat",
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.3,
-                "max_tokens": 1500
-            },
-            timeout=30
-        )
-        
-        if response.status_code != 200:
-            print(f"[AI] API error: {response.status_code}")
-            return get_fallback_analysis(data)
-        
-        result = response.json()
-        content = result["choices"][0]["message"]["content"]
-        
-        # Extract JSON from response
-        try:
-            # Try to parse JSON directly
-            analysis = json.loads(content)
-        except:
-            # Extract JSON from markdown code blocks if present
-            if "```json" in content:
-                json_str = content.split("```json")[1].split("```")[0].strip()
-                analysis = json.loads(json_str)
-            elif "```" in content:
-                json_str = content.split("```")[1].split("```")[0].strip()
-                analysis = json.loads(json_str)
-            else:
-                # Fallback if no valid JSON
-                return get_fallback_analysis(data)
-        
-        print(f"[AI] Analysis complete: {analysis.get('soil_type', 'unknown')}")
-        return analysis
-        
-    except Exception as e:
-        print(f"[AI] Error: {e}")
-        return get_fallback_analysis(data)
+    result = call_deepseek(
+        prompt,
+        max_tokens=1500,
+        timeout=30,
+        fallback=None,
+    )
+
+    if result:
+        print(f"[AI] Analysis complete: {result.get('soil_type', 'unknown')}")
+        return result
+
+    return get_fallback_analysis(data)
 
 def get_fallback_analysis(data):
     """Fallback analysis when AI is unavailable"""
