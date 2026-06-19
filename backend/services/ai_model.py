@@ -346,7 +346,7 @@ async def analyze_soil(data):
         try:
             # Try to parse JSON directly
             analysis = json.loads(content)
-        except:
+        except (json.JSONDecodeError, ValueError):
             # Extract JSON from markdown code blocks if present
             if "```json" in content:
                 json_str = content.split("```json")[1].split("```")[0].strip()

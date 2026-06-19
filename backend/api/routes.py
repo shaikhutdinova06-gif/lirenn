@@ -128,7 +128,9 @@ async def block1(request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        return {"error": str(e)}
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Block1 processing error: {str(e)}")
+
 @router.get("/points")
 def points():
     return get_all_points()
@@ -293,10 +295,8 @@ def satellite(lat: float, lng: float, width: int = 512, height: int = 512):
         return result
     except Exception as e:
         print(f"[API /satellite] Exception: {e}")
-        return {
-            "success": False,
-            "error": f"Failed to get satellite image: {str(e)}"
-        }
+        traceback.print_exc()
+        raise HTTPException(status_code=502, detail=f"Failed to get satellite image: {str(e)}")
 
 @router.get("/satellite/ndvi")
 def satellite_ndvi(lat: float, lng: float, width: int = 512, height: int = 512):
@@ -314,10 +314,8 @@ def satellite_ndvi(lat: float, lng: float, width: int = 512, height: int = 512):
         result = get_ndvi_image(lat, lng, width, height)
         return result
     except Exception as e:
-        return {
-            "success": False,
-            "error": f"Failed to get NDVI image: {str(e)}"
-        }
+        traceback.print_exc()
+        raise HTTPException(status_code=502, detail=f"Failed to get NDVI image: {str(e)}")
 
 # =========================
 # SOIL MEASUREMENTS ENDPOINTS (DYNAMICS)
@@ -408,7 +406,8 @@ def get_dynamics(point_id: str, request: Request):
                 from datetime import datetime
                 dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
                 dates.append(dt.strftime("%d.%m.%Y"))
-            except:
+            except (ValueError, TypeError) as e:
+                print(f"[API] Failed to parse timestamp '{ts}': {e}")
                 dates.append(ts[:10])
         else:
             dates.append("")
