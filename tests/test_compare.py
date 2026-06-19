@@ -12,15 +12,26 @@ class TestGetSoilParameters:
         params = get_soil_parameters("чернозем")
         assert isinstance(params, dict)
 
-    def test_has_expected_keys(self):
-        params = get_soil_parameters("anything")
+    def test_known_type_has_reference_keys(self):
+        params = get_soil_parameters("чернозем")
+        for key in ("ph", "humus", "nitrogen", "phosphorus", "potassium"):
+            assert key in params
+
+    def test_unknown_type_uses_fallback(self):
+        params = get_soil_parameters("марсианская почва")
         for key in ("ph", "humus", "moisture", "nitrogen", "phosphorus", "potassium"):
             assert key in params
 
     def test_values_are_tuples(self):
-        params = get_soil_parameters("x")
+        params = get_soil_parameters("чернозем")
         for v in params.values():
             assert isinstance(v, tuple) and len(v) == 2
+
+    def test_known_type_ranges_from_reference(self):
+        params = get_soil_parameters("подзол")
+        # подзол ph = 4.5, so range should be around 4.5 ± 30%
+        lo, hi = params["ph"]
+        assert lo < 4.5 < hi
 
 
 class TestCompare:
