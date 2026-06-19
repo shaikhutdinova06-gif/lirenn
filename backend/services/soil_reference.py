@@ -95,22 +95,20 @@ def get_soil_quality_score(deviation):
     if not deviation:
         return 50  # Средняя оценка если нет данных
     
-    score = 100
+    total_score = 0
     count = 0
     
-    # Учитываем только процентные отклонения
+    # Каждый параметр оценивается от 0 до 100, затем берётся среднее
     for key, value in deviation.items():
         if key.endswith("_percent"):
-            # Чем больше отклонение, тем ниже оценка
-            score -= min(abs(value), 50)  # Ограничиваем максимальное снижение
+            param_score = max(0, 100 - min(abs(value), 100))
+            total_score += param_score
             count += 1
     
     if count > 0:
-        score = max(0, min(100, score / count))
-    else:
-        score = 50
+        return round(max(0, min(100, total_score / count)), 0)
     
-    return round(score, 0)
+    return 50
 
 def get_recommendations(deviation, soil_type):
     """Получить рекомендации по улучшению почвы"""
