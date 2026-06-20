@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Отчет ИИ — LIREN</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+button { margin: 5px; padding: 10px 14px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+button:hover { background: #45a049; }
+.card { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 16px; }
+table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+</style>
+</head>
+<body>
+
+<h2>Отчет ИИ — LIREN</h2>
+<p>Здесь отображаются последние результаты анализа почвы.</p>
+<button onclick="loadReport()">Обновить отчет</button>
+<a href="index.html" style="margin-left: 10px;">Вернуться на главную</a>
+
+<div id="summary" class="card"></div>
+<div id="entries" class="card"></div>
+
+<script>
+const apiBase = window.location.origin;
+
+async function loadReport() {
+  const res = await fetch(`${apiBase}/report`);
+  const data = await res.json();
+
+  document.getElementById("summary").innerHTML = `
+    <h3>Общее</h3>
+    <p>Всего записей: <strong>${data.total}</strong></p>
+    <p>Загрязнено: <strong>${data.contamination}</strong></p>
+    <p>Чистых зон: <strong>${data.clean}</strong></p>
+  `;
+
+  if (!data.entries || data.entries.length === 0) {
+    document.getElementById("entries").innerHTML = `<h3>Последние записи</h3><p>Пока нет данных.</p>`;
+    return;
+  }
+
+  document.getElementById("entries").innerHTML = `
+    <h3>Последние записи</h3>
+    <table>
+      <thead><tr><th>Дата</th><th>Широта</th><th>Долгота</th><th>Результат</th></tr></thead>
+      <tbody>
+        ${data.entries.map(item => `
+          <tr>
+            <td>${item.timestamp || "-"}</td>
+            <td>${item.lat}</td>
+            <td>${item.lon}</td>
+            <td>${item.result}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+loadReport();
+</script>
+
+</body>
+</html>
