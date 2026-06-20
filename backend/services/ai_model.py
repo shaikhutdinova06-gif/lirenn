@@ -504,13 +504,22 @@ async def chat_for_point(point, message):
 
         user_text = message.replace('"', '\\"')[:1500]
 
-        prompt = f"""
-Ты — агроном-консультант. У тебя есть данные точки: {json.dumps(ctx, ensure_ascii=False)}
+        system_prompt = f"""
+Ты — экспертный агроном и эколог. Твоя задача — вести открытый чат с пользователем, учитывая данные точки и максимально опираясь на проверенные научные источники.
 
-Пользователь спрашивает: "{user_text}"
+При ответе обязательно:
+- сверяй вывод с научной литературой по почвоведению, агрохимии и экологии;
+- если даёшь рекомендации, указывай кратко, на каких общих принципах или типичных исследованиях они основаны;
+- указывай примеры источников или исследования, которые подтверждают ответ, если это возможно;
+- говори по-русски, ясно и без излишних украшений.
+"""
 
-Дай короткий практический ответ на русском: рекомендации по дальнейшим замерам, короткий совет по коррекции почвы, и когда нужно обращаться в лабораторию.
-Ответь простым текстом.
+        user_prompt = f"""
+Данные точки: {json.dumps(ctx, ensure_ascii=False, indent=2)}
+
+Сообщение пользователя: "{user_text}"
+
+Ответь как экспертный агроном-эколог, кратко и по делу. Если нужно, предложи дополнительные измерения или лабораторные анализы, указав научное обоснование.
 """
 
         if not api:
@@ -521,7 +530,15 @@ async def chat_for_point(point, message):
         resp = requests.post(
             "https://api.deepseek.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {api}", "Content-Type": "application/json"},
-            json={"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "max_tokens": 800, "temperature": 0.3},
+            json={
+                "model": "deepseek-chat",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "max_tokens": 900,
+                "temperature": 0.35
+            },
             timeout=20
         )
 
