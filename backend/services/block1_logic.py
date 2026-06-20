@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from backend.services.ai_model import classify_image, analyze_soil, detect_soil_type
 from backend.services.storage import save_point
+from backend.services.weather import get_weather_for_point
 from backend.services.soil_metrics import calculate_zc
 from backend.services.geo import detect_region
 from backend.services.soil_reference import get_reference, calculate_deviation, get_soil_quality_score, get_recommendations
@@ -105,6 +106,17 @@ async def process_block1(data):
         "timestamp": datetime.utcnow().isoformat(),
         "last_updated": datetime.utcnow().isoformat(),
         "confidence": calculate_confidence(data),
+        # Extended indicators
+        "soil_texture": data.get("soil_texture"),
+        "clay_pct": data.get("clay_pct"),
+        "silt_pct": data.get("silt_pct"),
+        "sand_pct": data.get("sand_pct"),
+        "cec": data.get("cec"),
+        "electrical_conductivity": data.get("electrical_conductivity"),
+        "salinity": data.get("salinity"),
+        "bulk_density": data.get("bulk_density"),
+        "organic_carbon": data.get("organic_carbon"),
+        "heavy_metals": data.get("heavy_metals", {}),
         # История измерений (первое измерение)
         "measurements": [{
             "id": str(uuid.uuid4()),
@@ -145,6 +157,14 @@ async def process_block1(data):
         # Полный ответ от AI
         "raw_ai": ai_result
     }
+
+    # 9. Weather data (if coordinates provided)
+    try:
+        weather = get_weather_for_point(data.get('lat'), data.get('lng'))
+        point['weather'] = weather
+        print(f"[BLOCK1] Weather attached for point: {weather.get('source', 'n/a')}")
+    except Exception as e:
+        print(f"[BLOCK1] Failed to fetch weather: {e}")
     
     # 8. Сохранение точки
     save_point(point)

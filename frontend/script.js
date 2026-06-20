@@ -2416,6 +2416,9 @@ function displayCabinetPoints(points) {
                         <button class="btn btn-secondary" onclick="openDynamicsModal('${point.id}')" style="flex:1; font-size:13px;">
                             📊 Динамика
                         </button>
+                        <button class="btn btn-accent" onclick="openAssistantModal('${point.id}')" style="flex:1; font-size:13px;">
+                            💬 Ассистент
+                        </button>
                     </div>
                 </div>
             </div>
@@ -2424,6 +2427,81 @@ function displayCabinetPoints(points) {
     
     list.innerHTML = html;
 }
+
+// Assistant modal
+function openAssistantModal(pointId) {
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'assistant-overlay';
+    overlay.style = 'position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:9999;';
+
+    const box = document.createElement('div');
+    box.style = 'width:560px; max-width:95%; background:#fff; border-radius:12px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,0.2);';
+    box.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h3 style="margin:0; font-size:16px;">Ассистент точки</h3>
+            <button id="assistant-close" style="background:none;border:none;font-size:20px;cursor:pointer;">✖</button>
+        </div>
+        <div id="assistant-messages" style="height:200px; overflow:auto; border:1px solid #eee; padding:8px; border-radius:8px; background:#fafafa;"></div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+            <input id="assistant-input" placeholder="Задайте вопрос по точке, напр. 'Что с pH?'" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:8px;">
+            <button id="assistant-send" class="btn btn-primary">Отправить</button>
+        </div>
+    `;
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    document.getElementById('assistant-close').addEventListener('click', () => {
+        document.body.removeChild(overlay);
+    });
+
+    const messagesEl = document.getElementById('assistant-messages');
+    const inputEl = document.getElementById('assistant-input');
+    const sendBtn = document.getElementById('assistant-send');
+
+    function appendMessage(role, text) {
+        const div = document.createElement('div');
+        div.style = 'margin-bottom:8px;';
+        div.innerHTML = `<strong>${role}:</strong> <div style="margin-top:4px;">${text}</div>`;
+        messagesEl.appendChild(div);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    sendBtn.addEventListener('click', async () => {
+        const text = inputEl.value.trim();
+        if (!text) return;
+        appendMessage('Вы', text);
+        inputEl.value = '';
+
+        appendMessage('Ассистент', '...');
+        try {
+            const token = localStorage.getItem('auth_token') || '';
+            const res = await fetch(`/api/point/${pointId}/assistant`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ message: text })
+            });
+            const data = await res.json();
+            // Remove the last '...' message
+            messagesEl.removeChild(messagesEl.lastChild);
+            if (data && data.reply) {
+                appendMessage('Ассистент', data.reply);
+            } else {
+                appendMessage('Ассистент', 'Ошибка: ответ пуст');
+            }
+        } catch (e) {
+            messagesEl.removeChild(messagesEl.lastChild);
+            appendMessage('Ассистент', 'Ошибка связи с сервером');
+            console.error(e);
+        }
+    });
+
+    inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendBtn.click();
+    });
+}
+
 
 // Загрузка всех публичных точек на карту
 async function loadAllPublicPoints() {
