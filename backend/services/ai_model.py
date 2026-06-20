@@ -514,10 +514,21 @@ async def chat_for_point(point, message):
 - говори по-русски, ясно и без излишних украшений.
 """
 
-        user_prompt = f"""
-Данные точки: {json.dumps(ctx, ensure_ascii=False, indent=2)}
+        def build_system_prompt():
+            return """
+Ты — экспертный агроном и эколог. Твоя задача — вести открытый чат с пользователем, учитывая данные почвы и максимально опираясь на проверенные научные источники.
 
-Сообщение пользователя: "{user_text}"
+При ответе обязательно:
+- сверяй вывод с научной литературой по почвоведению, агрохимии и экологии;
+- если даёшь рекомендации, указывай кратко, на каких общих принципах или типичных исследованиях они основаны;
+- указывай примеры источников или исследования, которые подтверждают ответ, если это возможно;
+- говори по-русски, ясно и без излишних украшений.
+"""
+
+        def build_user_prompt(message, context):
+            context_text = f"Данные точки: {json.dumps(context, ensure_ascii=False, indent=2)}\n\n" if context else ''
+            return f"""
+{context_text}Сообщение пользователя: \"{message}\"
 
 Ответь как экспертный агроном-эколог, кратко и по делу. Если нужно, предложи дополнительные измерения или лабораторные анализы, указав научное обоснование.
 """
@@ -533,8 +544,8 @@ async def chat_for_point(point, message):
             json={
                 "model": "deepseek-chat",
                 "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
+                    {"role": "system", "content": build_system_prompt()},
+                    {"role": "user", "content": build_user_prompt(user_text, ctx)}
                 ],
                 "max_tokens": 900,
                 "temperature": 0.35
