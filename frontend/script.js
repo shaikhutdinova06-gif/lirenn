@@ -2193,18 +2193,26 @@ function displayCabinetPoints(points) {
     points.forEach((point, idx) => {
         const firstImage = point.images && point.images.length > 0 ? point.images[0] : point.image;
         const soilTypeObj = point.soil_type || {};
-        const ai = point.ai_analysis || {};
-        const soilType = soilTypeObj.soil_ru || ai.soil_type || point.soil_type_name || "Не определен";
+        const legacyReport = point.report || {};
+        const ai = point.ai_analysis || legacyReport.ai_analysis || legacyReport || {};
+        const soilType = soilTypeObj.soil_ru || ai.soil_type || legacyReport.general?.soil_type || point.soil_type_name || "Не определен";
         const date = point.created_at ? new Date(point.created_at).toLocaleDateString('ru-RU') : (point.timestamp ? new Date(point.timestamp).toLocaleDateString('ru-RU') : '—');
-        const fertility = ai.fertility_score || 5;
+        const fertility = ai.fertility_score || legacyReport.fertility_score || 5;
+        const fertilityText = ai.fertility_text || legacyReport.fertility_text || '';
         const fertilityColor = fertility >= 7 ? '#4CAF50' : fertility >= 5 ? '#FFC107' : '#F44336';
         const eco = point.ecological_report || {};
         const zc = eco.zc || 0;
         const zcCat = eco.zc_category || "не определено";
         const measurements = point.measurements || [];
         const hasDynamics = measurements.length > 1;
-        const refs = ai.scientific_references || [];
-        const detailedAnalysis = ai.detailed_analysis || {};
+        const chemicalAnalysis = ai.chemical_analysis || legacyReport.chemical_analysis || '';
+        const summary = ai.summary || legacyReport.summary || '';
+        const risks = ai.risks || legacyReport.risks || [];
+        const recommendations = ai.recommendations || legacyReport.recommendations || [];
+        const suitableCrops = ai.suitable_crops || legacyReport.suitable_crops || [];
+        const refs = ai.scientific_references || legacyReport.scientific_references || [];
+        const detailedAnalysis = ai.detailed_analysis || legacyReport.detailed_analysis || {};
+        const hasAiReport = summary || chemicalAnalysis || risks.length || recommendations.length || suitableCrops.length || refs.length || Object.keys(detailedAnalysis).length;
 
         html += `
             <div class="ai-report">
@@ -2255,22 +2263,22 @@ function displayCabinetPoints(points) {
                         <div class="fertility-bar">
                             <div class="fertility-bar-fill" style="width:${fertility * 10}%; background:${fertilityColor};"></div>
                         </div>
-                        ${ai.fertility_text ? `<div class="ai-report-value" style="margin-top:8px;">${ai.fertility_text}</div>` : ''}
+                        ${fertilityText ? `<div class="ai-report-value" style="margin-top:8px;">${fertilityText}</div>` : ''}
                     </div>
 
                     <!-- AI Summary -->
-                    ${ai.summary ? `
+                    ${summary ? `
                         <div class="ai-report-section">
                             <div class="ai-report-label">🤖 Заключение ИИ</div>
-                            <div class="ai-report-value">${ai.summary}</div>
+                            <div class="ai-report-value">${summary}</div>
                         </div>
                     ` : ''}
 
                     <!-- Chemical Analysis -->
-                    ${ai.chemical_analysis ? `
+                    ${chemicalAnalysis ? `
                         <div class="ai-report-section">
                             <div class="ai-report-label">🔬 Химический анализ</div>
-                            <div class="ai-report-value">${ai.chemical_analysis}</div>
+                            <div class="ai-report-value">${chemicalAnalysis}</div>
                         </div>
                     ` : ''}
 
@@ -2297,28 +2305,28 @@ function displayCabinetPoints(points) {
                     </div>
 
                     <!-- Risks -->
-                    ${ai.risks && ai.risks.length > 0 ? `
+                    ${risks && risks.length > 0 ? `
                         <div class="ai-report-section">
                             <div class="ai-report-label">⚠️ Риски и проблемы</div>
-                            <div>${ai.risks.map(r => '<span class="ai-tag ai-tag-risk">' + r + '</span>').join('')}</div>
+                            <div>${risks.map(r => '<span class="ai-tag ai-tag-risk">' + r + '</span>').join('')}</div>
                         </div>
                     ` : ''}
 
                     <!-- Recommendations -->
-                    ${ai.recommendations && ai.recommendations.length > 0 ? `
+                    ${recommendations && recommendations.length > 0 ? `
                         <div class="ai-report-section">
                             <div class="ai-report-label">✅ Рекомендации</div>
                             <ul style="margin:0; padding-left:18px; color:#333; font-size:14px; line-height:1.7;">
-                                ${ai.recommendations.map(r => '<li>' + r + '</li>').join('')}
+                                ${recommendations.map(r => '<li>' + r + '</li>').join('')}
                             </ul>
                         </div>
                     ` : ''}
 
                     <!-- Suitable crops -->
-                    ${ai.suitable_crops && ai.suitable_crops.length > 0 ? `
+                    ${suitableCrops && suitableCrops.length > 0 ? `
                         <div class="ai-report-section">
                             <div class="ai-report-label">🌾 Рекомендуемые культуры</div>
-                            <div>${ai.suitable_crops.map(c => '<span class="ai-tag ai-tag-crop">' + c + '</span>').join('')}</div>
+                            <div>${suitableCrops.map(c => '<span class="ai-tag ai-tag-crop">' + c + '</span>').join('')}</div>
                         </div>
                     ` : ''}
 
