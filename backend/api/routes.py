@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from backend.services.block1_logic import process_block1
 from backend.services.storage import get_user_points, get_points, get_user_data, initialize_test_location, delete_user_point, get_all_points, get_point_history
-from backend.services.ai_model import deepseek_classify
+from backend.services.ai_model import deepseek_classify, chat_for_point
 from backend.services.auth import register_user, authenticate_user, create_access_token, get_current_user
 from backend.services.satellite import get_satellite_image, get_ndvi_image
 from math import radians, cos, sin, sqrt, asin
@@ -480,4 +480,38 @@ async def analyze_dynamics(point_id: str, request: Request):
         
     except Exception as e:
         print(f"[API] Dynamics analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/point/{point_id}/assistant")
+async def point_assistant(point_id: str, request: Request):
+    """Chat assistant for a specific user point. Body: {"message": "..."} """
+    # Проверяем авторизацию
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization required")
+
+    token = auth_header.replace("Bearer ", "")
+    user = get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    try:
+        body = await request.json()
+        message = body.get("message", "")
+
+        # Найти точку и проверить права
+        points = get_points()
+        point = next((p for p in points if p.get("id") == point_id and p.get("user_id") == user["username"]), None)
+        if not point:
+            raise HTTPException(status_code=404, detail="Point not found or access denied")
+
+        # Вызвать AI chat helper
+        result = await chat_for_point(point, message)
+        return {"ok": True, "reply": result.get("reply", "")}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[API] Assistant error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -481,3 +481,59 @@ def get_fallback_analysis(data):
         },
         "fallback": True
     }
+
+
+async def chat_for_point(point, message):
+    """Assistant chat for a single point. Returns a short reply JSON.
+
+    Uses DeepSeek chat when `DEEPSEEK_API_KEY` is set; otherwise falls back
+    to a heuristic summary based on `get_fallback_analysis`.
+    """
+    try:
+        api = API_KEY
+        ctx = {
+            "id": point.get("id"),
+            "coords": {"lat": point.get("lat"), "lng": point.get("lng")},
+            "ph": point.get("ph"),
+            "moisture": point.get("moisture"),
+            "nitrogen": point.get("nitrogen"),
+            "phosphorus": point.get("phosphorus"),
+            "potassium": point.get("potassium"),
+            "soil_type": (point.get("soil_type") or {}).get("soil_ru") or point.get("soil_type_name")
+        }
+
+        user_text = message.replace('"', '\\"')[:1500]
+
+        prompt = f"""
+Ты — агроном-консультант. У тебя есть данные точки: {json.dumps(ctx, ensure_ascii=False)}
+
+Пользователь спрашивает: "{user_text}"
+
+Дай короткий практический ответ на русском: рекомендации по дальнейшим замерам, короткий совет по коррекции почвы, и когда нужно обращаться в лабораторию.
+Ответь простым текстом.
+"""
+
+        if not api:
+            fb = get_fallback_analysis(point)
+            reply = fb.get('summary', 'Данных недостаточно для детального ответа.')
+            return {"reply": reply}
+
+        resp = requests.post(
+            "https://api.deepseek.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api}", "Content-Type": "application/json"},
+            json={"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "max_tokens": 800, "temperature": 0.3},
+            timeout=20
+        )
+
+        if resp.status_code != 200:
+            print(f"[AI] chat_for_point API error {resp.status_code}: {resp.text}")
+            fb = get_fallback_analysis(point)
+            return {"reply": fb.get('summary', '')}
+
+        content = resp.json().get('choices', [])[0].get('message', {}).get('content', '')
+        return {"reply": content}
+
+    except Exception as e:
+        print(f"[AI] chat_for_point error: {e}")
+        fb = get_fallback_analysis(point)
+        return {"reply": fb.get('summary', '')}
