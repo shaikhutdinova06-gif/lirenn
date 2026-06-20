@@ -40,7 +40,7 @@ pH: {data.get('ph', 'не указано')}
     
     try:
         response = requests.post(
-            "https://api.deepseek.com/chat/completions",
+            "https://api.deepseek.com/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {API_KEY}",
                 "Content-Type": "application/json"
@@ -55,11 +55,12 @@ pH: {data.get('ph', 'не указано')}
         )
         
         if response.status_code != 200:
+            print(f"[AI] detect_soil_type API error {response.status_code}: {response.text}")
             return {
                 "soil_ru": "не определено",
                 "soil_wrb": "-",
                 "confidence": 0,
-                "reason": f"API ошибка: {response.status_code}"
+                "reason": f"API ошибка: {response.status_code}. {response.text[:200]}"
             }
         
         text = response.json()["choices"][0]["message"]["content"]
@@ -279,7 +280,7 @@ async def deepseek_classify(image):
             image_prefix = f"data:image/jpeg;base64,{image}"
         
         response = requests.post(
-            "https://api.deepseek.com/chat/completions",
+            "https://api.deepseek.com/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {API_KEY}",
                 "Content-Type": "application/json"
@@ -307,7 +308,7 @@ async def deepseek_classify(image):
         )
         
         if response.status_code != 200:
-            print(f"DeepSeek API error: {response.status_code}")
+            print(f"[AI] deepseek_classify API error {response.status_code}: {response.text}")
             return "soil"
         
         result = response.json()
@@ -379,7 +380,7 @@ async def analyze_soil(data):
 }}"""
 
         response = requests.post(
-            "https://api.deepseek.com/chat/completions",
+            "https://api.deepseek.com/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {API_KEY}",
                 "Content-Type": "application/json"
@@ -394,7 +395,7 @@ async def analyze_soil(data):
         )
         
         if response.status_code != 200:
-            print(f"[AI] API error: {response.status_code}")
+            print(f"[AI] analyze_soil API error {response.status_code}: {response.text}")
             return get_fallback_analysis(data)
         
         result = response.json()

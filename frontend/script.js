@@ -2061,6 +2061,31 @@ function displayAnalysisResult(result) {
     resultDiv.innerHTML = html;
 }
 
+async function loadSoilTypesForCabinet() {
+    const soilTypeFilter = document.getElementById('cabinet-soil-type-filter');
+    if (!soilTypeFilter) {
+        return;
+    }
+
+    const types = new Set();
+    const points = window.userPoints || [];
+
+    points.forEach(point => {
+        const soilType = point.soil_type?.soil_ru || point.ai_analysis?.soil_type || point.raw_ai?.soil_type || point.report?.general?.soil_type || point.soil_type_name;
+        if (soilType) {
+            types.add(soilType);
+        }
+    });
+
+    soilTypeFilter.innerHTML = '<option value="">Все типы почвы</option>';
+    Array.from(types).sort().forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        soilTypeFilter.appendChild(option);
+    });
+}
+
 // Загрузка данных личного кабинета
 async function loadUserCabinet() {
     try {
@@ -2079,6 +2104,17 @@ async function loadUserCabinet() {
             list.innerHTML = '<p>Ваша сессия истекла. <a href="#" onclick="showAuthModal(); return false;">Войдите снова</a></p>';
             return;
         }
+        if (!res.ok) {
+            const errorText = await res.text().catch(() => res.statusText || 'Ошибка сервера');
+            list.innerHTML = `
+                <div class="error-card" style="padding: 20px; text-align: center; color: #333;">
+                    <p style="margin: 0 0 12px; font-weight: 600;">Не удалось загрузить данные личного кабинета.</p>
+                    <p style="margin: 0 0 18px; color: #666;">Ошибка сервера: ${res.status} ${errorText}</p>
+                    <button class="btn btn-primary" onclick="loadUserCabinet()" style="min-width: 180px;">Попробовать снова</button>
+                </div>
+            `;
+            return;
+        }
         
         const data = await res.json();
         
@@ -2092,7 +2128,13 @@ async function loadUserCabinet() {
         displayCabinetPoints(window.userPoints);
     } catch (error) {
         console.error('Error loading cabinet:', error);
-        document.getElementById("user-cabinet-content").innerHTML = '<p>Ошибка загрузки данных. <a href="#" onclick="loadUserCabinet(); return false;">Попробовать снова</a></p>';
+        document.getElementById("user-cabinet-content").innerHTML = `
+            <div class="error-card" style="padding: 20px; text-align: center; color: #333;">
+                <p style="margin: 0 0 12px; font-weight: 600;">Не удалось загрузить данные личного кабинета.</p>
+                <p style="margin: 0 0 18px; color: #666;">Проверьте подключение и повторите попытку.</p>
+                <button class="btn btn-primary" onclick="loadUserCabinet()" style="min-width: 180px;">Попробовать снова</button>
+            </div>
+        `;
     }
 }
 
@@ -2194,11 +2236,12 @@ function displayCabinetPoints(points) {
         const firstImage = point.images && point.images.length > 0 ? point.images[0] : point.image;
         const soilTypeObj = point.soil_type || {};
         const legacyReport = point.report || {};
-        const ai = point.ai_analysis || legacyReport.ai_analysis || legacyReport || {};
-        const soilType = soilTypeObj.soil_ru || ai.soil_type || legacyReport.general?.soil_type || point.soil_type_name || "Не определен";
+        const rawAi = point.raw_ai || {};
+        const ai = point.ai_analysis || legacyReport.ai_analysis || rawAi || legacyReport || {};
+        const soilType = soilTypeObj.soil_ru || ai.soil_type || rawAi.soil_type || legacyReport.general?.soil_type || point.soil_type_name || "Не определен";
         const date = point.created_at ? new Date(point.created_at).toLocaleDateString('ru-RU') : (point.timestamp ? new Date(point.timestamp).toLocaleDateString('ru-RU') : '—');
-        const fertility = ai.fertility_score || legacyReport.fertility_score || 5;
-        const fertilityText = ai.fertility_text || legacyReport.fertility_text || '';
+        const fertility = ai.fertility_score || rawAi.fertility_score || legacyReport.fertility_score || 5;
+        const fertilityText = ai.fertility_text || rawAi.fertility_text || legacyReport.fertility_text || '';
         const fertilityColor = fertility >= 7 ? '#4CAF50' : fertility >= 5 ? '#FFC107' : '#F44336';
         const eco = point.ecological_report || {};
         const zc = eco.zc || 0;
