@@ -483,39 +483,8 @@ def get_fallback_analysis(data):
     }
 
 
-async def chat_for_point(point, message):
-    """Assistant chat for a single point. Returns a short reply JSON.
-
-    Uses DeepSeek chat when `DEEPSEEK_API_KEY` is set; otherwise falls back
-    to a heuristic summary based on `get_fallback_analysis`.
-    """
-    try:
-        api = API_KEY
-        ctx = {
-            "id": point.get("id"),
-            "coords": {"lat": point.get("lat"), "lng": point.get("lng")},
-            "ph": point.get("ph"),
-            "moisture": point.get("moisture"),
-            "nitrogen": point.get("nitrogen"),
-            "phosphorus": point.get("phosphorus"),
-            "potassium": point.get("potassium"),
-            "soil_type": (point.get("soil_type") or {}).get("soil_ru") or point.get("soil_type_name")
-        }
-
-        user_text = message.replace('"', '\\"')[:1500]
-
-        system_prompt = f"""
-Ты — экспертный агроном и эколог. Твоя задача — вести открытый чат с пользователем, учитывая данные точки и максимально опираясь на проверенные научные источники.
-
-При ответе обязательно:
-- сверяй вывод с научной литературой по почвоведению, агрохимии и экологии;
-- если даёшь рекомендации, указывай кратко, на каких общих принципах или типичных исследованиях они основаны;
-- указывай примеры источников или исследования, которые подтверждают ответ, если это возможно;
-- говори по-русски, ясно и без излишних украшений.
-"""
-
-        def build_system_prompt():
-            return """
+def build_system_prompt():
+    return """
 Ты — экспертный агроном и эколог. Твоя задача — вести открытый чат с пользователем, учитывая данные почвы и максимально опираясь на проверенные научные источники.
 
 При ответе обязательно:
@@ -525,18 +494,22 @@ async def chat_for_point(point, message):
 - говори по-русски, ясно и без излишних украшений.
 """
 
-        def build_user_prompt(message, context):
-            context_text = f"Данные точки: {json.dumps(context, ensure_ascii=False, indent=2)}\n\n" if context else ''
-            return f"""
+
+def build_user_prompt(message, context=None):
+    context_text = f"Данные точки: {json.dumps(context, ensure_ascii=False, indent=2)}\n\n" if context else ''
+    return f"""
 {context_text}Сообщение пользователя: \"{message}\"
 
 Ответь как экспертный агроном-эколог, кратко и по делу. Если нужно, предложи дополнительные измерения или лабораторные анализы, указав научное обоснование.
 """
 
+
+async def open_chat(message, context=None):
+    try:
+        api = API_KEY
         if not api:
-            fb = get_fallback_analysis(point)
-            reply = fb.get('summary', 'Данных недостаточно для детального ответа.')
-            return {"reply": reply}
+            fallback = get_fallback_analysis(context or {})
+            return {"reply": fallback.get('summary', 'Данных недостаточно для детального ответа.')}
 
         resp = requests.post(
             "https://api.deepseek.com/v1/chat/completions",
@@ -545,23 +518,36 @@ async def chat_for_point(point, message):
                 "model": "deepseek-chat",
                 "messages": [
                     {"role": "system", "content": build_system_prompt()},
-                    {"role": "user", "content": build_user_prompt(user_text, ctx)}
+                    {"role": "user", "content": build_user_prompt(message, context)}
                 ],
                 "max_tokens": 900,
                 "temperature": 0.35
             },
-            timeout=20
+            timeout=25
         )
 
         if resp.status_code != 200:
-            print(f"[AI] chat_for_point API error {resp.status_code}: {resp.text}")
-            fb = get_fallback_analysis(point)
-            return {"reply": fb.get('summary', '')}
+            print(f"[AI] open_chat API error {resp.status_code}: {resp.text}")
+            fallback = get_fallback_analysis(context or {})
+            return {"reply": fallback.get('summary', '')}
 
         content = resp.json().get('choices', [])[0].get('message', {}).get('content', '')
         return {"reply": content}
-
     except Exception as e:
-        print(f"[AI] chat_for_point error: {e}")
-        fb = get_fallback_analysis(point)
-        return {"reply": fb.get('summary', '')}
+        print(f"[AI] open_chat error: {e}")
+        fallback = get_fallback_analysis(context or {})
+        return {"reply": fallback.get('summary', '')}
+
+
+async def chat_for_point(point, message):
+    ctx = {
+        "id": point.get("id"),
+        "coords": {"lat": point.get("lat"), "lng": point.get("lng")},
+        "ph": point.get("ph"),
+        "moisture": point.get("moisture"),
+        "nitrogen": point.get("nitrogen"),
+        "phosphorus": point.get("phosphorus"),
+        "potassium": point.get("potassium"),
+        "soil_type": (point.get("soil_type") or {}).get("soil_ru") or point.get("soil_type_name")
+    }
+    return await open_chat(message, ctx)

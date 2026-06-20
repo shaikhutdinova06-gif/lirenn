@@ -136,6 +136,7 @@ function showSection(section) {
     document.getElementById("cabinet").style.display = "none";
     document.getElementById("points-list").style.display = "none";
     document.getElementById("points-filter").style.display = "none";
+    document.getElementById("ai-chat").style.display = "none";
     
     // Show selected section
     const targetSection = document.getElementById(section);
@@ -167,6 +168,89 @@ function showSection(section) {
     if (section === "analysis") {
         initAnalysisForm();
         if (window.debugLog) debugLog('Analysis form opened');
+    }
+
+    if (section === "ai-chat") {
+        initAiChat();
+    }
+}
+
+function initAiChat() {
+    const messagesEl = document.getElementById('ai-chat-messages');
+    const inputEl = document.getElementById('ai-chat-input');
+    const sendBtn = document.getElementById('ai-chat-send');
+
+    if (!messagesEl || !inputEl || !sendBtn) return;
+    if (window.aiChatInitialized) return;
+
+    window.aiChatInitialized = true;
+    sendBtn.addEventListener('click', sendAiChatMessage);
+    inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendAiChatMessage();
+        }
+    });
+}
+
+function appendAiChatMessage(role, text) {
+    const messagesEl = document.getElementById('ai-chat-messages');
+    if (!messagesEl) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.style = 'margin-bottom: 12px; display: flex; flex-direction: column;';
+    const label = document.createElement('div');
+    label.style = 'font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #374151;';
+    label.textContent = role;
+    const bubble = document.createElement('div');
+    bubble.style = role === 'ИИ' ? 'background:#EFF6FF; align-self:flex-start; padding:12px 14px; border-radius: 14px; color:#111827; border:1px solid #dbeafe; max-width:100%; white-space:pre-wrap;' : 'background:#f3f4f6; align-self:flex-end; padding:12px 14px; border-radius: 14px; color:#111827; border:1px solid #e5e7eb; max-width:100%; white-space:pre-wrap;';
+    bubble.textContent = text;
+    wrapper.appendChild(label);
+    wrapper.appendChild(bubble);
+    messagesEl.appendChild(wrapper);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+async function sendAiChatMessage() {
+    const inputEl = document.getElementById('ai-chat-input');
+    const text = inputEl ? inputEl.value.trim() : '';
+    if (!text) return;
+
+    appendAiChatMessage('Вы', text);
+    if (inputEl) inputEl.value = '';
+    appendAiChatMessage('ИИ', 'Пишу ответ...');
+
+    try {
+        const token = localStorage.getItem('auth_token') || '';
+        const response = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({ message: text })
+        });
+        const data = await response.json();
+
+        const messagesEl = document.getElementById('ai-chat-messages');
+        if (messagesEl && messagesEl.lastChild) {
+            messagesEl.removeChild(messagesEl.lastChild);
+        }
+
+        if (data && data.ok && data.reply) {
+            appendAiChatMessage('ИИ', data.reply);
+        } else if (data && data.detail) {
+            appendAiChatMessage('ИИ', `Ошибка: ${data.detail}`);
+        } else {
+            appendAiChatMessage('ИИ', 'Ошибка: не удалось получить ответ от сервера.');
+        }
+    } catch (error) {
+        console.error('AI chat error:', error);
+        const messagesEl = document.getElementById('ai-chat-messages');
+        if (messagesEl && messagesEl.lastChild) {
+            messagesEl.removeChild(messagesEl.lastChild);
+        }
+        appendAiChatMessage('ИИ', 'Ошибка сети. Попробуйте позже.');
     }
 }
 

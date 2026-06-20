@@ -23,6 +23,7 @@
         <li><a href="#" class="nav-link" onclick="showSection('points-filter')">🔍 Фильтр точек</a></li>
         <li><a href="#" class="nav-link" onclick="showSection('points-list')">📍 Список точек</a></li>
         <li><a href="#" class="nav-link" onclick="showSection('cabinet')">Мой кабинет</a></li>
+        <li><a href="#" class="nav-link" onclick="showSection('ai-chat')">Чат ИИ</a></li>
         <li><a href="#" class="nav-link" onclick="openFeedbackLink()">💬 Обратная связь</a></li>
         <li id="auth-link"><a href="#" class="nav-link" onclick="showAuthModal()">Войти</a></li>
     </ul>
@@ -419,6 +420,24 @@
         
         <div id="user-cabinet-content">
             <p>Загрузка данных...</p>
+        </div>
+    </div>
+</section>
+
+<!-- AI Chat Section -->
+<section id="ai-chat" class="section" style="display: none;">
+    <div class="container" style="max-width: 900px; margin: 0 auto;">
+        <h2>💬 Открытый чат с ИИ</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            Задайте вопрос об экологии участка, почве, показателях, погоде или региональных рисках. Ответы формирует экспертный ИИ с опорой на научные источники.
+        </p>
+        <div style="background: #f9fafb; padding: 18px; border-radius: 14px; border: 1px solid #e3e7eb; margin-bottom: 20px; min-height: 420px; display: flex; flex-direction: column;">
+            <div id="ai-chat-messages" style="flex: 1; overflow-y: auto; padding-right: 6px; margin-bottom: 16px;"></div>
+            <div style="display: flex; gap: 10px; align-items: flex-end;">
+                <textarea id="ai-chat-input" placeholder="Например: 'Какие экологические риски для участка с таким pH и влажностью?'" rows="3" style="flex: 1; padding: 14px; border-radius: 12px; border: 1px solid #dfe3e8; resize: vertical;"></textarea>
+                <button id="ai-chat-send" class="btn btn-primary" style="height: 48px; padding: 0 24px; white-space: nowrap;">Отправить</button>
+            </div>
+            <div id="ai-chat-hint" style="color: #777; font-size: 13px; margin-top: 8px;">Если вы авторизованы, ваш диалог будет строиться быстрее по данным вашей учётной записи.</div>
         </div>
     </div>
 </section>

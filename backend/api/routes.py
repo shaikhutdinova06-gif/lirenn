@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from backend.services.block1_logic import process_block1
 from backend.services.storage import get_user_points, get_points, get_user_data, initialize_test_location, delete_user_point, get_all_points, get_point_history
-from backend.services.ai_model import deepseek_classify, chat_for_point
+from backend.services.ai_model import deepseek_classify, chat_for_point, open_chat
 from backend.services.auth import register_user, authenticate_user, create_access_token, get_current_user
 from backend.services.satellite import get_satellite_image, get_ndvi_image
 from math import radians, cos, sin, sqrt, asin
@@ -514,4 +514,22 @@ async def point_assistant(point_id: str, request: Request):
         raise
     except Exception as e:
         print(f"[API] Assistant error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/ai/chat")
+async def open_ai_chat(request: Request):
+    """Open AI chat not tied to a specific point."""
+    try:
+        body = await request.json()
+        message = body.get("message", "")
+        if not message:
+            raise HTTPException(status_code=400, detail="Message is required")
+
+        result = await open_chat(message, None)
+        return {"ok": True, "reply": result.get("reply", "")}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[API] Open AI chat error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
