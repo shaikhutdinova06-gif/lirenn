@@ -179,12 +179,14 @@ function initAiChat() {
     const messagesEl = document.getElementById('ai-chat-messages');
     const inputEl = document.getElementById('ai-chat-input');
     const sendBtn = document.getElementById('ai-chat-send');
+    const areaBtn = document.getElementById('ai-chat-area');
 
     if (!messagesEl || !inputEl || !sendBtn) return;
     if (window.aiChatInitialized) return;
 
     window.aiChatInitialized = true;
     sendBtn.addEventListener('click', sendAiChatMessage);
+    if (areaBtn) areaBtn.addEventListener('click', openAreaChat);
     inputEl.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -222,13 +224,16 @@ async function sendAiChatMessage() {
 
     try {
         const token = localStorage.getItem('auth_token') || '';
+        const payload = { message: text };
+        if (window.lastAiContext) payload.context = window.lastAiContext;
+
         const response = await fetch('/api/ai/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             },
-            body: JSON.stringify({ message: text })
+            body: JSON.stringify(payload)
         });
         const data = await response.json();
 
@@ -252,6 +257,99 @@ async function sendAiChatMessage() {
         }
         appendAiChatMessage('ИИ', 'Ошибка сети. Попробуйте позже.');
     }
+}
+
+// Area chat modal (discuss an area/region with contextual info)
+function openAreaChat() {
+    const overlay = document.createElement('div');
+    overlay.id = 'area-chat-overlay';
+    overlay.style = 'position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:9999;';
+
+    const box = document.createElement('div');
+    box.style = 'width:640px; max-width:95%; background:#fff; border-radius:12px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:10px;';
+    box.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0; font-size:16px;">Обсудить район</h3>
+            <button id="area-chat-close" style="background:none;border:none;font-size:20px;cursor:pointer;">✖</button>
+        </div>
+        <div id="area-chat-messages" style="height:320px; overflow:auto; border:1px solid #eee; padding:8px; border-radius:8px; background:#fafafa;"></div>
+        <div style="display:flex; gap:8px;">
+            <input id="area-chat-input" placeholder="Задайте вопрос по району, например: 'Какие риски засоления в этом районе?'" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:8px;">
+            <button id="area-chat-send" class="btn btn-primary">Отправить</button>
+        </div>
+    `;
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    document.getElementById('area-chat-close').addEventListener('click', () => {
+        document.body.removeChild(overlay);
+    });
+
+    const messagesEl = document.getElementById('area-chat-messages');
+    const inputEl = document.getElementById('area-chat-input');
+    const sendBtn = document.getElementById('area-chat-send');
+
+    function append(msgRole, text) {
+        const div = document.createElement('div');
+        div.style = 'margin-bottom:8px;';
+        div.innerHTML = `<strong>${msgRole}:</strong> <div style="margin-top:4px;">${text}</div>`;
+        messagesEl.appendChild(div);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // Pre-fill context from map
+    const ctx = {};
+    try {
+        if (window.map) {
+            const center = map.getCenter();
+            const bounds = map.getBounds();
+            ctx.center = { lat: center.lat, lng: center.lng, zoom: map.getZoom() };
+            ctx.bounds = {
+                sw: { lat: bounds.getSouthWest().lat, lng: bounds.getSouthWest().lng },
+                ne: { lat: bounds.getNorthEast().lat, lng: bounds.getNorthEast().lng }
+            };
+        }
+        const soilFilter = document.getElementById('soil-type-filter');
+        if (soilFilter) ctx.soil_type_filter = soilFilter.value || null;
+    } catch (e) {
+        console.warn('Area chat: failed to build context', e);
+    }
+
+    append('Система', `Контекст района подготовлен: ${JSON.stringify(ctx)}`);
+
+    sendBtn.addEventListener('click', async () => {
+        const text = inputEl.value.trim();
+        if (!text) return;
+        append('Вы', text);
+        inputEl.value = '';
+        append('ИИ', 'Пишу ответ...');
+
+        try {
+            const token = localStorage.getItem('auth_token') || '';
+            const res = await fetch('/api/ai/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ message: text, context: ctx })
+            });
+            const data = await res.json();
+            // remove last '...' message
+            if (messagesEl && messagesEl.lastChild) messagesEl.removeChild(messagesEl.lastChild);
+            if (data && data.reply) {
+                append('ИИ', data.reply);
+            } else {
+                append('ИИ', 'Ошибка: ответ пуст');
+            }
+        } catch (e) {
+            if (messagesEl && messagesEl.lastChild) messagesEl.removeChild(messagesEl.lastChild);
+            append('ИИ', 'Ошибка связи с сервером');
+            console.error(e);
+        }
+    });
+
+    inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendBtn.click();
+    });
 }
 
 // =========================
@@ -649,7 +747,7 @@ function collectStepData() {
         lng: stepData.lng,
         tags: stepData.tags,
         notes: notes,
-        soil_type: selectedSoilType || stepData.validationResult?.identified_soil_type || "",
+        soil_type: selectedSoilType || "",
         images: stepData.images || [], // Добавляем изображения
         image: stepData.images && stepData.images.length > 0 ? stepData.images[0] : null // Первое изображение для совместимости
     };
@@ -1259,6 +1357,10 @@ async function submitAnalysisForm() {
         showErrorToast('Необходимо загрузить хотя бы одно фото почвы');
         return;
     }
+    if (!soilType) {
+        showErrorToast('Необходимо выбрать тип почвы из списка');
+        return;
+    }
     if (!ph) {
         showErrorToast('Необходимо указать pH почвы');
         return;
@@ -1473,7 +1575,15 @@ function showPointDetails(point) {
     // Приоритет: выбор пользователя > ИИ определение > старый формат
     const ai = point.ai_analysis || {};
     const soilTypeObj = point.soil_type || {}; // Новый формат с подтверждением
-    const soilType = soilTypeObj.soil_ru || ai.soil_type || point.report?.general?.soil_type || "Не определен";
+    let soilTypeRaw = soilTypeObj.soil_ru || ai.soil_type || point.report?.general?.soil_type || "";
+    if (typeof soilTypeRaw === 'object' && soilTypeRaw !== null) {
+        soilTypeRaw = soilTypeRaw.soil_ru || soilTypeRaw.soil_type || '';
+    }
+    const soilType = soilTypeRaw ? (soilTypeRaw === 'Не определен' ? 'Не определен' : soilTypeRaw.toUpperCase()) : 'Не определен';
+    
+    const soilStructure = ai.soil_structure || '';
+    const salinity = ai.salinity || '';
+    const regionalAssessment = ai.regional_assessment || '';
     
     // Добавляем информацию о том, кто определил тип
     let soilTypeInfo = "";
@@ -1725,7 +1835,11 @@ function createPopup(p) {
     const report = p.report;
     const images = p.images || [];
     const firstImage = images.length > 0 ? images[0] : p.image;
-    const soilType = report?.general?.soil_type || p.soil_type || "Не определен";
+    let soilTypeRaw = report?.general?.soil_type || p.soil_type || "";
+    if (typeof soilTypeRaw === 'object' && soilTypeRaw !== null) {
+        soilTypeRaw = soilTypeRaw.soil_ru || soilTypeRaw.soil_type || '';
+    }
+    const soilType = soilTypeRaw ? (soilTypeRaw === 'Не определен' ? 'Не определен' : soilTypeRaw.toUpperCase()) : 'Не определен';
     const pointId = p.id || 'unknown';
     
     return `
@@ -2323,6 +2437,9 @@ function displayCabinetPoints(points) {
         const rawAi = point.raw_ai || {};
         const ai = point.ai_analysis || legacyReport.ai_analysis || rawAi || legacyReport || {};
         const soilType = soilTypeObj.soil_ru || ai.soil_type || rawAi.soil_type || legacyReport.general?.soil_type || point.soil_type_name || "Не определен";
+        const soilStructure = ai.soil_structure || legacyReport.soil_structure || '';
+        const salinity = ai.salinity || legacyReport.salinity || '';
+        const regionalAssessment = ai.regional_assessment || legacyReport.regional_assessment || '';
         const date = point.created_at ? new Date(point.created_at).toLocaleDateString('ru-RU') : (point.timestamp ? new Date(point.timestamp).toLocaleDateString('ru-RU') : '—');
         const fertility = ai.fertility_score || rawAi.fertility_score || legacyReport.fertility_score || 5;
         const fertilityText = ai.fertility_text || rawAi.fertility_text || legacyReport.fertility_text || '';
@@ -2339,7 +2456,7 @@ function displayCabinetPoints(points) {
         const suitableCrops = ai.suitable_crops || legacyReport.suitable_crops || [];
         const refs = ai.scientific_references || legacyReport.scientific_references || [];
         const detailedAnalysis = ai.detailed_analysis || legacyReport.detailed_analysis || {};
-        const hasAiReport = summary || chemicalAnalysis || risks.length || recommendations.length || suitableCrops.length || refs.length || Object.keys(detailedAnalysis).length;
+        const hasAiReport = summary || chemicalAnalysis || risks.length || recommendations.length || suitableCrops.length || refs.length || Object.keys(detailedAnalysis).length || soilStructure || salinity || regionalAssessment;
 
         html += `
             <div class="ai-report">
@@ -2499,9 +2616,6 @@ function displayCabinetPoints(points) {
                         </button>
                         <button class="btn btn-secondary" onclick="openDynamicsModal('${point.id}')" style="flex:1; font-size:13px;">
                             📊 Динамика
-                        </button>
-                        <button class="btn btn-accent" onclick="openAssistantModal('${point.id}')" style="flex:1; font-size:13px;">
-                            💬 Ассистент
                         </button>
                     </div>
                 </div>
@@ -4076,10 +4190,6 @@ function displayAISoilType(soilTypeResult) {
 }
 
 function getConfirmedSoilType() {
-    if (confirmedSoilType) {
-        return confirmedSoilType;
-    }
-    
     const manualSelect = document.getElementById('form-soil-type') || document.getElementById('step9-soil-type');
     const manualSelection = manualSelect ? manualSelect.value : '';
     if (manualSelection) {
@@ -4090,13 +4200,7 @@ function getConfirmedSoilType() {
             reason: 'Выбрано пользователем вручную'
         };
     }
-    
-    return {
-        soil_ru: 'не определено',
-        soil_wrb: '-',
-        confidence: 0,
-        reason: 'Тип почвы не выбран'
-    };
+    return null;
 }
 
 function showPointPhotos(imagesJson) {

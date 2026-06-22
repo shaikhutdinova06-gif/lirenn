@@ -523,10 +523,12 @@ async def open_ai_chat(request: Request):
     try:
         body = await request.json()
         message = body.get("message", "")
+        context = body.get("context")
         if not message:
             raise HTTPException(status_code=400, detail="Message is required")
 
-        result = await open_chat(message, None)
+        # Pass optional context to open_chat so frontend can provide region/area info
+        result = await open_chat(message, context)
         return {"ok": True, "reply": result.get("reply", "")}
     except HTTPException:
         raise

@@ -236,23 +236,12 @@
                         <p class="form-card-hint">Если вы знаете тип почвы, выберите его из списка. Если нет — ИИ определит тип автоматически после анализа по данным и фото.</p>
                     </div>
                 </div>
-                <div id="ai-soil-type-display"></div>
-                <div id="soil-type-confirmation" style="margin-top: 10px; display: none;">
-                    <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; border-left: 4px solid #2196F3;">
-                        <p style="margin: 0 0 10px 0; font-weight: bold;">ИИ определил тип почвы:</p>
-                        <p id="ai-soil-type-text" style="margin: 0 0 15px 0;"></p>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <button class="btn btn-success" onclick="confirmSoilType(true)" style="font-size: 14px; padding: 8px 16px;">Верно</button>
-                            <button class="btn btn-warning" onclick="confirmSoilType(false)" style="font-size: 14px; padding: 8px 16px;">Неверно</button>
-                            <span style="color: #666; font-size: 12px;">Уверенность: <span id="ai-confidence"></span>%</span>
-                        </div>
-                    </div>
-                </div>
                 <div id="soil-type-selection" style="margin-top: 10px;">
                     <label>Выберите тип почвы:</label>
-                    <select id="form-soil-type" class="input-field">
+                    <select id="form-soil-type" class="input-field" required>
                         <option value="">Выберите тип почвы</option>
                     </select>
+                    <small class="field-help">Обязательно выберите тип почвы вручную. ИИ больше не определяет тип автоматически.</small>
                 </div>
             </div>
 
@@ -436,6 +425,7 @@
             <div style="display: flex; gap: 10px; align-items: flex-end;">
                 <textarea id="ai-chat-input" placeholder="Например: 'Какие экологические риски для участка с таким pH и влажностью?'" rows="3" style="flex: 1; padding: 14px; border-radius: 12px; border: 1px solid #dfe3e8; resize: vertical;"></textarea>
                 <button id="ai-chat-send" class="btn btn-primary" style="height: 48px; padding: 0 24px; white-space: nowrap;">Отправить</button>
+                <button id="ai-chat-area" class="btn btn-secondary" style="height: 48px; padding: 0 18px; white-space: nowrap;">Обсудить район</button>
             </div>
             <div id="ai-chat-hint" style="color: #777; font-size: 13px; margin-top: 8px;">Если вы авторизованы, ваш диалог будет строиться быстрее по данным вашей учётной записи.</div>
         </div>
