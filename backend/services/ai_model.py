@@ -515,8 +515,23 @@ async def open_chat(message, context=None):
     try:
         api = API_KEY
         if not api:
-            fallback = get_fallback_analysis(context or {})
-            return {"reply": fallback.get('summary', 'Данных недостаточно для детального ответа.')}
+            # Build a concise, structured reply from fallback analysis when API is unavailable
+            fb = get_fallback_analysis(context or {})
+            ph_val = (context or {}).get('ph') if context and 'ph' in context else None
+            ph_text = f"pH {ph_val}" if ph_val is not None else ''
+
+            thesis = f"Кратко: {fb.get('soil_type', 'Тип почвы не определён')} {ph_text}. {fb.get('fertility_text','').split('.')[0]}."
+
+            risks_list = fb.get('risks', [])
+            risks = '\n'.join([f"- {r}" for r in risks_list]) if risks_list else '- не выявлено явных рисков'
+
+            recs_list = fb.get('recommendations', [])
+            recs = '\n'.join([f"- {r}" for r in recs_list]) if recs_list else '- рекомендован общий агротехнический уход'
+
+            additional = '- Рекомендованные замеры: содержание N, P, K; органическое вещество; EC (электропроводность) для оценки засоления.'
+
+            reply = f"{thesis}\n\nЭкологические риски:\n{risks}\n\nРекомендации:\n{recs}\n\n{additional}\n\n(Автоматический вывод — для точных рекомендaций сделайте лабораторный анализ конкретных элементов.)"
+            return {"reply": reply}
 
         resp = requests.post(
             "https://api.deepseek.com/v1/chat/completions",
