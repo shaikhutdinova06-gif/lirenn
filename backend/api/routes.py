@@ -496,25 +496,8 @@ async def point_assistant(point_id: str, request: Request):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    try:
-        body = await request.json()
-        message = body.get("message", "")
-
-        # Найти точку и проверить права
-        points = get_points()
-        point = next((p for p in points if p.get("id") == point_id and p.get("user_id") == user["username"]), None)
-        if not point:
-            raise HTTPException(status_code=404, detail="Point not found or access denied")
-
-        # Вызвать AI chat helper
-        result = await chat_for_point(point, message)
-        return {"ok": True, "reply": result.get("reply", "")}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"[API] Assistant error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    # Temporarily disable point assistant
+    raise HTTPException(status_code=503, detail="AI chat temporarily disabled (feature planned soon)")
 
 
 @router.post("/ai/chat")
@@ -526,10 +509,8 @@ async def open_ai_chat(request: Request):
         context = body.get("context")
         if not message:
             raise HTTPException(status_code=400, detail="Message is required")
-
-        # Pass optional context to open_chat so frontend can provide region/area info
-        result = await open_chat(message, context)
-        return {"ok": True, "reply": result.get("reply", "")}
+        # Temporarily disable open chat endpoint
+        raise HTTPException(status_code=503, detail="AI chat temporarily disabled (feature planned soon)")
     except HTTPException:
         raise
     except Exception as e:
