@@ -20,7 +20,8 @@ def verify_password(password: str, hashed_password: str) -> bool:
     try:
         salt, pwd_hash = hashed_password.split('$')
         return pwd_hash == hashlib.sha256((password + salt).encode()).hexdigest()
-    except:
+    except (ValueError, AttributeError) as e:
+        print(f"Password verification error (malformed hash?): {e}")
         return False
 
 # Используем /data для Docker/Amvera, data для локальной разработки
@@ -46,8 +47,8 @@ def get_users():
             try:
                 os.rename(USERS_FILE, backup_file)
                 print(f"Corrupted file backed up to {backup_file}")
-            except:
-                pass
+            except OSError as backup_err:
+                print(f"Failed to create backup of corrupted users file: {backup_err}")
         save_users({})
         return {}
 
@@ -69,8 +70,8 @@ def save_users(users):
         if os.path.exists(temp_file):
             try:
                 os.remove(temp_file)
-            except:
-                pass
+            except OSError as cleanup_err:
+                print(f"Failed to clean up temp file {temp_file}: {cleanup_err}")
         raise
 
 

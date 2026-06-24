@@ -123,8 +123,8 @@ def load_points():
             try:
                 os.rename(DATA_FILE, backup_file)
                 print(f"Corrupted file backed up to {backup_file}")
-            except:
-                pass
+            except OSError as backup_err:
+                print(f"Failed to create backup of corrupted points file: {backup_err}")
         return []
 
 def save_point(point):
@@ -173,8 +173,9 @@ def save_point(point):
         # Очищаем временный файл
         try:
             os.remove(temp_file)
-        except:
-            pass
+        except OSError as cleanup_err:
+            print(f"[STORAGE] Failed to clean up temp file: {cleanup_err}")
+        raise
     
     # Also save to user profile for persistence
     user_id = point.get('user_id')
@@ -395,8 +396,8 @@ def save_user_data(user_id, data):
         if os.path.exists(temp_file):
             try:
                 os.remove(temp_file)
-            except:
-                pass
+            except OSError as cleanup_err:
+                print(f"[USER_DATA] Failed to clean up temp file: {cleanup_err}")
         return {"error": f"Failed to save user data: {str(e)}"}
 
 def initialize_test_location():
@@ -419,8 +420,8 @@ def delete_user_point(user_id, point_id):
         if os.path.exists(temp_file):
             try:
                 os.remove(temp_file)
-            except:
-                pass
+            except OSError as cleanup_err:
+                print(f"Failed to clean up temp file during delete: {cleanup_err}")
         raise
     return True
 
