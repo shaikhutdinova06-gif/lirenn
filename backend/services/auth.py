@@ -6,7 +6,10 @@ import secrets
 import json
 import os
 
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
+_default_secret = secrets.token_hex(32)
+SECRET_KEY = os.getenv("SECRET_KEY", _default_secret)
+if os.getenv("SECRET_KEY") is None:
+    print("WARNING: SECRET_KEY not set — using a random key. Tokens will not survive restarts.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
@@ -85,50 +88,34 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 def register_user(username: str, password: str):
-    print(f"Starting registration for user: {username}")
     users = get_users()
-    print(f"Current users count: {len(users)}")
-    print(f"Users file path: {USERS_FILE}")
     
     if username in users:
-        print(f"User {username} already exists")
         return {"error": "User already exists"}
     
-    print(f"Creating user {username}")
     users[username] = {
         "username": username,
         "hashed_password": hash_password(password),
         "created_at": datetime.utcnow().isoformat()
     }
-    print(f"User data created, saving to file...")
     
     try:
         save_users(users)
-        print(f"User {username} saved successfully")
         return {"status": "ok", "message": "User registered successfully"}
     except Exception as e:
-        print(f"Error saving user {username}: {e}")
-        return {"error": f"Failed to save user: {str(e)}"}
+        print(f"Error saving user: {e}")
+        return {"error": "Failed to save user"}
 
 def authenticate_user(username: str, password: str):
     users = get_users()
-    print(f"Authenticating user: {username}, total users: {len(users)}")
-    print(f"Available users: {list(users.keys())}")
-    print(f"Users file path: {USERS_FILE}")
     
     user = users.get(username)
     if not user:
-        print(f"User {username} not found")
         return False
-    
-    print(f"User found: {username}")
-    print(f"Hashed password exists: {'hashed_password' in user}")
     
     if not verify_password(password, user["hashed_password"]):
-        print(f"Password verification failed for {username}")
         return False
     
-    print(f"Authentication successful for {username}")
     return user
 
 def get_current_user(token: str):

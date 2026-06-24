@@ -130,8 +130,19 @@ async def block1(request: Request):
     except Exception as e:
         return {"error": str(e)}
 @router.get("/points")
-def points():
-    return get_all_points()
+def points(request: Request):
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.replace("Bearer ", "")
+        user = get_current_user(token)
+        if user:
+            return get_all_points()
+    # Unauthenticated users get points without personal data
+    all_pts = get_all_points()
+    return [
+        {k: v for k, v in p.items() if k not in ("user_id", "image", "images", "raw_ai")}
+        for p in all_pts
+    ]
 @router.get("/user-cabinet")
 async def user_cabinet(request: Request):
     """
@@ -181,7 +192,14 @@ async def delete_point(point_id: str, current_user: dict = Depends(get_current_u
         raise HTTPException(status_code=500, detail="Ошибка при удалении точки")
 
 @router.get("/history")
-def history(lat: float, lng: float):
+def history(lat: float, lng: float, request: Request):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization required")
+    token = auth_header.replace("Bearer ", "")
+    user = get_current_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
     return get_point_history(lat, lng)
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -206,6 +224,10 @@ async def register(request: Request):
         
         if not username or not password:
             raise HTTPException(status_code=400, detail="Username and password required")
+        if len(username) < 3 or len(username) > 50:
+            raise HTTPException(status_code=400, detail="Username must be 3-50 characters")
+        if len(password) < 8 or len(password) > 128:
+            raise HTTPException(status_code=400, detail="Password must be 8-128 characters")
         
         result = register_user(username, password)
         if "error" in result:
@@ -220,9 +242,6 @@ async def register(request: Request):
 @router.post("/login")
 async def login(request: Request):
     """Вход пользователя"""
-    print(f"Login endpoint called with method: {request.method}")
-    print(f"Request headers: {dict(request.headers)}")
-    
     try:
         data = await request.json()
         username = data.get("username")
@@ -254,21 +273,15 @@ async def login(request: Request):
 # SATELLITE IMAGERY ENDPOINTS
 # =========================
 
-@router.get("/satellite-test")
-def satellite_test():
-    """Test endpoint to verify satellite route is working"""
-    import os
-    return {
-        "status": "ok",
-        "message": "Satellite endpoint is accessible",
-        "env_vars": [k for k in os.environ.keys() if 'SENTINEL' in k]
-    }
-
 @router.get("/satellite")
 def satellite(lat: float, lng: float, width: int = 512, height: int = 512):
     """
     Get real satellite image from Sentinel-2 for given coordinates
     """
+    if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
+        raise HTTPException(status_code=400, detail="Invalid coordinates")
+    width = min(max(width, 64), 2048)
+    height = min(max(height, 64), 2048)
     print(f"[API /satellite] Request received: lat={lat}, lng={lng}")
     
     # Check if env var is set
@@ -279,11 +292,12 @@ def satellite(lat: float, lng: float, width: int = 512, height: int = 512):
     print(f"[API /satellite] SENTINEL_INSTANCE_ID: {'SET' if instance_id else 'NOT SET'}")
     print(f"[API /satellite] SENTINEL_CLIENT_ID: {'SET' if client_id else 'NOT SET'}")
     
-    # Fallback to hardcoded key if env not set
     if not instance_id and not client_id:
-        print(f"[API /satellite] No env vars set, using hardcoded key")
-        os.environ["SENTINEL_INSTANCE_ID"] = "PLAK1e9d4e8d569b4660af940ff20a9865cb"
-        print(f"[API /satellite] Set env var temporarily")
+        print(f"[API /satellite] No env vars set, satellite imagery unavailable")
+        return {
+            "success": False,
+            "error": "Satellite credentials not configured. Set SENTINEL_CLIENT_ID and SENTINEL_CLIENT_SECRET environment variables."
+        }
     
     try:
         result = get_satellite_image(lat, lng, width, height)
@@ -302,14 +316,11 @@ def satellite(lat: float, lng: float, width: int = 512, height: int = 512):
 def satellite_ndvi(lat: float, lng: float, width: int = 512, height: int = 512):
     """
     Get NDVI (vegetation health) satellite image
-    
-    NDVI shows vegetation health:
-    - Red: barren/urban areas
-    - Orange: sparse vegetation
-    - Yellow: moderate vegetation
-    - Light green: healthy vegetation
-    - Dark green: very healthy vegetation
     """
+    if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
+        raise HTTPException(status_code=400, detail="Invalid coordinates")
+    width = min(max(width, 64), 2048)
+    height = min(max(height, 64), 2048)
     try:
         result = get_ndvi_image(lat, lng, width, height)
         return result

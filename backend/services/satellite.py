@@ -9,12 +9,12 @@ from datetime import datetime, timedelta
 import base64
 from typing import Dict, Any
 
-# Load credentials from environment
-INSTANCE_ID = os.getenv("SENTINEL_INSTANCE_ID", "PLAK1e9d4e8d569b4660af940ff20a9865cb")
+# Load credentials from environment (no hardcoded fallbacks)
+INSTANCE_ID = os.getenv("SENTINEL_INSTANCE_ID", "")
 
 # OAuth credentials for Sentinel Hub (for high-res NDVI)
-CLIENT_ID = os.getenv("SENTINEL_CLIENT_ID", "TcXdcr0FAOkbwGfFC1PNgeRNJUX4H1T6")
-CLIENT_SECRET = os.getenv("SENTINEL_CLIENT_SECRET", "a9ae8169-9c86-4bc9-a64b-ad907736c1f9")
+CLIENT_ID = os.getenv("SENTINEL_CLIENT_ID", "")
+CLIENT_SECRET = os.getenv("SENTINEL_CLIENT_SECRET", "")
 
 # Cache for OAuth token
 _oauth_token = None
